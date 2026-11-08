@@ -9,6 +9,8 @@ import type { LoginInput, RegisterInput } from "./auth.validator.js";
 const refreshExpiry = () =>
   new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
 
+const dummyPasswordHash = hashPassword("playgeng-invalid-login-dummy-password");
+
 const createSessionTokens = async (
   userId: string,
   sessionId: string,
@@ -52,6 +54,7 @@ export const register = async (
   input: RegisterInput,
   metadata: { userAgent?: string; ipAddress?: string },
 ) => {
+  const passwordHash = await hashPassword(input.password);
   const existing = await authDb.findUserByEmail(input.email);
   if (existing) {
     if (existing.status === "ACTIVE" && !existing.emailVerifiedAt) {
@@ -79,8 +82,7 @@ export const register = async (
       message: "If the account can be registered, verification instructions will be sent to the supplied email address.",
     };
   }
-
-  const passwordHash = await hashPassword(input.password);
+ 
   const user = await authDb.createUser(input, passwordHash);
   const verificationToken = createOpaqueToken();
 
@@ -105,13 +107,10 @@ export const login = async (
   metadata: { userAgent?: string; ipAddress?: string },
 ) => {
   const user = await authDb.findUserByEmail(input.email);
+  const passwordHash = user?.passwordHash ?? (await dummyPasswordHash);
+  const passwordMatches = await verifyPassword(input.password, passwordHash);
 
-  if (
-    !user ||
-    user.status !== "ACTIVE" ||
-    !(await verifyPassword(input.password, user.passwordHash)) ||
-    !user.emailVerifiedAt
-  ) {
+  if (!user || user.status !== "ACTIVE" || !passwordMatches || !user.emailVerifiedAt) {
     throw new AppError("Unable to sign in. Check your credentials and account status.", 401);
   }
 
