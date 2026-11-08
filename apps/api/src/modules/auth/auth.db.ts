@@ -78,7 +78,7 @@ export const rotateSession = async (input: {
       where: { id: input.sessionId },
     });
 
-    await tx.authSession.create({
+    return tx.authSession.create({
       data: {
         userId: current.userId,
         tokenHash: input.newTokenHash,
@@ -87,8 +87,6 @@ export const rotateSession = async (input: {
         ipAddress: current.ipAddress,
       },
     });
-
-    return true;
   });
 
 export const revokeSessionByTokenHash = (tokenHash: string) =>
