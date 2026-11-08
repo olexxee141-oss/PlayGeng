@@ -72,7 +72,7 @@ export const rotateSession = async (input: {
       data: { revokedAt: new Date() },
     });
 
-    if (revoked.count !== 1) return false;
+    if (revoked.count !== 1) return null;
 
     const current = await tx.authSession.findUniqueOrThrow({
       where: { id: input.sessionId },
