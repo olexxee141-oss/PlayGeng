@@ -1,6 +1,10 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import { env } from "./config/env.js";
+import { logger } from "./config/logger.js";
+import { errorMiddleware } from "./shared/middlewares/error.middleware.js";
+import { notFoundMiddleware } from "./shared/middlewares/not-found.middleware.js";
 
 export const createApp = () => {
   const app = express();
@@ -9,7 +13,7 @@ export const createApp = () => {
   app.use(helmet());
   app.use(
     cors({
-      origin: process.env.WEB_URL ?? "http://localhost:5173",
+      origin: env.WEB_URL,
       credentials: true,
     }),
   );
@@ -26,6 +30,11 @@ export const createApp = () => {
       },
     });
   });
+
+  app.use(notFoundMiddleware);
+  app.use(errorMiddleware);
+
+  logger.info("PlayGeng API application initialized");
 
   return app;
 };
