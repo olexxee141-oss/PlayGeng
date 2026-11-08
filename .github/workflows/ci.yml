@@ -26,3 +26,6 @@ jobs:
 
       - name: Typecheck workspaces
         run: npm run typecheck
+
+      - name: Build workspaces
+        run: npm run build
