@@ -54,7 +54,30 @@ export const register = async (
 ) => {
   const existing = await authDb.findUserByEmail(input.email);
   if (existing) {
-    throw new AppError("An account with these details could not be created.", 409);
+    if (existing.status === "ACTIVE" && !existing.emailVerifiedAt) {
+      const verificationToken = createOpaqueToken();
+      await authDb.createEmailVerificationToken(
+        existing.id,
+        hashToken(verificationToken),
+        new Date(Date.now() + 24 * 60 * 60 * 1000),
+      );
+      const emailSent = await sendVerificationEmail(
+        existing.email,
+        existing.firstName,
+        verificationToken,
+      );
+
+      return {
+        message: "If the account can be registered, verification instructions will be sent to the supplied email address.",
+        ...(env.NODE_ENV !== "production" && !emailSent
+          ? { developmentVerificationToken: verificationToken }
+          : {}),
+      };
+    }
+
+    return {
+      message: "If the account can be registered, verification instructions will be sent to the supplied email address.",
+    };
   }
 
   const passwordHash = await hashPassword(input.password);
@@ -70,14 +93,7 @@ export const register = async (
   const emailSent = await sendVerificationEmail(user.email, user.firstName, verificationToken);
 
   return {
-    user: {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      emailVerified: false,
-    },
-    message: "Account created. Verify your email before signing in.",
+    message: "If the account can be registered, verification instructions will be sent to the supplied email address.",
     ...(env.NODE_ENV !== "production" && !emailSent
       ? { developmentVerificationToken: verificationToken }
       : {}),
