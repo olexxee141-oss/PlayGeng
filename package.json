@@ -14,8 +14,8 @@
     "db:migrate:dev": "npm run db:migrate:dev --workspace=@playgeng/database",
     "db:migrate:deploy": "npm run db:migrate:deploy --workspace=@playgeng/database",
     "db:studio": "npm run db:studio --workspace=@playgeng/database",
-    "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspace=@playgeng/database && npm run build --workspace=@playgeng/api && npm run build --workspace=@playgeng/web",
+    "typecheck": "npm run build --workspace=@playgeng/database && npm run typecheck --workspace=@playgeng/api && npm run typecheck --workspace=@playgeng/web",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
   },
