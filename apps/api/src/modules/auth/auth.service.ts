@@ -188,3 +188,60 @@ export const getCurrentUser = async (userId: string) => {
 
   return user;
 };
+
+export const forgotPassword = async (email: string) => {
+  const genericMessage = "If an eligible account exists, password reset instructions will be sent to its email address.";
+  const user = await authDb.findUserByEmail(email);
+
+  if (!user || user.status !== "ACTIVE" || !user.emailVerifiedAt) {
+    return { message: genericMessage };
+  }
+
+  const token = createOpaqueToken();
+  await authDb.createPasswordResetToken(
+    user.id,
+    hashToken(token),
+    new Date(Date.now() + 60 * 60 * 1000),
+  );
+
+  if (env.RESEND_API_KEY) {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: env.EMAIL_FROM,
+        to: [user.email],
+        subject: "Reset your PlayGeng password",
+        text: `Hi ${user.firstName},\n\nYour password reset code is:\n\n${token}\n\nThis code expires in one hour. If you did not request this, ignore this email.`,
+      }),
+    });
+
+    if (!response.ok) {
+      logger.error({ status: response.status }, "Password reset email delivery failed");
+      throw new AppError("Unable to send password reset instructions.", 502);
+    }
+  } else {
+    logger.warn({ email: user.email }, "Password reset email was not delivered because RESEND_API_KEY is not configured");
+  }
+
+  return {
+    message: genericMessage,
+    ...(env.NODE_ENV !== "production" && !env.RESEND_API_KEY
+      ? { developmentResetToken: token }
+      : {}),
+  };
+};
+
+export const resetPassword = async (token: string, password: string) => {
+  const passwordHash = await hashPassword(password);
+  const updated = await authDb.consumePasswordResetToken(hashToken(token), passwordHash);
+
+  if (!updated) {
+    throw new AppError("Password reset code is invalid or expired.", 400);
+  }
+
+  return { message: "Password reset successfully. Sign in with your new password." };
+};
