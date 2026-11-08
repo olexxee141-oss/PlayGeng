@@ -140,7 +140,7 @@ export const refresh = async (refreshToken: string) => {
   }
 
   return {
-    tokens: await createSessionTokens(session.userId, session.id, nextRefreshToken),
+    tokens: await createSessionTokens(session.userId, rotated.id, nextRefreshToken),
   };
 };
 
