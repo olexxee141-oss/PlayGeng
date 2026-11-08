@@ -1,0 +1,35 @@
+{
+  "name": "playgeng",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sports community and tournament management platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=@playgeng/api",
+    "dev:web": "npm run dev --workspace=@playgeng/web",
+    "db:generate": "npm run db:generate --workspace=@playgeng/database",
+    "db:migrate:dev": "npm run db:migrate:dev --workspace=@playgeng/database",
+    "db:migrate:deploy": "npm run db:migrate:deploy --workspace=@playgeng/database",
+    "db:studio": "npm run db:studio --workspace=@playgeng/database",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=26.0.0",
+    "npm": ">=11.0.0"
+  },
+  "allowScripts": {
+    "prisma": true,
+    "@prisma/engines": true,
+    "esbuild": true
+  }
+}
