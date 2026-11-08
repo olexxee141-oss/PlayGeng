@@ -36,12 +36,12 @@ All request bodies are validated at the HTTP boundary. Responses use the common 
 ## Security requirements
 
 - Do not reveal whether an email exists in login, registration, or password-reset responses where that would enable account enumeration.
-- Apply rate limiting to registration, login, verification, refresh and password-reset endpoints before production exposure.
+- Apply rate limiting to all authentication endpoints. The initial API uses an in-memory IP limiter; production multi-instance deployments must use a shared store.
 - Never log credentials, access tokens, refresh tokens, verification tokens or reset tokens.
 - Refresh token rotation and one-time token consumption must be atomic.
 - Enforce email verification and active account status in backend services, not only in clients.
 - Use HTTPS in every non-local environment.
 
-## Deferred decisions
+## Delivery notes\n\nThe initial implementation uses Resend for verification and password-reset email. Local development can expose one-time tokens in API responses when Resend is not configured; this behavior is disabled in production. Configure RESEND_API_KEY and EMAIL_FROM before production deployment.\n\n## Deferred decisions
 
 OAuth providers, phone-number login, MFA, device management and social login are intentionally deferred until the email/password flow is secure and tested.
