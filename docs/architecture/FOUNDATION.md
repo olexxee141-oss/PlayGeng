@@ -55,6 +55,19 @@ The API foundation will provide:
 - Authentication and authorization middleware
 - Health and readiness endpoints
 
+## Database workspace
+
+The database package owns the single Prisma client instance, PostgreSQL adapter, schema and migrations. Application modules must import the shared client; they must never instantiate their own Prisma clients.
+
+Prisma Client is generated into `packages/database/src/generated/prisma` and is not committed. Run:
+
+- `npm run db:generate` after changing the schema or installing dependencies.
+- `npm run db:migrate:dev -- --name <migration-name>` for local development migrations.
+- `npm run db:migrate:deploy` in deployment environments.
+- `npm run db:studio` to inspect the local database.
+
+Start the local PostgreSQL service with `docker compose up -d postgres`. The initial schema deliberately contains no business models yet; we will define the domain model before creating the first migration rather than guessing at financial and membership relationships.
+
 ## Financial integrity constraints
 
 Financial functionality must use an auditable ledger. A cached balance may be introduced for read performance later, but it must never become the authoritative financial record.
