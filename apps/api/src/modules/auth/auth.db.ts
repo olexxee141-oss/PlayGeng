@@ -141,3 +141,58 @@ export const consumeEmailVerificationToken = async (tokenHash: string) =>
       },
     });
   });
+
+export const createPasswordResetToken = async (
+  userId: string,
+  tokenHash: string,
+  expiresAt: Date,
+) =>
+  prisma.$transaction(async (tx) => {
+    await tx.passwordResetToken.deleteMany({
+      where: { userId, consumedAt: null },
+    });
+    return tx.passwordResetToken.create({
+      data: { userId, tokenHash, expiresAt },
+    });
+  });
+
+export const consumePasswordResetToken = async (
+  tokenHash: string,
+  passwordHash: string,
+) =>
+  prisma.$transaction(async (tx) => {
+    const token = await tx.passwordResetToken.findFirst({
+      where: {
+        tokenHash,
+        consumedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!token) return false;
+
+    const consumed = await tx.passwordResetToken.updateMany({
+      where: { id: token.id, consumedAt: null },
+      data: { consumedAt: new Date() },
+    });
+
+    if (consumed.count !== 1) return false;
+
+    await tx.user.update({
+      where: { id: token.userId },
+      data: { passwordHash },
+    });
+
+    await tx.authSession.updateMany({
+      where: { userId: token.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    return true;
+  });
+
+export const revokeAllUserSessions = (userId: string) =>
+  prisma.authSession.updateMany({
+    where: { userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
