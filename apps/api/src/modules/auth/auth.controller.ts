@@ -37,3 +37,13 @@ export const me: RequestHandler = async (_req, res) => {
   const user = await authService.getCurrentUser(auth.userId);
   res.status(200).json({ success: true, data: { user } });
 };
+
+export const forgotPassword: RequestHandler = async (req, res) => {
+  const data = await authService.forgotPassword(req.body.email);
+  res.status(200).json({ success: true, message: data.message, data });
+};
+
+export const resetPassword: RequestHandler = async (req, res) => {
+  const data = await authService.resetPassword(req.body.token, req.body.password);
+  res.status(200).json({ success: true, message: data.message });
+};
