@@ -16,7 +16,7 @@ const envSchema = z.object({
   JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().email().default("PlayGeng <onboarding@resend.dev>"),
+  EMAIL_FROM: z.string().default("PlayGeng <onboarding@resend.dev>"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("debug"),
 });
 
