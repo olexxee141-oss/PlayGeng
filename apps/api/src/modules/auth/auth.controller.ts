@@ -2,10 +2,15 @@ import type { RequestHandler } from "express";
 import * as authService from "./auth.service.js";
 import type { AuthContext } from "./auth.middleware.js";
 
-const metadata = (req: Parameters<RequestHandler>[0]) => ({
-  ...(req.get("user-agent") ? { userAgent: req.get("user-agent") } : {}),
-  ...(req.ip ? { ipAddress: req.ip } : {}),
-});
+const metadata = (req: Parameters<RequestHandler>[0]) => {
+  const userAgent = req.get("user-agent");
+  const ipAddress = req.ip;
+
+  return {
+    ...(userAgent ? { userAgent } : {}),
+    ...(ipAddress ? { ipAddress } : {}),
+  };
+};
 
 export const register: RequestHandler = async (req, res) => {
   const data = await authService.register(req.body, metadata(req));
