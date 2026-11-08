@@ -1,0 +1,26 @@
+{
+  "name": "playgeng",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sports community and tournament management platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=@playgeng/api",
+    "dev:web": "npm run dev --workspace=@playgeng/web",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=26.0.0",
+    "npm": ">=11.0.0"
+  }
+}
