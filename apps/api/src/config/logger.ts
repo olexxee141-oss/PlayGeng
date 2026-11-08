@@ -13,14 +13,15 @@ export const logger = pino({
     ],
     censor: "[REDACTED]",
   },
-  transport:
-    env.NODE_ENV === "development"
-      ? {
+  ...(env.NODE_ENV === "development"
+    ? {
+        transport: {
           target: "pino-pretty",
           options: {
             colorize: true,
             translateTime: "SYS:standard",
           },
-        }
-      : undefined,
+        },
+      }
+    : {}),
 });
