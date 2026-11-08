@@ -1,19 +1,19 @@
-import "dotenv/config";
-
 import { createApp } from "./app.js";
+import { env } from "./config/env.js";
+import { logger } from "./config/logger.js";
 
-const port = Number(process.env.API_PORT ?? 4000);
 const app = createApp();
 
-const server = app.listen(port, () => {
-  console.info(`PlayGeng API listening on port ${port}`);
+const server = app.listen(env.API_PORT, () => {
+  logger.info({ port: env.API_PORT }, "PlayGeng API listening");
 });
 
 const shutdown = (signal: string) => {
-  console.info(`${signal} received. Shutting down API server...`);
+  logger.info({ signal }, "Shutting down PlayGeng API");
+
   server.close((error) => {
     if (error) {
-      console.error("Error while shutting down API server", error);
+      logger.error({ err: error }, "Error while shutting down API server");
       process.exitCode = 1;
     }
   });
