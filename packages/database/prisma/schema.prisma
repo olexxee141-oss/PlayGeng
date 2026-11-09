@@ -470,6 +470,7 @@ model CompetitionFixture {
   participantAEntryId   String
   participantBEntryId   String?
   winnerEntryId         String?
+  byeAdvances           Boolean                 @default(false)
   status                CompetitionFixtureStatus @default(SCHEDULED)
   scheduledAt           DateTime?
   venue                 String?                 @db.VarChar(200)
