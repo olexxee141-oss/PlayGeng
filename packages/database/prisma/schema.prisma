@@ -167,7 +167,6 @@ model CommunityMember {
   user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([communityId, userId])
-  @@unique([communityId, id])
   teamMemberships TeamMember[]
   @@index([userId])
   @@index([communityId, role])
@@ -186,7 +185,7 @@ model CommunitySport {
   teams     Team[]
 
   @@unique([communityId, sport])
-  @@unique([communityId, id])
+  @@unique([id, communityId])
   @@index([communityId, isPrimary])
   @@map("community_sports")
 }
