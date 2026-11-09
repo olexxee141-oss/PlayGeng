@@ -31,7 +31,12 @@ export const getCommunity = async (communityId: string, userId: string) => {
 
 export const updateCommunity = async (communityId: string, userId: string, input: UpdateCommunityInput) => {
   await requirePrivilegedMembership(communityId, userId);
-  return db.updateCommunity(communityId, input);
+  const data = {
+    ...(input.name !== undefined ? { name: input.name } : {}),
+    ...(input.description !== undefined ? { description: input.description } : {}),
+    ...(input.sport !== undefined ? { sport: input.sport } : {}),
+  };
+  return db.updateCommunity(communityId, data);
 };
 
 export const archiveCommunity = async (communityId: string, userId: string) => {
