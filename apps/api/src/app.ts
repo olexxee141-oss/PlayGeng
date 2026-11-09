@@ -3,6 +3,7 @@ import express from "express";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { authRoutes } from "./modules/auth/auth.routes.js";
+import { communityRoutes } from "./modules/communities/communities.routes.js";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { errorMiddleware } from "./shared/middlewares/error.middleware.js";
@@ -34,6 +35,7 @@ export const createApp = () => {
   });
 
   app.use("/api/v1/auth", authLimiter, authRoutes);
+  app.use("/api/v1/communities", communityRoutes);
 
   app.get("/health", (_req, res) => {
     res.status(200).json({
