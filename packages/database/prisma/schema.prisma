@@ -40,6 +40,30 @@ enum CommunityMemberRole {
   MEMBER
 }
 
+enum Sport {
+  FOOTBALL
+  BASKETBALL
+  VOLLEYBALL
+  TENNIS
+  TABLE_TENNIS
+  BADMINTON
+  CRICKET
+  RUGBY
+  ESPORTS
+  OTHER
+}
+
+enum TeamStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum TeamMemberRole {
+  CAPTAIN
+  COACH
+  PLAYER
+}
+
 model User {
   id                       String                  @id @default(cuid())
   email                    String                  @unique @db.VarChar(320)
@@ -57,6 +81,7 @@ model User {
   communityMemberships     CommunityMember[]
   createdMatches          Match[]                 @relation("MatchCreator")
   matchParticipations     MatchParticipant[]
+  teamMemberships         TeamMember[]
 
   @@index([status])
   @@map("users")
@@ -121,6 +146,8 @@ model Community {
   owner       User             @relation("CommunityOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   members     CommunityMember[]
   matches     Match[]
+  sports      CommunitySport[]
+  teams       Team[]
 
   @@index([ownerId])
   @@index([status])
@@ -139,9 +166,69 @@ model CommunityMember {
   user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([communityId, userId])
+  @@unique([communityId, id])
   @@index([userId])
   @@index([communityId, role])
   @@map("community_members")
+}
+
+
+model CommunitySport {
+  id          String   @id @default(cuid())
+  communityId String
+  sport       Sport
+  isPrimary   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  teams     Team[]
+
+  @@unique([communityId, sport])
+  @@unique([communityId, id])
+  @@index([communityId, isPrimary])
+  @@map("community_sports")
+}
+
+model Team {
+  id               String     @id @default(cuid())
+  communityId      String
+  communitySportId String
+  name             String     @db.VarChar(100)
+  shortName        String?    @db.VarChar(20)
+  description      String?    @db.VarChar(500)
+  status           TeamStatus @default(ACTIVE)
+  createdById      String
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  community Community      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  sport     CommunitySport @relation(fields: [communitySportId, communityId], references: [id, communityId], onDelete: Restrict)
+  members   TeamMember[]
+
+  @@unique([id, communityId])
+  @@unique([communityId, name])
+  @@index([communityId, status])
+  @@index([communitySportId, status])
+  @@map("teams")
+}
+
+model TeamMember {
+  id          String         @id @default(cuid())
+  communityId String
+  teamId      String
+  userId      String
+  role        TeamMemberRole @default(PLAYER)
+  joinedAt    DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  team Team            @relation(fields: [teamId, communityId], references: [id, communityId], onDelete: Cascade)
+  member CommunityMember @relation(fields: [communityId, userId], references: [communityId, userId], onDelete: Cascade)
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([communityId, userId])
+  @@index([userId, joinedAt])
+  @@map("team_members")
 }
 
 
