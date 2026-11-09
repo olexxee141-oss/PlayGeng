@@ -48,11 +48,8 @@ A team roster membership is not itself a competition participant. A tournament e
 - No changes to the fixed Prisma `Sport` enum.
 - No claim of full official-rule support from the generic envelope.
 
-## Next implementation gate
+## Current implementation gates
 
-Before competition persistence, define and test:
-1. Generic competition and competition participant records, scoped to a community and sport.
-2. Team/player participant identity and registration snapshots.
-3. Sport adapter interface and adapter version stored with each competition.
-4. Result report, dispute, evidence and approval records.
-5. Idempotent progression rules that only consume approved results.
+- Competition persistence, registration and invite-only workflows are defined in [COMPETITION_FOUNDATION.md](./COMPETITION_FOUNDATION.md).
+- Deterministic, participant-agnostic scheduling is defined in [DETERMINISTIC_SCHEDULING.md](./DETERMINISTIC_SCHEDULING.md).
+- Sport-specific result validation, standings and statistics remain separate adapter work. A generic schedule must not infer sport scoring rules.

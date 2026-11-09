@@ -1574,6 +1574,7 @@ FINANCE, PAYMENTS, NOTIFICATIONS & EXPANSION
 - Phase 5 — Community sports, teams and rosters: merged.
 - Phase 6 — Sport capability and result contracts: merged (PR #8).
 - Phase 7 — Competition and participant foundation: merged (PR #10 and PR #11).
+- Phase 8 — Scheduling, fixtures and results: in progress (deterministic pure scheduler and contract tests first).
 
 ### What was established in Phase 6
 
@@ -1628,13 +1629,13 @@ Required tests cover cross-community access, invalid participant type/sport comb
 
 **Out of scope for Phase 7:** fixture generation, bracket progression, standings calculation, result approval and sport-specific statistics. These belong in later phases after the foundation is proven.
 
-### Next — Phase 8: Scheduling, Fixtures and Results
+### Phase 8 — Scheduling, Fixtures and Results
 
-Phase 8 will adapt and implement scheduling concepts from newDelyx against PlayGeng's generic participant model. Round-robin and knockout generation must be deterministic, tested for edge cases, and independent of whether an entry represents a player or a team. Before implementation, define a versioned scheduler contract, stable seeding rules, idempotent fixture generation, byes, home/away balancing where relevant, and transactional protection against duplicate generation. Do not copy newDelyx's player-centric fixture schema or randomized shuffle implementation.
+Phase 8 starts with a pure deterministic scheduler contract and tests before fixture persistence. Round-robin uses the circle method; knockout uses standard seed placement and produces only the first round with explicit byes. Both consume generic CompetitionEntry IDs. The contract is documented in docs/architecture/DETERMINISTIC_SCHEDULING.md. Fixture persistence must later be idempotent, competition-scoped, versioned, and transactional. Do not copy newDelyx's player-centric fixture schema or randomized shuffle implementation.
 
 ### Session checkpoint — November 9, 2026
 
-Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is complete: PR #10 merged competition/entry persistence, registration, approval, withdrawal, lifecycle and PostgreSQL integration coverage; PR #11 merged invite-only invitations for individual players and team captains, including expiry, authorization, and capacity-safe acceptance. Email/push invitation delivery is deferred to the notifications phase. Next is Phase 8 scheduling, fixtures and results. Use the newDelyx audit as design input, not as code to copy.
+Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is complete: PR #10 merged competition/entry persistence, registration, approval, withdrawal, lifecycle and PostgreSQL integration coverage; PR #11 merged invite-only invitations for individual players and team captains, including expiry, authorization, and capacity-safe acceptance. Email/push invitation delivery is deferred to the notifications phase. Phase 8 is in progress: first implement and test deterministic generic scheduling before adding fixture persistence. Use the newDelyx audit as design input, not as code to copy.
 
 ---
 
