@@ -118,14 +118,16 @@ test("invite-only competitions invite and admit only the intended player or team
       format: "ROUND_ROBIN",
       participantType: "PLAYER",
       registrationMode: "INVITE_ONLY",
-      maxEntries: 1,
+      maxEntries: 2,
     });
     await transitionCompetition(community.id, capacityCompetition.id, owner.id, "REGISTRATION_OPEN");
     const playerCapacityInvite = await createInvitation(community.id, capacityCompetition.id, owner.id, { playerUserId: player.id });
     const captainCapacityInvite = await createInvitation(community.id, capacityCompetition.id, owner.id, { playerUserId: captain.id });
+    const ownerCapacityInvite = await createInvitation(community.id, capacityCompetition.id, owner.id, { playerUserId: owner.id });
     await acceptInvitation(community.id, capacityCompetition.id, playerCapacityInvite.id, player.id);
+    await acceptInvitation(community.id, capacityCompetition.id, captainCapacityInvite.id, captain.id);
     await assert.rejects(
-      acceptInvitation(community.id, capacityCompetition.id, captainCapacityInvite.id, captain.id),
+      acceptInvitation(community.id, capacityCompetition.id, ownerCapacityInvite.id, owner.id),
       (error: unknown) => error instanceof AppError && error.statusCode === 409,
     );
 
