@@ -18,6 +18,7 @@ CREATE TABLE "competition_schedules" (
   "format" "CompetitionFormat" NOT NULL,
   "algorithmVersion" VARCHAR(32) NOT NULL,
   "participantCount" INTEGER NOT NULL,
+  "roundCount" INTEGER NOT NULL,
   "fixtureCount" INTEGER NOT NULL,
   "matchCount" INTEGER NOT NULL,
   "byeCount" INTEGER NOT NULL,
@@ -27,6 +28,7 @@ CREATE TABLE "competition_schedules" (
   CONSTRAINT "competition_schedules_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "competition_schedules_counts_check" CHECK (
     "participantCount" >= 2 AND
+    "roundCount" >= 1 AND
     "fixtureCount" >= 1 AND
     "matchCount" >= 1 AND
     "byeCount" >= 0 AND
