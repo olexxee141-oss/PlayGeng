@@ -101,7 +101,7 @@ ALTER TABLE "competition_fixtures"
   FOREIGN KEY ("participantAEntryId", "competitionId") REFERENCES "competition_entries"("id", "competitionId") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "competition_fixtures"
   ADD CONSTRAINT "competition_fixtures_participantBEntryId_competitionId_fkey"
-  FOREIGN KEY ("participantBEntryId", "competitionId") REFERENCES "competition_entries"("id", "competitionId") ON DELETE RESTRICT ON UPDATE CASCADE;
+  FOREIGN KEY ("participantBEntryId", "competitionId") REFERENCES "competition_entries"("id", "competitionId") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "competition_fixtures"
   ADD CONSTRAINT "competition_fixtures_winnerEntryId_competitionId_fkey"
-  FOREIGN KEY ("winnerEntryId", "competitionId") REFERENCES "competition_entries"("id", "competitionId") ON DELETE RESTRICT ON UPDATE CASCADE;
+  FOREIGN KEY ("winnerEntryId", "competitionId") REFERENCES "competition_entries"("id", "competitionId") ON DELETE CASCADE ON UPDATE CASCADE;
