@@ -61,9 +61,22 @@ test("competition registration enforces tenant boundaries, re-registration, and 
     });
     await transitionCompetition(first.community.id, approvalCompetition.id, first.user.id, "REGISTRATION_OPEN");
     const pendingEntry = await registerEntry(first.community.id, approvalCompetition.id, first.user.id, { teamId: teams[3]!.id });
+    const secondPendingEntry = await registerEntry(first.community.id, approvalCompetition.id, first.user.id, { teamId: teams[2]!.id });
     assert.equal(pendingEntry.status, "PENDING");
+    assert.equal(secondPendingEntry.status, "PENDING");
+    await transitionCompetition(first.community.id, approvalCompetition.id, first.user.id, "REGISTRATION_CLOSED");
+    await assert.rejects(
+      generateSchedule(first.community.id, approvalCompetition.id, first.user.id),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
     const approvedEntry = await reviewEntry(first.community.id, approvalCompetition.id, pendingEntry.id, first.user.id, { decision: "APPROVED" });
+    const secondApprovedEntry = await reviewEntry(first.community.id, approvalCompetition.id, secondPendingEntry.id, first.user.id, { decision: "APPROVED" });
     assert.equal(approvedEntry.status, "APPROVED");
+    assert.equal(secondApprovedEntry.status, "APPROVED");
+    const approvedKnockoutSchedule = await generateSchedule(first.community.id, approvalCompetition.id, first.user.id);
+    assert.equal(approvedKnockoutSchedule.format, "KNOCKOUT");
+    assert.equal(approvedKnockoutSchedule.matchCount, 1);
+    assert.equal(approvedKnockoutSchedule.byeCount, 0);
 
     const player = await prisma.user.create({
       data: {
