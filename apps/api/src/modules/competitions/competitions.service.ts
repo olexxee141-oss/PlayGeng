@@ -80,11 +80,14 @@ const allowedTransitions: Readonly<Record<CompetitionStatus, readonly Competitio
   CANCELLED: [],
 };
 
+export const canTransitionCompetition = (current: CompetitionStatus, next: CompetitionStatus) =>
+  next !== "COMPLETED" && allowedTransitions[current].includes(next);
+
 export const transitionCompetition = async (communityId: string, competitionId: string, userId: string, nextStatus: CompetitionStatus) => {
   await requireManager(communityId, userId);
   const competition = await requireCompetition(communityId, competitionId);
-  if (nextStatus === "COMPLETED") throw new AppError("A competition can only be completed after fixture and result verification is implemented.", 409);
-  if (!allowedTransitions[competition.status].includes(nextStatus)) {
+  if (!canTransitionCompetition(competition.status, nextStatus)) {
+    if (nextStatus === "COMPLETED") throw new AppError("A competition can only be completed after fixture and result verification is implemented.", 409);
     throw new AppError(`Competition cannot transition from ${competition.status} to ${nextStatus}.`, 409);
   }
   if (nextStatus === "REGISTRATION_OPEN" && competition.registrationOpensAt && competition.registrationOpensAt > new Date()) {
