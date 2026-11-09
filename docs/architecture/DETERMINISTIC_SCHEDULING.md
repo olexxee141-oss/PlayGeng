@@ -63,7 +63,8 @@ Persistence enforces:
 - Explicit positive seeds are unique among active entries and can only be assigned after registration closes and before generation.
 - Schedule generation and fixture insertion happen in one transaction.
 - Repeated generation requests return the existing schedule rather than creating duplicate fixtures.
-- Once a schedule is generated, registration and withdrawal are frozen.
+- Schedule generation requires every pending registration to be resolved; pending invitations are cancelled in the same transaction.
+- Once a schedule is generated, registration, withdrawal, and seed changes are frozen.
 - Store algorithm version and seed/order metadata with the schedule for auditability.
 
 The schedule-generation endpoint is idempotent: repeat calls return the existing schedule. Fixture insertion and the competition transition to IN_PROGRESS happen in one serializable transaction. Manual status changes cannot move a competition to IN_PROGRESS; schedule generation owns that transition.
@@ -93,7 +94,7 @@ No fixture persistence or result workflow should be added until this contract an
 - `POST /api/v1/communities/:communityId/competitions/:competitionId/schedule`: generate the schedule once and return the existing schedule on repeat calls.
 - `GET /api/v1/communities/:communityId/competitions/:competitionId/schedule`: retrieve the schedule and ordered fixtures.
 
-Round-robin generates the complete set of rounds. Knockout generates only round one; later rounds require approved winners and belong to the progression/result workflow.
+Round-robin generates the complete set of rounds. Knockout generates only round one; later rounds require approved winners and belong to the progression/result workflow. The schedule endpoint atomically changes the competition from REGISTRATION_CLOSED to IN_PROGRESS; the generic lifecycle endpoint cannot start a competition without generating its schedule.
 
 ## Not implemented in this slice
 
