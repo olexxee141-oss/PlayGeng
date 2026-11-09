@@ -1,4 +1,4 @@
-import { prisma, type Prisma, type Sport } from "@playgeng/database";
+import { prisma, type CompetitionStatus, type Prisma, type Sport } from "@playgeng/database";
 
 export const findMembership = (communityId: string, userId: string) =>
   prisma.communityMember.findUnique({ where: { communityId_userId: { communityId, userId } } });
@@ -28,8 +28,8 @@ export const findCompetition = (communityId: string, competitionId: string) =>
     include: { sport: { select: { sport: true } }, _count: { select: { entries: true } } },
   });
 
-export const updateCompetitionStatus = (communityId: string, competitionId: string, status: Prisma.CompetitionUpdateInput["status"]) =>
-  prisma.competition.updateMany({ where: { id: competitionId, communityId }, data: { status } });
+export const updateCompetitionStatus = (communityId: string, competitionId: string, currentStatus: CompetitionStatus, nextStatus: CompetitionStatus) =>
+  prisma.competition.updateMany({ where: { id: competitionId, communityId, status: currentStatus }, data: { status: nextStatus } });
 
 export const findCommunityMember = (communityId: string, userId: string) =>
   prisma.communityMember.findUnique({
