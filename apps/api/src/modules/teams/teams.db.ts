@@ -5,7 +5,7 @@ const teamInclude = {
   createdBy: { select: { id: true, firstName: true, lastName: true } },
   members: {
     orderBy: { joinedAt: "asc" as const },
-    include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+    include: { user: { select: { id: true, firstName: true, lastName: true } } },
   },
   _count: { select: { members: true } },
 } satisfies Prisma.TeamInclude;
@@ -70,7 +70,7 @@ export const addTeamMember = (teamId: string, communityId: string, userId: strin
     }
     return tx.teamMember.create({
       data: { teamId, communityId, userId, role, captainKey: role === "CAPTAIN" ? "CAPTAIN" : null },
-      include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      include: { user: { select: { id: true, firstName: true, lastName: true } } },
     });
   });
 
@@ -85,7 +85,7 @@ export const updateTeamMemberRole = (teamId: string, userId: string, role: TeamM
     return tx.teamMember.update({
       where: { teamId_userId: { teamId, userId } },
       data: { role, captainKey: role === "CAPTAIN" ? "CAPTAIN" : null },
-      include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      include: { user: { select: { id: true, firstName: true, lastName: true } } },
     });
   });
 
