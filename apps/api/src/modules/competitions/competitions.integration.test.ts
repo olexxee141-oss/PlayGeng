@@ -104,5 +104,6 @@ test("competition registration enforces tenant boundaries, re-registration, and 
     for (const userId of users) {
       await prisma.user.deleteMany({ where: { id: userId } });
     }
+    await prisma.$disconnect();
   }
 });
