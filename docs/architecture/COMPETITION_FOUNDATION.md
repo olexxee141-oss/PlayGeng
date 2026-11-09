@@ -57,7 +57,7 @@ Registration modes:
 
 - `OPEN`: eligible entries are approved immediately.
 - `APPROVAL_REQUIRED`: entries begin pending and require an authorized review.
-- `INVITE_ONLY`: managers issue expiring invitations to individual community members or team captains. Only the invited user can accept; team invitations are revalidated against the current captain. Acceptance creates an approved entry in the same serializable transaction that consumes the invitation and reserves capacity.
+- `INVITE_ONLY`: managers issue expiring invitations to individual community members or team captains. Only the invited user can accept; team invitations are revalidated against the current active captain. Invitations expire after seven days by default (maximum 30 days); listing an inbox marks stale pending invitations expired. Acceptance creates an approved entry in the same serializable transaction that consumes the invitation and reserves capacity.
 
 ## Explicit non-goals
 
