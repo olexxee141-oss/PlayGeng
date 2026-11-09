@@ -67,20 +67,40 @@ export const createInvitation = async (communityId: string, competitionId: strin
     invitedUserId = member.user.id;
   }
 
-  if (await db.findActiveEntry(competitionId, teamId, playerUserId)) {
-    throw new AppError("This participant is already registered for the competition.", 409);
-  }
-
   try {
-    return await db.createInvitation({
-      competitionId,
-      communityId,
-      participantType: competition.participantType,
-      teamId,
-      playerUserId,
-      invitedUserId,
-      invitedById: actorId,
-      expiresAt,
+    return await db.withSerializableTransaction(async (tx) => {
+      const currentCompetition = await tx.competition.findFirst({
+        where: { id: competitionId, communityId, status: "REGISTRATION_OPEN", registrationMode: "INVITE_ONLY" },
+      });
+      const community = await tx.community.findFirst({ where: { id: communityId, status: "ACTIVE" }, select: { id: true } });
+      if (!currentCompetition || !community) throw new AppError("This competition is no longer accepting invitations.", 409);
+
+      if (teamId) {
+        const team = await tx.team.findFirst({
+          where: { id: teamId, communityId, status: "ACTIVE", communitySportId: currentCompetition.communitySportId },
+          select: { id: true, members: { where: { role: "CAPTAIN", userId: invitedUserId, user: { status: "ACTIVE" } }, select: { id: true } } },
+        });
+        if (!team || !team.members[0]) throw new AppError("The team captain changed or the team is no longer eligible.", 409);
+      } else if (playerUserId) {
+        const member = await tx.communityMember.findUnique({
+          where: { communityId_userId: { communityId, userId: playerUserId } },
+          select: { user: { select: { status: true } } },
+        });
+        if (!member || member.user.status !== "ACTIVE") throw new AppError("An active community membership is required.", 409);
+      }
+
+      const activeEntry = await tx.competitionEntry.findFirst({
+        where: { competitionId, status: { in: ["PENDING", "APPROVED"] }, ...(teamId ? { teamId } : { playerUserId: playerUserId! }) },
+        select: { id: true },
+      });
+      if (activeEntry) throw new AppError("This participant is already registered for the competition.", 409);
+
+      return tx.competitionInvitation.create({
+        data: {
+          competitionId, communityId, participantType: competition.participantType,
+          teamId, playerUserId, invitedUserId, invitedById: actorId, expiresAt,
+        },
+      });
     });
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
@@ -141,6 +161,8 @@ export const acceptInvitation = async (communityId: string, competitionId: strin
       if (!currentCompetition || currentCompetition.status !== "REGISTRATION_OPEN" || currentCompetition.registrationMode !== "INVITE_ONLY") {
         throw new AppError("This competition is no longer accepting invitations.", 409);
       }
+      const activeCommunity = await tx.community.findFirst({ where: { id: communityId, status: "ACTIVE" }, select: { id: true } });
+      if (!activeCommunity) throw new AppError("Community not found.", 404);
       if (invitation.participantType === "PLAYER") {
         const member = await tx.communityMember.findUnique({
           where: { communityId_userId: { communityId, userId: actorId } },
@@ -148,6 +170,11 @@ export const acceptInvitation = async (communityId: string, competitionId: strin
         });
         if (!member || member.user.status !== "ACTIVE") throw new AppError("An active community membership is required to accept this invitation.", 409);
       } else if (invitation.teamId) {
+        const eligibleTeam = await tx.team.findFirst({
+          where: { id: invitation.teamId, communityId, status: "ACTIVE", communitySportId: currentCompetition.communitySportId },
+          select: { id: true },
+        });
+        if (!eligibleTeam) throw new AppError("The invited team is no longer eligible.", 409);
         const captain = await tx.teamMember.findFirst({
           where: { teamId: invitation.teamId, communityId, role: "CAPTAIN", userId: actorId, user: { status: "ACTIVE" } },
           select: { id: true },
