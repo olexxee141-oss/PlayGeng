@@ -45,3 +45,15 @@ test("status updates accept lifecycle targets only", () => {
   assert.equal(updateCompetitionStatusSchema.safeParse({ status: "REGISTRATION_OPEN" }).success, true);
   assert.equal(updateCompetitionStatusSchema.safeParse({ status: "DRAFT" }).success, false);
 });
+
+test("registration must close before the competition starts", () => {
+  const result = createCompetitionSchema.safeParse({
+    name: "Community Cup",
+    sport: "FOOTBALL",
+    format: "ROUND_ROBIN",
+    participantType: "TEAM",
+    registrationClosesAt: "2026-11-15T16:00:00.000Z",
+    startsAt: "2026-11-15T15:00:00.000Z",
+  });
+  assert.equal(result.success, false);
+});
