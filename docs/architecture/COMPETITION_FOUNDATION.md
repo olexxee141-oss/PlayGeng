@@ -22,7 +22,7 @@ The migration and Prisma schema enforce:
 1. Competition sport must be enabled by the same community through a composite foreign key to `CommunitySport(id, communityId)`.
 2. An entry's competition, community, and participant type must match a single competition through a composite foreign key.
 3. Team entries must reference a team in the same community.
-4. Player entries must reference a community membership in the same community.
+4. Player entries reference a durable user identity and the owning competition/community; the API verifies active community membership at registration time. This preserves historical entries if a user later leaves the community.
 5. An entry must reference exactly one participant identity: team XOR player.
 6. The same team or player cannot hold two active registrations in one competition. Partial unique indexes cover pending/approved entries, while rejected/withdrawn entries remain as history and may register again.
 7. Capacity cannot be less than two, when configured.
