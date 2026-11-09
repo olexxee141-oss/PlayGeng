@@ -147,7 +147,10 @@ test("invite-only competitions invite and admit only the intended player or team
     const expiringInvite = await createInvitation(community.id, declineCompetition.id, owner.id, {
       playerUserId: captain.id,
     });
-    await prisma.competitionInvitation.update({ where: { id: expiringInvite.id }, data: { expiresAt: new Date(Date.now() - 1000) } });
+    await prisma.competitionInvitation.update({
+      where: { id: expiringInvite.id },
+      data: { createdAt: new Date(Date.now() - 5000), expiresAt: new Date(Date.now() - 1000) },
+    });
     await assert.rejects(
       acceptInvitation(community.id, declineCompetition.id, expiringInvite.id, captain.id),
       (error: unknown) => error instanceof AppError && error.statusCode === 410,
