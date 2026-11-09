@@ -47,6 +47,7 @@ CREATE TABLE "competition_fixtures" (
   "participantAEntryId" TEXT NOT NULL,
   "participantBEntryId" TEXT,
   "winnerEntryId" TEXT,
+  "byeAdvances" BOOLEAN NOT NULL DEFAULT FALSE,
   "status" "CompetitionFixtureStatus" NOT NULL DEFAULT 'SCHEDULED',
   "scheduledAt" TIMESTAMP(3),
   "venue" VARCHAR(200),
@@ -58,9 +59,14 @@ CREATE TABLE "competition_fixtures" (
     "participantBEntryId" IS NULL OR "participantAEntryId" <> "participantBEntryId"
   ),
   CONSTRAINT "competition_fixtures_bye_check" CHECK (
-    ("status" = 'BYE' AND "participantBEntryId" IS NULL AND "winnerEntryId" = "participantAEntryId")
+    ("status" = 'BYE' AND "participantBEntryId" IS NULL)
     OR
     ("status" <> 'BYE' AND "participantBEntryId" IS NOT NULL)
+  ),
+  CONSTRAINT "competition_fixtures_bye_advancement_check" CHECK (
+    ("byeAdvances" = FALSE AND ("status" <> 'BYE' OR "winnerEntryId" IS NULL))
+    OR
+    ("byeAdvances" = TRUE AND "status" = 'BYE' AND "winnerEntryId" = "participantAEntryId")
   ),
   CONSTRAINT "competition_fixtures_winner_check" CHECK (
     "winnerEntryId" IS NULL OR "winnerEntryId" IN ("participantAEntryId", "participantBEntryId")
