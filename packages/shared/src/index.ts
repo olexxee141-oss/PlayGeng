@@ -17,3 +17,18 @@ export type HealthStatus = {
   status: "ok";
   timestamp: string;
 };
+
+export {
+  SPORT_CAPABILITIES,
+  getSportCapability,
+  validateCompetitionResult,
+} from "./sports.js";
+export type {
+  CompetitionResult,
+  ParticipantMode,
+  ResultFormat,
+  ScoreResult,
+  SetsResult,
+  SportCapability,
+  SportCode,
+} from "./sports.js";
