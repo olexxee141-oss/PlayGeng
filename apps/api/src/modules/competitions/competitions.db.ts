@@ -56,13 +56,24 @@ export const listEntries = (communityId: string, competitionId: string) =>
 export const findEntry = (communityId: string, competitionId: string, entryId: string) =>
   prisma.competitionEntry.findFirst({ where: { id: entryId, communityId, competitionId } });
 
+const isSerializationConflict = (error: unknown): boolean => {
+  if (typeof error !== "object" || error === null) return false;
+  if ("code" in error && error.code === "P2034") return true;
+  if ("cause" in error) {
+    const cause = error.cause;
+    if (typeof cause === "object" && cause !== null && "originalCode" in cause && cause.originalCode === "40001") return true;
+    return isSerializationConflict(cause);
+  }
+  return false;
+};
+
 export const withSerializableTransaction = async <T>(work: (tx: Prisma.TransactionClient) => Promise<T>) => {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
       return await prisma.$transaction(work, { isolationLevel: "Serializable" });
     } catch (error) {
-      const serializationConflict = typeof error === "object" && error !== null && "code" in error && error.code === "P2034";
-      if (!serializationConflict || attempt === 2) throw error;
+      if (!isSerializationConflict(error) || attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 10 * (attempt + 1)));
     }
   }
   throw new Error("Serializable transaction retry limit reached.");
