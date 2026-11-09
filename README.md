@@ -1573,7 +1573,7 @@ FINANCE, PAYMENTS, NOTIFICATIONS & EXPANSION
 - Phase 4 — Match management: merged.
 - Phase 5 — Community sports, teams and rosters: merged.
 - Phase 6 — Sport capability and result contracts: merged (PR #8).
-- Phase 7 — Competition and participant foundation: next; not yet started.
+- Phase 7 — Competition and participant foundation: in progress (persistence, registration API, and initial integration coverage prepared in PR #10).
 
 ### What was established in Phase 6
 
@@ -1611,9 +1611,9 @@ Therefore, reuse the domain concepts selectively. Do not copy its database schem
 6. Sport-specific result rules belong behind adapters; the generic competition engine should orchestrate workflows without embedding football assumptions.
 7. Fixture generation remains deferred until participant identity, registration, lifecycle and result contracts are stable.
 
-### Next implementation gate — Phase 7: Competition and Participant Foundation
+### Phase 7 implementation — Competition and Participant Foundation
 
-Build and test the domain foundation before generating fixtures:
+The initial persistence slice defines and documents the domain foundation before API workflows and fixture generation:
 
 - Competition ownership by community and enabled sport.
 - Explicitly supported formats only (initially round-robin and knockout, subject to capability checks).
@@ -1634,7 +1634,7 @@ Phase 8 will adapt and implement scheduling concepts from newDelyx against PlayG
 
 ### Session checkpoint — November 9, 2026
 
-We stopped after Phase 6 was merged and the newDelyx reuse audit was completed. No Phase 7 competition implementation has started yet. The next task is to inspect the current Prisma schema and module conventions, finalize the competition/entry data model and tenant-integrity constraints, then implement Phase 7 on a branch from the latest `main`. Do not start fixture generation as part of that work.
+Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is now in progress. The Phase 7 slice adds the competition and entry persistence model, migration, community-scoped API routes, registration/review/withdrawal workflows, lifecycle validation, sport compatibility checks, and initial database integration coverage. Completion remains blocked until fixture and result verification exists. The PR must pass CI before merge. Do not start fixture generation as part of Phase 7.
 
 ---
 
