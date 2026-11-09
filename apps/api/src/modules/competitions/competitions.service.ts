@@ -85,6 +85,7 @@ export const canTransitionCompetition = (current: CompetitionStatus, next: Compe
 
 export const transitionCompetition = async (communityId: string, competitionId: string, userId: string, nextStatus: CompetitionStatus) => {
   await requireManager(communityId, userId);
+  await requireActiveCommunity(communityId);
   const competition = await requireCompetition(communityId, competitionId);
   if (!canTransitionCompetition(competition.status, nextStatus)) {
     if (nextStatus === "COMPLETED") throw new AppError("A competition can only be completed after fixture and result verification is implemented.", 409);
@@ -171,13 +172,14 @@ export const reviewEntry = async (communityId: string, competitionId: string, en
   return db.withSerializableTransaction(async (tx) => {
     const current = await tx.competitionEntry.findFirst({ where: { id: entryId, communityId, competitionId, status: "PENDING" } });
     if (!current) throw new AppError("Pending competition entry not found.", 404);
+    if (input.decision === "REJECTED" && !input.rejectionReason) throw new AppError("A rejection reason is required.", 400);
     const updated = await tx.competitionEntry.updateMany({
       where: { id: entryId, communityId, competitionId, status: "PENDING" },
       data: {
         status: input.decision,
         reviewedAt: new Date(),
         reviewedById: actorId,
-        ...(input.decision === "REJECTED" ? { rejectionReason: input.rejectionReason } : { rejectionReason: null }),
+        ...(input.decision === "REJECTED" ? { rejectionReason: input.rejectionReason ?? "Rejected by competition manager." } : { rejectionReason: null }),
       },
     });
     if (updated.count !== 1) throw new AppError("This entry was reviewed concurrently. Refresh and try again.", 409);
