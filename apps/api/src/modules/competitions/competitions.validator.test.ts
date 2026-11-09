@@ -45,6 +45,8 @@ test("rejection requires a reason", () => {
 test("status updates accept lifecycle targets only", () => {
   assert.equal(updateCompetitionStatusSchema.safeParse({ status: "REGISTRATION_OPEN" }).success, true);
   assert.equal(updateCompetitionStatusSchema.safeParse({ status: "DRAFT" }).success, false);
+  assert.equal(updateCompetitionStatusSchema.safeParse({ status: "IN_PROGRESS" }).success, false);
+  assert.equal(updateCompetitionStatusSchema.safeParse({ status: "COMPLETED" }).success, false);
 });
 
 test("registration must close before the competition starts", () => {
