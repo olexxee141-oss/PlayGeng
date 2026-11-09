@@ -33,5 +33,23 @@ export const findMatch = (communityId: string, matchId: string) =>
 export const updateMatch = (matchId: string, data: Prisma.MatchUpdateInput) =>
   prisma.match.update({ where: { id: matchId }, data, include: matchInclude });
 
-export const withSerializableTransaction = <T>(work: (tx: Prisma.TransactionClient) => Promise<T>) =>
-  prisma.$transaction(work, { isolationLevel: "Serializable" });
+export const countActiveParticipants = (matchId: string) =>
+  prisma.matchParticipant.count({
+    where: { matchId, status: { in: ["CONFIRMED", "ATTENDED"] } },
+  });
+
+export const withSerializableTransaction = async <T>(work: (tx: Prisma.TransactionClient) => Promise<T>) => {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(work, { isolationLevel: "Serializable" });
+    } catch (error) {
+      const isSerializationConflict =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === "P2034";
+      if (!isSerializationConflict || attempt === 2) throw error;
+    }
+  }
+  throw new Error("Serializable transaction retry limit reached.");
+};
