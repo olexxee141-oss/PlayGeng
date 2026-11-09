@@ -6,13 +6,13 @@ export const createCommunitySchema = z.object({
   name: z.string().trim().min(2).max(120),
   slug,
   description: z.string().trim().max(1000).optional(),
-  sport: z.string().trim().min(2).max(50).default("FOOTBALL"),
+  sport: z.enum(["FOOTBALL","BASKETBALL","VOLLEYBALL","TENNIS","TABLE_TENNIS","BADMINTON","CRICKET","RUGBY","ESPORTS","OTHER"]).default("FOOTBALL"),
 });
 
 export const updateCommunitySchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   description: z.string().trim().max(1000).nullable().optional(),
-  sport: z.string().trim().min(2).max(50).optional(),
+  sport: z.enum(["FOOTBALL","BASKETBALL","VOLLEYBALL","TENNIS","TABLE_TENNIS","BADMINTON","CRICKET","RUGBY","ESPORTS","OTHER"]).optional(),
 });
 
 export const addMemberSchema = z.object({
