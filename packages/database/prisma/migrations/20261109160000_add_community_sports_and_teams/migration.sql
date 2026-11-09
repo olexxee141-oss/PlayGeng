@@ -46,6 +46,7 @@ CREATE TABLE "team_members" (
   "teamId" TEXT NOT NULL,
   "userId" TEXT NOT NULL,
   "role" "TeamMemberRole" NOT NULL DEFAULT 'PLAYER',
+  "captainKey" VARCHAR(16),
   "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,
   CONSTRAINT "team_members_pkey" PRIMARY KEY ("id")
@@ -59,7 +60,7 @@ CREATE UNIQUE INDEX "teams_communityId_name_key" ON "teams"("communityId", "name
 CREATE INDEX "teams_communityId_status_idx" ON "teams"("communityId", "status");
 CREATE INDEX "teams_communitySportId_status_idx" ON "teams"("communitySportId", "status");
 CREATE UNIQUE INDEX "team_members_teamId_userId_key" ON "team_members"("teamId", "userId");
-CREATE UNIQUE INDEX "team_members_one_captain_per_team_key" ON "team_members"("teamId") WHERE "role" = 'CAPTAIN';
+CREATE UNIQUE INDEX "team_members_teamId_captainKey_key" ON "team_members"("teamId", "captainKey");
 CREATE INDEX "team_members_communityId_userId_idx" ON "team_members"("communityId", "userId");
 CREATE INDEX "team_members_userId_joinedAt_idx" ON "team_members"("userId", "joinedAt");
 
