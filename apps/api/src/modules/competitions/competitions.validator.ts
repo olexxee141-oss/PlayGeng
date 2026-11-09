@@ -27,6 +27,10 @@ export const registerCompetitionEntrySchema = z.object({
   teamId: z.string().min(1).optional(),
 }).strict();
 
+export const setCompetitionEntrySeedSchema = z.object({
+  seed: z.number().int().min(1).max(512).nullable(),
+}).strict();
+
 export const reviewCompetitionEntrySchema = z.object({
   decision: z.enum(["APPROVED", "REJECTED"]),
   rejectionReason: z.string().trim().min(3).max(500).optional(),
@@ -39,3 +43,4 @@ export type CreateCompetitionInput = z.infer<typeof createCompetitionSchema>;
 export type UpdateCompetitionStatusInput = z.infer<typeof updateCompetitionStatusSchema>;
 export type RegisterCompetitionEntryInput = z.infer<typeof registerCompetitionEntrySchema>;
 export type ReviewCompetitionEntryInput = z.infer<typeof reviewCompetitionEntrySchema>;
+export type SetCompetitionEntrySeedInput = z.infer<typeof setCompetitionEntrySeedSchema>;
