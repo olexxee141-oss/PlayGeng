@@ -1,4 +1,4 @@
-import { prisma, type CompetitionStatus, type Prisma, type Sport } from "@playgeng/database";
+import { prisma, type Prisma, type Sport } from "@playgeng/database";
 
 export const findMembership = (communityId: string, userId: string) =>
   prisma.communityMember.findUnique({ where: { communityId_userId: { communityId, userId } } });
@@ -28,9 +28,6 @@ export const findCompetition = (communityId: string, competitionId: string) =>
     include: { sport: { select: { sport: true } }, _count: { select: { entries: true } } },
   });
 
-export const updateCompetitionStatus = (communityId: string, competitionId: string, currentStatus: CompetitionStatus, nextStatus: CompetitionStatus) =>
-  prisma.competition.updateMany({ where: { id: competitionId, communityId, status: currentStatus }, data: { status: nextStatus } });
-
 export const findCommunityMember = (communityId: string, userId: string) =>
   prisma.communityMember.findUnique({
     where: { communityId_userId: { communityId, userId } },
@@ -58,9 +55,6 @@ export const listEntries = (communityId: string, competitionId: string) =>
 
 export const findEntry = (communityId: string, competitionId: string, entryId: string) =>
   prisma.competitionEntry.findFirst({ where: { id: entryId, communityId, competitionId } });
-
-export const countApprovedEntries = (competitionId: string) =>
-  prisma.competitionEntry.count({ where: { competitionId, status: "APPROVED" } });
 
 export const withSerializableTransaction = async <T>(work: (tx: Prisma.TransactionClient) => Promise<T>) => {
   for (let attempt = 0; attempt < 3; attempt += 1) {
