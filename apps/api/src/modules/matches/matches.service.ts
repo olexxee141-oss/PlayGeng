@@ -59,6 +59,12 @@ export const updateMatch = async (communityId: string, matchId: string, userId: 
   const startsAt = input.startsAt ?? current.startsAt;
   const endsAt = input.endsAt === undefined ? current.endsAt : input.endsAt;
   if (endsAt && endsAt <= startsAt) throw new AppError("End time must be later than start time.", 400);
+  if (input.capacity !== undefined && input.capacity !== null) {
+    const activeParticipants = await db.countActiveParticipants(matchId);
+    if (input.capacity < activeParticipants) {
+      throw new AppError("Capacity cannot be lower than the number of confirmed participants.", 409);
+    }
+  }
 
   return db.updateMatch(matchId, {
     ...(input.title !== undefined ? { title: input.title } : {}),
