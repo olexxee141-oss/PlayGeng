@@ -15,7 +15,9 @@ export const createCompetitionSchema = z.object({
   startsAt: dateTime.nullable().optional(),
 }).refine((value) =>
   !value.registrationOpensAt || !value.registrationClosesAt || value.registrationOpensAt < value.registrationClosesAt,
-{ message: "Registration opening must be before registration closing.", path: ["registrationClosesAt"] });
+{ message: "Registration opening must be before registration closing.", path: ["registrationClosesAt"] }).refine((value) =>
+  !value.startsAt || !value.registrationClosesAt || value.registrationClosesAt < value.startsAt,
+{ message: "Registration must close before the competition starts.", path: ["registrationClosesAt"] });
 
 export const updateCompetitionStatusSchema = z.object({
   status: z.enum(["REGISTRATION_OPEN", "REGISTRATION_CLOSED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]),
