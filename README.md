@@ -1573,7 +1573,7 @@ FINANCE, PAYMENTS, NOTIFICATIONS & EXPANSION
 - Phase 4 — Match management: merged.
 - Phase 5 — Community sports, teams and rosters: merged.
 - Phase 6 — Sport capability and result contracts: merged (PR #8).
-- Phase 7 — Competition and participant foundation: in progress (persistence, registration API, and initial integration coverage prepared in PR #10).
+- Phase 7 — Competition and participant foundation: in progress (competition/registration API merged in PR #10; invite-only workflow under review in PR #11).
 
 ### What was established in Phase 6
 
@@ -1613,7 +1613,7 @@ Therefore, reuse the domain concepts selectively. Do not copy its database schem
 
 ### Phase 7 implementation — Competition and Participant Foundation
 
-The initial persistence slice defines and documents the domain foundation before API workflows and fixture generation:
+The Phase 7 foundation now includes persistence and community-scoped API workflows before fixture generation:
 
 - Competition ownership by community and enabled sport.
 - Explicitly supported formats only (initially round-robin and knockout, subject to capability checks).
@@ -1624,7 +1624,7 @@ The initial persistence slice defines and documents the domain foundation before
 - Duplicate-registration prevention, eligibility checks and participant identity snapshots.
 - Versioned sport-adapter/ruleset metadata so later rule changes do not silently reinterpret existing competitions.
 
-Required tests include cross-community access, invalid participant type/sport combinations, duplicate registrations, unauthorized approvals, invalid lifecycle transitions and concurrent registration/capacity behavior.
+Required tests cover cross-community access, invalid participant type/sport combinations, duplicate and re-registration behavior, approval authorization, lifecycle transitions, team/player registration, invitation authorization/expiry, and concurrent capacity.
 
 **Out of scope for Phase 7:** fixture generation, bracket progression, standings calculation, result approval and sport-specific statistics. These belong in later phases after the foundation is proven.
 
@@ -1634,7 +1634,7 @@ Phase 8 will adapt and implement scheduling concepts from newDelyx against PlayG
 
 ### Session checkpoint — November 9, 2026
 
-Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is now in progress. The Phase 7 slice adds the competition and entry persistence model, migration, community-scoped API routes, registration/review/withdrawal workflows, lifecycle validation, sport compatibility checks, and initial database integration coverage. Completion remains blocked until fixture and result verification exists. The PR must pass CI before merge. Do not start fixture generation as part of Phase 7.
+Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is in progress: PR #10 merged competition/entry persistence, registration, approval, withdrawal, lifecycle and PostgreSQL integration coverage. PR #11 adds invitation persistence and invite-only registration for players and team captains. Phase 7 is complete once the invitation workflow passes CI and merges. Email/push notifications are deferred to the notifications phase; fixture and result workflows remain separate later phases. Do not start fixture generation before Phase 7 is complete.
 
 ---
 

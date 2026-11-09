@@ -57,7 +57,7 @@ Registration modes:
 
 - `OPEN`: eligible entries are approved immediately.
 - `APPROVAL_REQUIRED`: entries begin pending and require an authorized review.
-- `INVITE_ONLY`: registration requires a future invitation capability; public/self-service registration is rejected until that workflow exists.
+- `INVITE_ONLY`: managers issue expiring invitations to individual community members or team captains. Only the invited user can accept; team invitations are revalidated against the current active captain. Invitations expire after seven days by default (maximum 30 days); listing an inbox marks stale pending invitations expired. Acceptance creates an approved entry in the same serializable transaction that consumes the invitation and reserves capacity.
 
 ## Explicit non-goals
 
@@ -80,6 +80,10 @@ Community-scoped routes are mounted under `/api/v1/communities/:communityId/comp
 - `POST /:competitionId/entries`: register the authenticated player or a team captained by the actor (or registered by a community manager).
 - `PATCH /:competitionId/entries/:entryId/review`: approve or reject a pending entry.
 - `DELETE /:competitionId/entries/:entryId`: withdraw an active entry.
+- `GET /:competitionId/invitations`: list invitations (managers see all; invited members see only their own).
+- `POST /:competitionId/invitations`: issue an invite to a community player or a team captain.
+- `POST /:competitionId/invitations/:invitationId/accept`: accept an invitation and create an approved entry atomically.
+- `POST /:competitionId/invitations/:invitationId/decline`: decline an invitation.
 
 The service enforces community membership and manager roles, active community status, enabled sport, sport/participant compatibility, team sport matching, registration windows, invitation-mode rejection until invitations exist, and the lifecycle transition graph.
 
@@ -87,4 +91,4 @@ Capacity counts both pending and approved registrations. Registration uses seria
 
 Completion is deliberately blocked until fixture and result verification exists. Starting a competition requires at least two approved entries. This prevents the API from claiming a tournament is complete or schedulable before the later fixture/result phases exist.
 
-The first tests cover request validation, sport/participant compatibility, unsupported sport adapters, and lifecycle transition policy. Database-level integration tests for cross-community isolation, registration concurrency and capacity remain a required CI gate before Phase 7 is considered complete.
+Tests cover request validation, sport/participant compatibility, unsupported sport adapters, lifecycle transition policy, cross-community isolation, team/player registration, approval, re-registration, concurrent capacity, invitation acceptance/decline/expiry, and invitee authorization. Notification delivery is still deferred; invitees can retrieve invitations from the community-scoped API.
