@@ -15,6 +15,8 @@ CREATE TABLE "competition_invitations" (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,
   CONSTRAINT "competition_invitations_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "competition_invitations_expiry_check" CHECK ("expiresAt" > "createdAt"),
+  CONSTRAINT "competition_invitations_acceptance_timestamp_check" CHECK ("status" <> 'ACCEPTED' OR "acceptedAt" IS NOT NULL),
   CONSTRAINT "competition_invitations_participant_identity_check" CHECK (
     ("participantType" = 'TEAM' AND "teamId" IS NOT NULL AND "playerUserId" IS NULL)
     OR
