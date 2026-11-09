@@ -74,6 +74,7 @@ export const createTeam = async (communityId: string, userId: string, input: Cre
 
 export const updateTeam = async (communityId: string, teamId: string, userId: string, input: UpdateTeamInput) => {
   await requireManager(communityId, userId);
+  await requireActiveCommunity(communityId);
   const team = await db.findTeam(communityId, teamId);
   if (!team || team.status !== "ACTIVE") throw new AppError("Team not found.", 404);
   if (input.name && input.name.toLowerCase() !== team.name.toLowerCase() && await db.findTeamByName(communityId, input.name)) {
@@ -88,6 +89,7 @@ export const updateTeam = async (communityId: string, teamId: string, userId: st
 
 export const archiveTeam = async (communityId: string, teamId: string, userId: string) => {
   await requireManager(communityId, userId);
+  await requireActiveCommunity(communityId);
   const team = await db.findTeam(communityId, teamId);
   if (!team || team.status !== "ACTIVE") throw new AppError("Team not found.", 404);
   await db.archiveTeam(teamId);
@@ -95,6 +97,7 @@ export const archiveTeam = async (communityId: string, teamId: string, userId: s
 
 export const addTeamMember = async (communityId: string, teamId: string, actorId: string, input: TeamMemberInput) => {
   await requireManager(communityId, actorId);
+  await requireActiveCommunity(communityId);
   const team = await db.findTeam(communityId, teamId);
   if (!team || team.status !== "ACTIVE") throw new AppError("Team not found.", 404);
   const member = await db.findCommunityMember(communityId, input.userId);
@@ -105,6 +108,7 @@ export const addTeamMember = async (communityId: string, teamId: string, actorId
 
 export const updateTeamMemberRole = async (communityId: string, teamId: string, actorId: string, userId: string, role: TeamMemberRole) => {
   await requireManager(communityId, actorId);
+  await requireActiveCommunity(communityId);
   const team = await db.findTeam(communityId, teamId);
   if (!team || team.status !== "ACTIVE") throw new AppError("Team not found.", 404);
   if (!await db.findTeamMember(teamId, userId)) throw new AppError("Team member not found.", 404);
@@ -113,6 +117,7 @@ export const updateTeamMemberRole = async (communityId: string, teamId: string, 
 
 export const removeTeamMember = async (communityId: string, teamId: string, actorId: string, userId: string) => {
   await requireManager(communityId, actorId);
+  await requireActiveCommunity(communityId);
   const team = await db.findTeam(communityId, teamId);
   if (!team || team.status !== "ACTIVE") throw new AppError("Team not found.", 404);
   if (!await db.findTeamMember(teamId, userId)) throw new AppError("Team member not found.", 404);
