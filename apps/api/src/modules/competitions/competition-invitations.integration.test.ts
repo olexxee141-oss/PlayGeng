@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { prisma } from "@playgeng/database";
 import { AppError } from "../../shared/errors/app-error.js";
-import { createCompetition, transitionCompetition } from "./competitions.service.js";
+import { createCompetition, registerEntry, transitionCompetition } from "./competitions.service.js";
 import {
   acceptInvitation,
   createInvitation,
@@ -72,8 +72,16 @@ test("invite-only competitions invite and admit only the intended player or team
       maxEntries: 4,
     });
     await transitionCompetition(community.id, teamCompetition.id, owner.id, "REGISTRATION_OPEN");
+    await assert.rejects(
+      registerEntry(community.id, teamCompetition.id, captain.id, { teamId: team.id }),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
     const teamInvitation = await createInvitation(community.id, teamCompetition.id, owner.id, { teamId: team.id });
     assert.equal(teamInvitation.invitedUserId, captain.id);
+    await assert.rejects(
+      createInvitation(community.id, teamCompetition.id, owner.id, { teamId: team.id }),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
     assert.equal((await listInvitations(community.id, teamCompetition.id, captain.id)).length, 1);
 
     await assert.rejects(
