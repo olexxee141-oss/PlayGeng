@@ -59,8 +59,10 @@ test("invite-only competitions invite and admit only the intended player or team
         communitySportId: footballSport.id,
         createdById: owner.id,
         name: `Invited Team ${suffix.slice(0, 6)}`,
-        members: { create: { communityId: community.id, userId: captain.id, role: "CAPTAIN", captainKey: "CAPTAIN" } },
       },
+    });
+    await prisma.teamMember.create({
+      data: { teamId: team.id, communityId: community.id, userId: captain.id, role: "CAPTAIN", captainKey: "CAPTAIN" },
     });
 
     const teamCompetition = await createCompetition(community.id, owner.id, {
