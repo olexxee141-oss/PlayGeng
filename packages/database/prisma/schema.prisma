@@ -342,6 +342,7 @@ model Competition {
   entries         CompetitionEntry[]
 
   @@unique([id, communityId])
+  @@unique([id, communityId, participantType])
   @@index([communityId, status, startsAt])
   @@index([communitySportId, status])
   @@map("competitions")
@@ -363,7 +364,7 @@ model CompetitionEntry {
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
 
-  competition Competition @relation(fields: [competitionId, communityId], references: [id, communityId], onDelete: Cascade)
+  competition Competition @relation(fields: [competitionId, communityId, participantType], references: [id, communityId, participantType], onDelete: Cascade)
   team        Team?       @relation(fields: [teamId, communityId], references: [id, communityId], onDelete: Restrict)
   player      CommunityMember? @relation(fields: [communityId, playerUserId], references: [communityId, userId], onDelete: Restrict)
   reviewedBy  User?       @relation("CompetitionEntryReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
