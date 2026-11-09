@@ -478,9 +478,9 @@ model CompetitionFixture {
 
   schedule      CompetitionSchedule @relation(fields: [scheduleId, competitionId], references: [id, competitionId], onDelete: Cascade)
   competition   Competition         @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  participantA  CompetitionEntry    @relation("FixtureParticipantA", fields: [participantAEntryId, competitionId], references: [id, competitionId], onDelete: Restrict)
-  participantB  CompetitionEntry?   @relation("FixtureParticipantB", fields: [participantBEntryId, competitionId], references: [id, competitionId], onDelete: Restrict)
-  winner        CompetitionEntry?   @relation("FixtureWinner", fields: [winnerEntryId, competitionId], references: [id, competitionId], onDelete: Restrict)
+  participantA  CompetitionEntry    @relation("FixtureParticipantA", fields: [participantAEntryId, competitionId], references: [id, competitionId], onDelete: Cascade)
+  participantB  CompetitionEntry?   @relation("FixtureParticipantB", fields: [participantBEntryId, competitionId], references: [id, competitionId], onDelete: Cascade)
+  winner        CompetitionEntry?   @relation("FixtureWinner", fields: [winnerEntryId, competitionId], references: [id, competitionId], onDelete: Cascade)
 
   @@unique([scheduleId, roundNumber, fixtureNumber])
   @@index([competitionId, roundNumber, fixtureNumber])
