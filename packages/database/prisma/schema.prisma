@@ -96,6 +96,14 @@ enum CompetitionEntryStatus {
   WITHDRAWN
 }
 
+enum CompetitionInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
 model User {
   id                       String                  @id @default(cuid())
   email                    String                  @unique @db.VarChar(320)
@@ -118,6 +126,9 @@ model User {
   createdCompetitions     Competition[]          @relation("CompetitionCreator")
   reviewedCompetitionEntries CompetitionEntry[]   @relation("CompetitionEntryReviewer")
   competitionEntries        CompetitionEntry[]   @relation("CompetitionPlayer")
+  sentCompetitionInvitations CompetitionInvitation[] @relation("CompetitionInvitationSender")
+  receivedCompetitionInvitations CompetitionInvitation[] @relation("CompetitionInvitationRecipient")
+  invitedPlayerCompetitionInvitations CompetitionInvitation[] @relation("CompetitionInvitationPlayer")
 
   @@index([status])
   @@map("users")
@@ -186,6 +197,7 @@ model Community {
   teams       Team[]
   competitions Competition[]
   competitionEntries CompetitionEntry[]
+  competitionInvitations CompetitionInvitation[]
 
   @@index([ownerId])
   @@index([status])
@@ -245,6 +257,7 @@ model Team {
   sport     CommunitySport @relation(fields: [communitySportId, communityId], references: [id, communityId], onDelete: Restrict)
   members   TeamMember[]
   competitionEntries CompetitionEntry[]
+  competitionInvitations CompetitionInvitation[]
 
   @@unique([id, communityId])
   @@unique([communityId, name])
@@ -342,6 +355,7 @@ model Competition {
   sport           CommunitySport @relation(fields: [communitySportId, communityId], references: [id, communityId], onDelete: Restrict)
   createdBy       User           @relation("CompetitionCreator", fields: [createdById], references: [id], onDelete: Restrict)
   entries         CompetitionEntry[]
+  invitations     CompetitionInvitation[]
 
   @@unique([id, communityId])
   @@unique([id, communityId, participantType])
@@ -375,4 +389,32 @@ model CompetitionEntry {
   @@index([competitionId, status, registeredAt])
   @@index([communityId, playerUserId])
   @@map("competition_entries")
+}
+
+
+model CompetitionInvitation {
+  id              String                      @id @default(cuid())
+  competitionId   String
+  communityId     String
+  participantType CompetitionParticipantType
+  teamId          String?
+  playerUserId    String?
+  invitedUserId   String
+  invitedById     String
+  status          CompetitionInvitationStatus @default(PENDING)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+
+  community   Community   @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  competition Competition @relation(fields: [competitionId, communityId, participantType], references: [id, communityId, participantType], onDelete: Cascade)
+  team        Team?       @relation(fields: [teamId, communityId], references: [id, communityId], onDelete: Restrict)
+  player      User?       @relation("CompetitionInvitationPlayer", fields: [playerUserId], references: [id], onDelete: Restrict)
+  invitedUser User        @relation("CompetitionInvitationRecipient", fields: [invitedUserId], references: [id], onDelete: Restrict)
+  invitedBy   User        @relation("CompetitionInvitationSender", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@index([competitionId, status, expiresAt])
+  @@index([communityId, invitedUserId, status])
+  @@map("competition_invitations")
 }
