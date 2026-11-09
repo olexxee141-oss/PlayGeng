@@ -370,6 +370,7 @@ model Competition {
 
   @@unique([id, communityId])
   @@unique([id, communityId, participantType])
+  @@unique([id, format])
   @@index([communityId, status, startsAt])
   @@index([communitySportId, status])
   @@map("competitions")
@@ -451,7 +452,7 @@ model CompetitionSchedule {
   generatedAt      DateTime        @default(now())
   createdAt        DateTime        @default(now())
 
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  competition Competition @relation(fields: [competitionId, format], references: [id, format], onDelete: Cascade)
   createdBy   User        @relation("CompetitionScheduleCreator", fields: [createdById], references: [id], onDelete: Restrict)
   fixtures    CompetitionFixture[]
 
