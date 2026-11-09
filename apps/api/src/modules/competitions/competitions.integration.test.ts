@@ -175,7 +175,7 @@ test("competition registration enforces tenant boundaries, re-registration, and 
     assert.equal(schedule.byeCount, 3);
     assert.equal(schedule.fixtures.length, 6);
     assert.equal(schedule.fixtures.filter((fixture) => fixture.status === "BYE").length, 3);
-    assert.ok(schedule.fixtures.filter((fixture) => fixture.status === "BYE").every((fixture) => fixture.winnerEntryId === fixture.participantAEntryId));
+    assert.ok(schedule.fixtures.filter((fixture) => fixture.status === "BYE").every((fixture) => fixture.winnerEntryId === null && fixture.byeAdvances === false));
 
     assert.equal(repeatedSchedule.id, schedule.id);
     assert.equal((await getSchedule(first.community.id, competition.id, first.user.id)).id, schedule.id);
@@ -248,6 +248,7 @@ test("competition registration enforces tenant boundaries, re-registration, and 
     assert.equal(knockoutSchedule.matchCount, 1);
     assert.equal(knockoutSchedule.byeCount, 1);
     assert.equal(knockoutSchedule.fixtures.filter((fixture) => fixture.status === "BYE").length, 1);
+    assert.ok(knockoutSchedule.fixtures.filter((fixture) => fixture.status === "BYE").every((fixture) => fixture.winnerEntryId === fixture.participantAEntryId && fixture.byeAdvances));
   } finally {
     for (const communityId of communities) {
       await prisma.community.deleteMany({ where: { id: communityId } });
