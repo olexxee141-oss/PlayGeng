@@ -443,6 +443,7 @@ model CompetitionSchedule {
   format           CompetitionFormat
   algorithmVersion String          @db.VarChar(32)
   participantCount Int
+  roundCount       Int
   fixtureCount     Int
   matchCount       Int
   byeCount         Int
