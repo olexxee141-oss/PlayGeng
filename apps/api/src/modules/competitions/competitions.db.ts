@@ -86,7 +86,7 @@ export const findActiveEntry = (competitionId: string, teamId: string | null, pl
     where: {
       competitionId,
       status: { in: ["PENDING", "APPROVED"] },
-      ...(teamId ? { teamId } : { playerUserId: playerUserId ?? undefined }),
+      ...(teamId ? { teamId } : { playerUserId: playerUserId! }),
     },
     select: { id: true },
   });
