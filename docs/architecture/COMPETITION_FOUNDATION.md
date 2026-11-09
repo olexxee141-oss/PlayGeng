@@ -68,3 +68,23 @@ Registration modes:
 - Public registration outside community membership.
 
 These are separate implementation gates. In particular, a format enum does not imply a scheduler exists.
+
+## API workflow implemented in Phase 7
+
+Community-scoped routes are mounted under `/api/v1/communities/:communityId/competitions`:
+
+- `GET /` and `POST /`: list and create competitions.
+- `GET /:competitionId`: retrieve a competition.
+- `PATCH /:competitionId/status`: request a valid lifecycle transition.
+- `GET /:competitionId/entries`: list active entries.
+- `POST /:competitionId/entries`: register the authenticated player or a team captained by the actor (or registered by a community manager).
+- `PATCH /:competitionId/entries/:entryId/review`: approve or reject a pending entry.
+- `DELETE /:competitionId/entries/:entryId`: withdraw an active entry.
+
+The service enforces community membership and manager roles, active community status, enabled sport, sport/participant compatibility, team sport matching, registration windows, invitation-mode rejection until invitations exist, and the lifecycle transition graph.
+
+Capacity counts both pending and approved registrations. Registration uses serializable transactions with retry on PostgreSQL serialization conflicts. Entry review and withdrawal use conditional updates to avoid overwriting a concurrent decision.
+
+Completion is deliberately blocked until fixture and result verification exists. Starting a competition requires at least two approved entries. This prevents the API from claiming a tournament is complete or schedulable before the later fixture/result phases exist.
+
+The first tests cover request validation, sport/participant compatibility, unsupported sport adapters, and lifecycle transition policy. Database-level integration tests for cross-community isolation, registration concurrency and capacity remain a required CI gate before Phase 7 is considered complete.
