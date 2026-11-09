@@ -9,6 +9,7 @@ import {
   createCompetitionSchema,
   registerCompetitionEntrySchema,
   reviewCompetitionEntrySchema,
+  setCompetitionEntrySeedSchema,
   updateCompetitionStatusSchema,
 } from "./competitions.validator.js";
 
@@ -21,6 +22,9 @@ competitionRoutes.patch("/:competitionId/status", validate(updateCompetitionStat
 competitionRoutes.get("/:competitionId/entries", asyncHandler(controller.listEntries));
 competitionRoutes.post("/:competitionId/entries", validate(registerCompetitionEntrySchema), asyncHandler(controller.register));
 competitionRoutes.patch("/:competitionId/entries/:entryId/review", validate(reviewCompetitionEntrySchema), asyncHandler(controller.reviewEntry));
+competitionRoutes.patch("/:competitionId/entries/:entryId/seed", validate(setCompetitionEntrySeedSchema), asyncHandler(controller.setSeed));
+competitionRoutes.get("/:competitionId/schedule", asyncHandler(controller.getSchedule));
+competitionRoutes.post("/:competitionId/schedule", asyncHandler(controller.generateSchedule));
 competitionRoutes.delete("/:competitionId/entries/:entryId", asyncHandler(controller.withdrawEntry));
 competitionRoutes.get("/:competitionId/invitations", asyncHandler(invitationController.list));
 competitionRoutes.post("/:competitionId/invitations", validate(createCompetitionInvitationSchema), asyncHandler(invitationController.create));
