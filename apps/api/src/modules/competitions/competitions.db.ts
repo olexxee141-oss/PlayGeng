@@ -1,4 +1,4 @@
-import { prisma, type Prisma, type Sport } from "@playgeng/database";
+import { prisma, type CompetitionInvitationStatus, type Prisma, type Sport } from "@playgeng/database";
 
 export const findMembership = (communityId: string, userId: string) =>
   prisma.communityMember.findUnique({ where: { communityId_userId: { communityId, userId } } });
@@ -67,3 +67,53 @@ export const withSerializableTransaction = async <T>(work: (tx: Prisma.Transacti
   }
   throw new Error("Serializable transaction retry limit reached.");
 };
+
+
+export const findTeamWithCaptain = (communityId: string, teamId: string) =>
+  prisma.team.findFirst({
+    where: { id: teamId, communityId },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      communitySportId: true,
+      members: { where: { role: "CAPTAIN" }, select: { userId: true }, take: 1 },
+    },
+  });
+
+export const findActiveEntry = (competitionId: string, teamId: string | null, playerUserId: string | null) =>
+  prisma.competitionEntry.findFirst({
+    where: {
+      competitionId,
+      status: { in: ["PENDING", "APPROVED"] },
+      ...(teamId ? { teamId } : { playerUserId: playerUserId ?? undefined }),
+    },
+    select: { id: true },
+  });
+
+export const createInvitation = (data: Prisma.CompetitionInvitationUncheckedCreateInput) =>
+  prisma.competitionInvitation.create({ data });
+
+export const listInvitations = (communityId: string, competitionId: string, invitedUserId?: string) =>
+  prisma.competitionInvitation.findMany({
+    where: { communityId, competitionId, ...(invitedUserId ? { invitedUserId } : {}) },
+    include: {
+      team: { select: { id: true, name: true } },
+      player: { select: { id: true, firstName: true, lastName: true } },
+      invitedUser: { select: { id: true, firstName: true, lastName: true } },
+      invitedBy: { select: { id: true, firstName: true, lastName: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+export const findInvitation = (communityId: string, competitionId: string, invitationId: string) =>
+  prisma.competitionInvitation.findFirst({
+    where: { id: invitationId, communityId, competitionId },
+    include: { team: { select: { id: true, name: true } }, player: { select: { id: true, firstName: true, lastName: true } } },
+  });
+
+export const updateInvitationStatus = (invitationId: string, currentStatus: CompetitionInvitationStatus, nextStatus: CompetitionInvitationStatus) =>
+  prisma.competitionInvitation.updateMany({
+    where: { id: invitationId, status: currentStatus },
+    data: { status: nextStatus },
+  });
