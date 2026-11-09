@@ -82,8 +82,8 @@ ALTER TABLE "competition_entries"
   ADD CONSTRAINT "competition_entries_teamId_communityId_fkey"
   FOREIGN KEY ("teamId", "communityId") REFERENCES "teams"("id", "communityId") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "competition_entries"
-  ADD CONSTRAINT "competition_entries_communityId_playerUserId_fkey"
-  FOREIGN KEY ("communityId", "playerUserId") REFERENCES "community_members"("communityId", "userId") ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT "competition_entries_playerUserId_fkey"
+  FOREIGN KEY ("playerUserId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "competition_entries"
   ADD CONSTRAINT "competition_entries_reviewedById_fkey"
   FOREIGN KEY ("reviewedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
