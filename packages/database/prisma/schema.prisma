@@ -457,6 +457,7 @@ model CompetitionSchedule {
   fixtures    CompetitionFixture[]
 
   @@unique([id, competitionId])
+  @@unique([competitionId, format])
   @@map("competition_schedules")
 }
 
