@@ -187,6 +187,40 @@ test("competition registration enforces tenant boundaries, re-registration, and 
       (error: unknown) => error instanceof AppError && error.statusCode === 409,
     );
 
+    const foreignCompetition = await prisma.competition.create({
+      data: {
+        communityId: second.community.id,
+        communitySportId: second.sport.id,
+        createdById: second.user.id,
+        name: "Foreign Fixture Competition",
+        format: "ROUND_ROBIN",
+        participantType: "TEAM",
+      },
+    });
+    const foreignEntry = await prisma.competitionEntry.create({
+      data: {
+        competitionId: foreignCompetition.id,
+        communityId: second.community.id,
+        participantType: "TEAM",
+        teamId: foreignTeam.id,
+        status: "APPROVED",
+        participantNameSnapshot: foreignTeam.name,
+      },
+    });
+    await assert.rejects(
+      prisma.competitionFixture.create({
+        data: {
+          scheduleId: schedule.id,
+          competitionId: competition.id,
+          roundNumber: 1,
+          fixtureNumber: 999,
+          participantAEntryId: foreignEntry.id,
+          participantBEntryId: approvedEntries[0]!.id,
+        },
+      }),
+      (error: unknown) => typeof error === "object" && error !== null && "code" in error && error.code === "P2003",
+    );
+
     const knockoutCompetition = await createCompetition(first.community.id, first.user.id, {
       name: "Knockout Schedule Cup",
       sport: "FOOTBALL",
