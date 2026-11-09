@@ -1634,7 +1634,7 @@ Phase 8 will adapt and implement scheduling concepts from newDelyx against PlayG
 
 ### Session checkpoint — November 9, 2026
 
-Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is now in progress. The Phase 7 slice adds the competition and entry persistence model, migration, community-scoped API routes, registration/review/withdrawal workflows, lifecycle validation, sport compatibility checks, and initial database integration coverage. Completion remains blocked until fixture and result verification exists. The PR must pass CI before merge. Do not start fixture generation as part of Phase 7.
+Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is now in progress. The Phase 7 slice adds competition and entry persistence, registration/review/withdrawal workflows, invite-only invitations, lifecycle validation, sport compatibility checks, and PostgreSQL integration coverage. Completion remains blocked until fixture and result verification exists. Invite notifications are deferred to the notifications phase. Do not start fixture generation as part of Phase 7.
 
 ---
 
