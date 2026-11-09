@@ -1,4 +1,4 @@
-import { prisma, type Prisma } from "@playgeng/database";
+import { prisma, type Prisma, type CommunityMemberRole } from "@playgeng/database";
 
 const communityInclude = {
   owner: { select: { id: true, email: true, firstName: true, lastName: true } },
@@ -35,7 +35,7 @@ export const findMembership = (communityId: string, userId: string) =>
 export const findUserByEmail = (email: string) =>
   prisma.user.findUnique({ where: { email }, select: { id: true, email: true, firstName: true, lastName: true, status: true } });
 
-export const addMember = (communityId: string, userId: string, role: Prisma.CommunityMemberRole) =>
+export const addMember = (communityId: string, userId: string, role: CommunityMemberRole) =>
   prisma.communityMember.create({ data: { communityId, userId, role } });
 
 export const updateMemberRole = (communityId: string, userId: string, role: Prisma.CommunityMemberRole) =>
