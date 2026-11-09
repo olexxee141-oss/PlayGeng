@@ -55,9 +55,10 @@ export const createInvitation = async (communityId: string, competitionId: strin
     if (!team || team.status !== "ACTIVE" || team.communitySportId !== competition.communitySportId) {
       throw new AppError("An active team registered for this competition's sport is required.", 409);
     }
-    if (!team.members[0] || team.members[0].user.status !== "ACTIVE") throw new AppError("The team must have an active captain before it can be invited.", 409);
+    const captain = team.members[0];
+    if (!captain || captain.user.status !== "ACTIVE") throw new AppError("The team must have an active captain before it can be invited.", 409);
     teamId = team.id;
-    invitedUserId = team.members[0].userId;
+    invitedUserId = captain.userId;
   } else {
     if (!input.playerUserId || input.teamId) throw new AppError("This competition requires an individual player invitation.", 400);
     const member = await db.findCommunityMember(communityId, input.playerUserId);
@@ -124,7 +125,8 @@ export const acceptInvitation = async (communityId: string, competitionId: strin
     if (!team || team.status !== "ACTIVE" || team.communitySportId !== competition.communitySportId) {
       throw new AppError("The invited team is no longer eligible.", 409);
     }
-    if (team.members[0]?.userId !== actorId || team.members[0].user.status !== "ACTIVE") throw new AppError("Only the current active team captain can accept this invitation.", 403);
+    const captain = team.members[0];
+    if (!captain || captain.userId !== actorId || captain.user.status !== "ACTIVE") throw new AppError("Only the current active team captain can accept this invitation.", 403);
     participantNameSnapshot = team.name;
   }
 
