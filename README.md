@@ -1634,7 +1634,7 @@ Phase 8 will adapt and implement scheduling concepts from newDelyx against PlayG
 
 ### Session checkpoint — November 9, 2026
 
-Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is in progress: PR #10 merged competition/entry persistence, registration, approval, withdrawal, lifecycle and PostgreSQL integration coverage. PR #11 adds invitation persistence and invite-only registration for players and team captains. Completion remains blocked until invitation delivery is integrated and fixture/result workflows are designed in their own phases. Email/push notifications are deferred to the notifications phase. Do not start fixture generation before Phase 7 is complete.
+Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is in progress: PR #10 merged competition/entry persistence, registration, approval, withdrawal, lifecycle and PostgreSQL integration coverage. PR #11 adds invitation persistence and invite-only registration for players and team captains. Phase 7 is complete once the invitation workflow passes CI and merges. Email/push notifications are deferred to the notifications phase; fixture and result workflows remain separate later phases. Do not start fixture generation before Phase 7 is complete.
 
 ---
 
