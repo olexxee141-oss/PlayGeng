@@ -82,6 +82,7 @@ model User {
   createdMatches          Match[]                 @relation("MatchCreator")
   matchParticipations     MatchParticipant[]
   teamMemberships         TeamMember[]
+  createdTeams            Team[]                 @relation("TeamCreator")
 
   @@index([status])
   @@map("users")
@@ -167,6 +168,7 @@ model CommunityMember {
 
   @@unique([communityId, userId])
   @@unique([communityId, id])
+  teamMemberships TeamMember[]
   @@index([userId])
   @@index([communityId, role])
   @@map("community_members")
@@ -202,6 +204,7 @@ model Team {
   updatedAt        DateTime   @updatedAt
 
   community Community      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy User            @relation("TeamCreator", fields: [createdById], references: [id], onDelete: Restrict)
   sport     CommunitySport @relation(fields: [communitySportId, communityId], references: [id, communityId], onDelete: Restrict)
   members   TeamMember[]
 
