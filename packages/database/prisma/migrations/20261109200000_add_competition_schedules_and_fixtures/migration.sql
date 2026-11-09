@@ -74,6 +74,7 @@ CREATE TABLE "competition_fixtures" (
 );
 
 CREATE UNIQUE INDEX "competition_schedules_competitionId_key" ON "competition_schedules"("competitionId");
+CREATE UNIQUE INDEX "competition_schedules_competitionId_format_key" ON "competition_schedules"("competitionId", "format");
 CREATE UNIQUE INDEX "competition_schedules_id_competitionId_key" ON "competition_schedules"("id", "competitionId");
 CREATE INDEX "competition_fixtures_competitionId_roundNumber_fixtureNumber_idx"
   ON "competition_fixtures"("competitionId", "roundNumber", "fixtureNumber");
