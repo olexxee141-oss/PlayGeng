@@ -350,7 +350,8 @@ export const generateSchedule = async (communityId: string, competitionId: strin
           fixtureNumber: fixture.fixtureNumber,
           participantAEntryId: fixture.participantAEntryId,
           participantBEntryId: fixture.participantBEntryId,
-          winnerEntryId: fixture.byeEntryId,
+          winnerEntryId: generated.format === "KNOCKOUT" ? fixture.byeEntryId : null,
+          byeAdvances: generated.format === "KNOCKOUT" && fixture.isBye,
           status: fixture.isBye ? "BYE" : "SCHEDULED",
         })),
       });
