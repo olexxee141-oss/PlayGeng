@@ -2,6 +2,7 @@ import type { Request, RequestHandler, Response } from "express";
 import type { AuthContext } from "../auth/auth.middleware.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import * as service from "./teams.service.js";
+import { sportSchema } from "./teams.validator.js";
 
 const auth = (res: Response) => (res.locals as { auth: AuthContext }).auth;
 const param = (req: Request, name: string) => {
@@ -19,7 +20,7 @@ export const enableSport: RequestHandler = async (req, res) => {
   res.status(201).json({ success: true, data: { sport } });
 };
 export const removeSport: RequestHandler = async (req, res) => {
-  await service.removeSport(param(req, "communityId"), auth(res).userId, param(req, "sport") as never);
+  await service.removeSport(param(req, "communityId"), auth(res).userId, sportSchema.parse(param(req, "sport")));
   res.status(204).send();
 };
 export const listTeams: RequestHandler = async (req, res) => {
