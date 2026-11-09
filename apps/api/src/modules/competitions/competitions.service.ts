@@ -318,6 +318,8 @@ export const generateSchedule = async (communityId: string, competitionId: strin
         where: { competitionId, communityId, status: "APPROVED" },
         select: { id: true, seed: true, registeredAt: true },
       });
+      const pendingEntryCount = await tx.competitionEntry.count({ where: { competitionId, status: "PENDING" } });
+      if (pendingEntryCount > 0) throw new AppError("Resolve or withdraw all pending registrations before generating a schedule.", 409);
       if (entries.length < 2) throw new AppError("At least two approved entries are required to generate a schedule.", 409);
 
       const generated = generateCompetitionSchedule(
@@ -358,6 +360,10 @@ export const generateSchedule = async (communityId: string, competitionId: strin
         data: { status: "IN_PROGRESS" },
       });
       if (updated.count !== 1) throw new AppError("Competition status changed during schedule generation.", 409);
+      await tx.competitionInvitation.updateMany({
+        where: { competitionId, status: "PENDING" },
+        data: { status: "CANCELLED" },
+      });
 
       return tx.competitionSchedule.findUniqueOrThrow({
         where: { competitionId },
