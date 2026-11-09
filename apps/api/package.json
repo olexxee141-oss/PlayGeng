@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx --test src/shared/utils/crypto.test.ts src/modules/matches/matches.validator.test.ts src/modules/teams/teams.validator.test.ts"
+    "test": "tsx --test src/shared/utils/crypto.test.ts src/modules/matches/matches.validator.test.ts src/modules/teams/teams.validator.test.ts apps/api/src/modules/sports/sport-capabilities.test.ts"
   },
   "dependencies": {
     "@playgeng/database": "0.1.0",
@@ -19,7 +19,8 @@
     "express-rate-limit": "^8.2.1",
     "jose": "^6.1.3",
     "zod": "^4.1.12",
-    "pino": "^10.1.0"
+    "pino": "^10.1.0",
+    "@playgeng/shared": "0.1.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
