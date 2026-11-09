@@ -32,3 +32,18 @@ export type {
   SportCapability,
   SportCode,
 } from "./sports.js";
+
+export {
+  generateCompetitionSchedule,
+  generateKnockoutSchedule,
+  generateRoundRobinSchedule,
+  SchedulingError,
+} from "./competition-scheduling.js";
+export type {
+  CompetitionSchedule,
+  KnockoutSchedule,
+  RoundRobinSchedule,
+  ScheduledPairing,
+  SchedulingErrorCode,
+  SchedulingParticipant,
+} from "./competition-scheduling.js";
