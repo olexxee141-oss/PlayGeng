@@ -171,6 +171,7 @@ export const registerEntry = async (communityId: string, competitionId: string, 
 
 export const listEntries = async (communityId: string, competitionId: string, userId: string) => {
   await requireMembership(communityId, userId);
+  await requireActiveCommunity(communityId);
   await requireCompetition(communityId, competitionId);
   return db.listEntries(communityId, competitionId);
 };
