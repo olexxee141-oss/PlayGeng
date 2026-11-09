@@ -117,6 +117,7 @@ model User {
   createdTeams            Team[]                 @relation("TeamCreator")
   createdCompetitions     Competition[]          @relation("CompetitionCreator")
   reviewedCompetitionEntries CompetitionEntry[]   @relation("CompetitionEntryReviewer")
+  competitionEntries        CompetitionEntry[]   @relation("CompetitionPlayer")
 
   @@index([status])
   @@map("users")
