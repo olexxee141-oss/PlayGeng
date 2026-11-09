@@ -94,8 +94,21 @@ export const transitionCompetition = async (communityId: string, competitionId: 
   if (nextStatus === "REGISTRATION_OPEN" && competition.registrationOpensAt && competition.registrationOpensAt > new Date()) {
     throw new AppError("The registration opening time has not been reached.", 409);
   }
-  const updated = await db.updateCompetitionStatus(communityId, competitionId, competition.status, nextStatus);
-  if (updated.count !== 1) throw new AppError("Competition status changed concurrently. Refresh and try again.", 409);
+  await db.withSerializableTransaction(async (tx) => {
+    const current = await tx.competition.findFirst({ where: { id: competitionId, communityId } });
+    if (!current || current.status !== competition.status) {
+      throw new AppError("Competition status changed concurrently. Refresh and try again.", 409);
+    }
+    if (nextStatus === "IN_PROGRESS") {
+      const approvedCount = await tx.competitionEntry.count({ where: { competitionId, status: "APPROVED" } });
+      if (approvedCount < 2) throw new AppError("At least two approved entries are required to start a competition.", 409);
+    }
+    const updated = await tx.competition.updateMany({
+      where: { id: competitionId, communityId, status: current.status },
+      data: { status: nextStatus },
+    });
+    if (updated.count !== 1) throw new AppError("Competition status changed concurrently. Refresh and try again.", 409);
+  });
   return db.findCompetition(communityId, competitionId);
 };
 
@@ -170,6 +183,10 @@ export const reviewEntry = async (communityId: string, competitionId: string, en
   const entry = await db.findEntry(communityId, competitionId, entryId);
   if (!entry || entry.status !== "PENDING") throw new AppError("Pending competition entry not found.", 404);
   return db.withSerializableTransaction(async (tx) => {
+    const currentCompetition = await tx.competition.findFirst({ where: { id: competitionId, communityId } });
+    if (!currentCompetition || !["REGISTRATION_OPEN", "REGISTRATION_CLOSED"].includes(currentCompetition.status)) {
+      throw new AppError("Entries can only be reviewed during registration.", 409);
+    }
     const current = await tx.competitionEntry.findFirst({ where: { id: entryId, communityId, competitionId, status: "PENDING" } });
     if (!current) throw new AppError("Pending competition entry not found.", 404);
     const rejectionReason = input.rejectionReason ?? null;
@@ -201,6 +218,10 @@ export const withdrawEntry = async (communityId: string, competitionId: string, 
     if (teamMember?.role !== "CAPTAIN" && !managerRoles.has(actorMembership.role)) throw new AppError("Only the team captain or a community manager can withdraw this entry.", 403);
   }
   return db.withSerializableTransaction(async (tx) => {
+    const currentCompetition = await tx.competition.findFirst({ where: { id: competitionId, communityId } });
+    if (!currentCompetition || ["IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(currentCompetition.status)) {
+      throw new AppError("Entries cannot be withdrawn after the competition starts.", 409);
+    }
     const updated = await tx.competitionEntry.updateMany({
       where: { id: entryId, communityId, competitionId, status: { in: ["PENDING", "APPROVED"] } },
       data: { status: "WITHDRAWN" },
