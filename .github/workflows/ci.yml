@@ -4,11 +4,25 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, "phase-1/**"]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: playgeng
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d playgeng"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/playgeng?schema=public
     steps:
@@ -24,8 +38,14 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Apply database migrations
+        run: npm run db:migrate:deploy
+
       - name: Typecheck workspaces
         run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
 
       - name: Build workspaces
         run: npm run build
