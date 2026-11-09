@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { prisma } from "@playgeng/database";
 import { AppError } from "../../shared/errors/app-error.js";
-import { createCompetition, registerEntry, transitionCompetition, withdrawEntry } from "./competitions.service.js";
+import { createCompetition, registerEntry, reviewEntry, transitionCompetition, withdrawEntry } from "./competitions.service.js";
 
 test("competition registration enforces tenant boundaries, re-registration, and concurrent capacity", async () => {
   const suffix = randomUUID();
@@ -50,6 +50,46 @@ test("competition registration enforces tenant boundaries, re-registration, and 
       createTeam(first.community.id, first.sport.id, first.user.id, "Delta"),
     ]);
     const foreignTeam = await createTeam(second.community.id, second.sport.id, second.user.id, "Foreign");
+
+    const approvalCompetition = await createCompetition(first.community.id, first.user.id, {
+      name: "Approval Cup",
+      sport: "FOOTBALL",
+      format: "KNOCKOUT",
+      participantType: "TEAM",
+      registrationMode: "APPROVAL_REQUIRED",
+      maxEntries: 4,
+    });
+    await transitionCompetition(first.community.id, approvalCompetition.id, first.user.id, "REGISTRATION_OPEN");
+    const pendingEntry = await registerEntry(first.community.id, approvalCompetition.id, first.user.id, { teamId: teams[3]!.id });
+    assert.equal(pendingEntry.status, "PENDING");
+    const approvedEntry = await reviewEntry(first.community.id, approvalCompetition.id, pendingEntry.id, first.user.id, { decision: "APPROVED" });
+    assert.equal(approvedEntry.status, "APPROVED");
+
+    const player = await prisma.user.create({
+      data: {
+        email: `competition-player-${suffix}@playgeng.test`,
+        firstName: "Individual",
+        lastName: "Player",
+        passwordHash: "integration-test-hash",
+      },
+    });
+    users.push(player.id);
+    await prisma.communityMember.create({ data: { communityId: first.community.id, userId: player.id, role: "MEMBER" } });
+    const tennisSport = await prisma.communitySport.create({ data: { communityId: first.community.id, sport: "TENNIS" } });
+    const individualCompetition = await createCompetition(first.community.id, first.user.id, {
+      name: "Singles Cup",
+      sport: "TENNIS",
+      format: "ROUND_ROBIN",
+      participantType: "PLAYER",
+      registrationMode: "OPEN",
+      maxEntries: 8,
+    });
+    await transitionCompetition(first.community.id, individualCompetition.id, first.user.id, "REGISTRATION_OPEN");
+    const playerEntry = await registerEntry(first.community.id, individualCompetition.id, player.id, {});
+    assert.equal(playerEntry.playerUserId, player.id);
+    assert.equal(playerEntry.participantNameSnapshot, "Individual Player");
+    await prisma.communityMember.delete({ where: { communityId_userId: { communityId: first.community.id, userId: player.id } } });
+    assert.ok(await prisma.competitionEntry.findUnique({ where: { id: playerEntry.id } }));
 
     const competition = await createCompetition(first.community.id, first.user.id, {
       name: "Capacity Cup",
