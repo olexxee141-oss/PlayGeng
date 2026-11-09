@@ -1573,7 +1573,7 @@ FINANCE, PAYMENTS, NOTIFICATIONS & EXPANSION
 - Phase 4 — Match management: merged.
 - Phase 5 — Community sports, teams and rosters: merged.
 - Phase 6 — Sport capability and result contracts: merged (PR #8).
-- Phase 7 — Competition and participant foundation: in progress (competition/registration API merged in PR #10; invite-only workflow under review in PR #11).
+- Phase 7 — Competition and participant foundation: merged (PR #10 and PR #11).
 
 ### What was established in Phase 6
 
@@ -1611,9 +1611,9 @@ Therefore, reuse the domain concepts selectively. Do not copy its database schem
 6. Sport-specific result rules belong behind adapters; the generic competition engine should orchestrate workflows without embedding football assumptions.
 7. Fixture generation remains deferred until participant identity, registration, lifecycle and result contracts are stable.
 
-### Phase 7 implementation — Competition and Participant Foundation
+### Phase 7 — Competition and Participant Foundation (complete)
 
-The Phase 7 foundation now includes persistence and community-scoped API workflows before fixture generation:
+The completed Phase 7 foundation includes persistence and community-scoped API workflows before fixture generation:
 
 - Competition ownership by community and enabled sport.
 - Explicitly supported formats only (initially round-robin and knockout, subject to capability checks).
@@ -1628,13 +1628,13 @@ Required tests cover cross-community access, invalid participant type/sport comb
 
 **Out of scope for Phase 7:** fixture generation, bracket progression, standings calculation, result approval and sport-specific statistics. These belong in later phases after the foundation is proven.
 
-### Next after Phase 7
+### Next — Phase 8: Scheduling, Fixtures and Results
 
-Phase 8 will adapt and implement scheduling concepts from newDelyx against PlayGeng's generic participant model. Round-robin and knockout generation must be deterministic, tested for edge cases, and independent of whether an entry represents a player or a team.
+Phase 8 will adapt and implement scheduling concepts from newDelyx against PlayGeng's generic participant model. Round-robin and knockout generation must be deterministic, tested for edge cases, and independent of whether an entry represents a player or a team. Before implementation, define a versioned scheduler contract, stable seeding rules, idempotent fixture generation, byes, home/away balancing where relevant, and transactional protection against duplicate generation. Do not copy newDelyx's player-centric fixture schema or randomized shuffle implementation.
 
 ### Session checkpoint — November 9, 2026
 
-Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is in progress: PR #10 merged competition/entry persistence, registration, approval, withdrawal, lifecycle and PostgreSQL integration coverage. PR #11 adds invitation persistence and invite-only registration for players and team captains. Phase 7 is complete once the invitation workflow passes CI and merges. Email/push notifications are deferred to the notifications phase; fixture and result workflows remain separate later phases. Do not start fixture generation before Phase 7 is complete.
+Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is complete: PR #10 merged competition/entry persistence, registration, approval, withdrawal, lifecycle and PostgreSQL integration coverage; PR #11 merged invite-only invitations for individual players and team captains, including expiry, authorization, and capacity-safe acceptance. Email/push invitation delivery is deferred to the notifications phase. Next is Phase 8 scheduling, fixtures and results. Use the newDelyx audit as design input, not as code to copy.
 
 ---
 
