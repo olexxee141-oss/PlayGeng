@@ -59,8 +59,8 @@ CREATE UNIQUE INDEX "competitions_id_communityId_participantType_key" ON "compet
 CREATE INDEX "competitions_communityId_status_startsAt_idx" ON "competitions"("communityId", "status", "startsAt");
 CREATE INDEX "competitions_communitySportId_status_idx" ON "competitions"("communitySportId", "status");
 
-CREATE UNIQUE INDEX "competition_entries_competitionId_teamId_key" ON "competition_entries"("competitionId", "teamId");
-CREATE UNIQUE INDEX "competition_entries_competitionId_playerUserId_key" ON "competition_entries"("competitionId", "playerUserId");
+CREATE UNIQUE INDEX "competition_entries_active_team_key" ON "competition_entries"("competitionId", "teamId") WHERE "teamId" IS NOT NULL AND "status" IN ('PENDING', 'APPROVED');
+CREATE UNIQUE INDEX "competition_entries_active_player_key" ON "competition_entries"("competitionId", "playerUserId") WHERE "playerUserId" IS NOT NULL AND "status" IN ('PENDING', 'APPROVED');
 CREATE INDEX "competition_entries_competitionId_status_registeredAt_idx" ON "competition_entries"("competitionId", "status", "registeredAt");
 CREATE INDEX "competition_entries_communityId_playerUserId_idx" ON "competition_entries"("communityId", "playerUserId");
 
