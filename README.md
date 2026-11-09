@@ -1540,41 +1540,41 @@ PHASE 2 — Authentication
 PHASE 3 — Communities
         │
         ▼
-PHASE 4 — Match Management
+PHASE 4 — Match Management (merged)
         │
         ▼
-PHASE 5 — Finance & Contributions
+PHASE 5 — Sports & Teams (merged)
         │
         ▼
-PHASE 6 — Payments
+PHASE 6 — Sport Capability Contracts (in progress)
         │
         ▼
-PHASE 7 — Tournaments
+PHASE 7 — Competition & Participant Foundation
         │
         ▼
-PHASE 8 — Fixtures & Results
+PHASE 8 — Scheduling, Fixtures & Results
         │
         ▼
-PHASE 9 — Statistics
+PHASE 9 — Standings, Statistics & Progression
         │
         ▼
-PHASE 10 — Notifications & Expansion
+FINANCE, PAYMENTS, NOTIFICATIONS & EXPANSION
 ```
 
 ---
 
 # Current Status
 
-🚧 **Phase 0 — Product definition and architecture.**
+**Current delivery status (November 2026)**
 
-The immediate next decisions are:
+- Phase 1 — Foundation: merged.
+- Phase 2 — Authentication: merged.
+- Phase 3 — Communities and memberships: merged.
+- Phase 4 — Match management: merged.
+- Phase 5 — Community sports, teams and rosters: merged.
+- Phase 6 — Sport capability and result contracts: in progress.
 
-1. Lock the MVP boundaries.
-2. Lock the initial technology stack.
-3. Define the monorepo and package architecture.
-4. Design the initial database schema.
-5. Create the project foundation.
-6. Implement the platform incrementally by phase.
+The next gate is a generic competition/participant model and sport adapter interface. Fixture generation is intentionally blocked until participant identity, result contracts and approval invariants are defined and tested.
 
 ---
 
