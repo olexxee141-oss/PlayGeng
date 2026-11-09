@@ -1573,7 +1573,7 @@ FINANCE, PAYMENTS, NOTIFICATIONS & EXPANSION
 - Phase 4 — Match management: merged.
 - Phase 5 — Community sports, teams and rosters: merged.
 - Phase 6 — Sport capability and result contracts: merged (PR #8).
-- Phase 7 — Competition and participant foundation: in progress (persistence model and migration prepared in PR).
+- Phase 7 — Competition and participant foundation: in progress (persistence, registration API, and initial integration coverage prepared in PR #10).
 
 ### What was established in Phase 6
 
@@ -1634,7 +1634,7 @@ Phase 8 will adapt and implement scheduling concepts from newDelyx against PlayG
 
 ### Session checkpoint — November 9, 2026
 
-Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is now in progress. The first implementation slice adds the competition and entry persistence model, a migration, and `docs/architecture/COMPETITION_FOUNDATION.md`. The API workflows and integration tests remain to be implemented and verified. Do not start fixture generation as part of Phase 7.
+Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is now in progress. The Phase 7 slice adds the competition and entry persistence model, migration, community-scoped API routes, registration/review/withdrawal workflows, lifecycle validation, sport compatibility checks, and initial database integration coverage. Completion remains blocked until fixture and result verification exists. The PR must pass CI before merge. Do not start fixture generation as part of Phase 7.
 
 ---
 
