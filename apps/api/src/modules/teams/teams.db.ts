@@ -66,10 +66,10 @@ export const findCommunityMember = (communityId: string, userId: string) =>
 export const addTeamMember = (teamId: string, communityId: string, userId: string, role: TeamMemberRole) =>
   prisma.$transaction(async (tx) => {
     if (role === "CAPTAIN") {
-      await tx.teamMember.updateMany({ where: { teamId, role: "CAPTAIN" }, data: { role: "PLAYER" } });
+      await tx.teamMember.updateMany({ where: { teamId, role: "CAPTAIN" }, data: { role: "PLAYER", captainKey: null } });
     }
     return tx.teamMember.create({
-      data: { teamId, communityId, userId, role },
+      data: { teamId, communityId, userId, role, captainKey: role === "CAPTAIN" ? "CAPTAIN" : null },
       include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
     });
   });
@@ -84,7 +84,7 @@ export const updateTeamMemberRole = (teamId: string, userId: string, role: TeamM
     }
     return tx.teamMember.update({
       where: { teamId_userId: { teamId, userId } },
-      data: { role },
+      data: { role, captainKey: role === "CAPTAIN" ? "CAPTAIN" : null },
       include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
     });
   });
