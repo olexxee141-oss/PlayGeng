@@ -99,7 +99,8 @@ function normalizeParticipants(participants: readonly SchedulingParticipant[]): 
     if (a.seed !== null && b.seed !== null && a.seed !== b.seed) return a.seed - b.seed;
     if (a.seed !== null && b.seed === null) return -1;
     if (a.seed === null && b.seed !== null) return 1;
-    return a.registeredAt - b.registeredAt || a.entryId.localeCompare(b.entryId);
+    if (a.registeredAt !== b.registeredAt) return a.registeredAt - b.registeredAt;
+    return a.entryId < b.entryId ? -1 : a.entryId > b.entryId ? 1 : 0;
   });
 }
 
