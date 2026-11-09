@@ -114,7 +114,7 @@ export const registerEntry = async (communityId: string, competitionId: string, 
   await requireActiveCommunity(communityId);
   const competition = await requireCompetition(communityId, competitionId);
   if (competition.status !== "REGISTRATION_OPEN") throw new AppError("This competition is not accepting registrations.", 409);
-  if (competition.registrationMode === "INVITE_ONLY") throw new AppError("Invitation-based registration is not available yet.", 409);
+  if (competition.registrationMode === "INVITE_ONLY") throw new AppError("This competition requires an invitation.", 409);
   const now = new Date();
   if (competition.registrationOpensAt && competition.registrationOpensAt > now) throw new AppError("Registration has not opened yet.", 409);
   if (competition.registrationClosesAt && competition.registrationClosesAt <= now) throw new AppError("Registration has closed.", 409);
@@ -242,14 +242,26 @@ export const setEntrySeed = async (
   if (competition.status !== "REGISTRATION_CLOSED") {
     throw new AppError("Seeds can only be assigned after registration closes and before schedule generation.", 409);
   }
-  if (await db.findSchedule(competitionId)) throw new AppError("The competition schedule has already been generated.", 409);
-  const entry = await db.findEntry(communityId, competitionId, entryId);
-  if (!entry || entry.status !== "APPROVED") throw new AppError("Approved competition entry not found.", 404);
-
   try {
-    const updated = await db.updateEntrySeed(communityId, competitionId, entryId, seed);
-    if (updated.count !== 1) throw new AppError("The entry changed concurrently. Refresh and try again.", 409);
-    return db.findEntry(communityId, competitionId, entryId);
+    return await db.withSerializableTransaction(async (tx) => {
+      const currentCompetition = await tx.competition.findFirst({
+        where: { id: competitionId, communityId, status: "REGISTRATION_CLOSED" },
+      });
+      if (!currentCompetition) throw new AppError("Seeds can only be assigned after registration closes.", 409);
+      const schedule = await tx.competitionSchedule.findUnique({ where: { competitionId }, select: { id: true } });
+      if (schedule) throw new AppError("The competition schedule has already been generated.", 409);
+      const entry = await tx.competitionEntry.findFirst({
+        where: { id: entryId, communityId, competitionId, status: "APPROVED" },
+        select: { id: true },
+      });
+      if (!entry) throw new AppError("Approved competition entry not found.", 404);
+      const updated = await tx.competitionEntry.updateMany({
+        where: { id: entryId, communityId, competitionId, status: "APPROVED" },
+        data: { seed },
+      });
+      if (updated.count !== 1) throw new AppError("The entry changed concurrently. Refresh and try again.", 409);
+      return tx.competitionEntry.findUniqueOrThrow({ where: { id: entryId } });
+    });
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
       throw new AppError("That seed is already assigned to another active entry.", 409);
@@ -281,7 +293,16 @@ export const generateSchedule = async (communityId: string, competitionId: strin
     return await db.withSerializableTransaction(async (tx) => {
       const currentSchedule = await tx.competitionSchedule.findUnique({
         where: { competitionId },
-        include: { fixtures: { orderBy: [{ roundNumber: "asc" }, { fixtureNumber: "asc" }] } },
+        include: {
+          fixtures: {
+            include: {
+              participantA: { select: { id: true, participantNameSnapshot: true } },
+              participantB: { select: { id: true, participantNameSnapshot: true } },
+              winner: { select: { id: true, participantNameSnapshot: true } },
+            },
+            orderBy: [{ roundNumber: "asc" }, { fixtureNumber: "asc" }],
+          },
+        },
       });
       if (currentSchedule) return currentSchedule;
 
