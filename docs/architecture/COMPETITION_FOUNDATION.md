@@ -24,7 +24,7 @@ The migration and Prisma schema enforce:
 3. Team entries must reference a team in the same community.
 4. Player entries must reference a community membership in the same community.
 5. An entry must reference exactly one participant identity: team XOR player.
-6. The same team or player cannot be registered twice in one competition.
+6. The same team or player cannot hold two active registrations in one competition. Partial unique indexes cover pending/approved entries, while rejected/withdrawn entries remain as history and may register again.
 7. Capacity cannot be less than two, when configured.
 8. Registration opening must precede registration closing, when both are configured.
 
