@@ -4,6 +4,7 @@ import {
   createCompetitionSchema,
   registerCompetitionEntrySchema,
   reviewCompetitionEntrySchema,
+  setCompetitionEntrySeedSchema,
   updateCompetitionStatusSchema,
 } from "./competitions.validator.js";
 
@@ -56,4 +57,11 @@ test("registration must close before the competition starts", () => {
     startsAt: "2026-11-15T15:00:00.000Z",
   });
   assert.equal(result.success, false);
+});
+
+test("seed assignment accepts positive integers or an explicit clear", () => {
+  assert.equal(setCompetitionEntrySeedSchema.safeParse({ seed: 1 }).success, true);
+  assert.equal(setCompetitionEntrySeedSchema.safeParse({ seed: null }).success, true);
+  assert.equal(setCompetitionEntrySeedSchema.safeParse({ seed: 0 }).success, false);
+  assert.equal(setCompetitionEntrySeedSchema.safeParse({ seed: 1.5 }).success, false);
 });
