@@ -59,7 +59,7 @@ Persistence enforces:
 - A schedule stores format, algorithm version, participant order snapshot, round count, participant count, fixture count, match count, bye count, and creator.
 - Unique fixture identity within a schedule (round + fixture number).
 - Fixture participants must reference entries belonging to that same competition, enforced with composite foreign keys.
-- Bye fixtures have one participant and an automatically advanced winner; ordinary fixtures have two distinct participants.
+- Bye fixtures have one participant. Round-robin byes do not count as wins or advances; knockout byes explicitly set the advancing entry. Ordinary fixtures have two distinct participants.
 - Explicit positive seeds are unique among active entries and can only be assigned after registration closes and before generation.
 - Schedule generation and fixture insertion happen in one transaction.
 - Repeated generation requests return the existing schedule rather than creating duplicate fixtures.
