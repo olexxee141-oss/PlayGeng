@@ -77,7 +77,7 @@ export const findTeamWithCaptain = (communityId: string, teamId: string) =>
       name: true,
       status: true,
       communitySportId: true,
-      members: { where: { role: "CAPTAIN" }, select: { userId: true }, take: 1 },
+      members: { where: { role: "CAPTAIN" }, select: { userId: true, user: { select: { status: true } } }, take: 1 },
     },
   });
 
