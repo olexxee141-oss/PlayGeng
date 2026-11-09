@@ -51,6 +51,7 @@ export const listTeams = async (communityId: string, userId: string) => {
 
 export const getTeam = async (communityId: string, teamId: string, userId: string) => {
   await requireMembership(communityId, userId);
+  await requireActiveCommunity(communityId);
   const team = await db.findTeam(communityId, teamId);
   if (!team || team.status !== "ACTIVE") throw new AppError("Team not found.", 404);
   return team;
