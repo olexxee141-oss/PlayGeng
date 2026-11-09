@@ -55,7 +55,7 @@ export const createInvitation = async (communityId: string, competitionId: strin
     if (!team || team.status !== "ACTIVE" || team.communitySportId !== competition.communitySportId) {
       throw new AppError("An active team registered for this competition's sport is required.", 409);
     }
-    if (!team.members[0]) throw new AppError("The team must have a captain before it can be invited.", 409);
+    if (!team.members[0] || team.members[0].user.status !== "ACTIVE") throw new AppError("The team must have an active captain before it can be invited.", 409);
     teamId = team.id;
     invitedUserId = team.members[0].userId;
   } else {
@@ -124,7 +124,7 @@ export const acceptInvitation = async (communityId: string, competitionId: strin
     if (!team || team.status !== "ACTIVE" || team.communitySportId !== competition.communitySportId) {
       throw new AppError("The invited team is no longer eligible.", 409);
     }
-    if (team.members[0]?.userId !== actorId) throw new AppError("Only the current team captain can accept this invitation.", 403);
+    if (team.members[0]?.userId !== actorId || team.members[0].user.status !== "ACTIVE") throw new AppError("Only the current active team captain can accept this invitation.", 403);
     participantNameSnapshot = team.name;
   }
 
@@ -137,6 +137,19 @@ export const acceptInvitation = async (communityId: string, competitionId: strin
       const currentCompetition = await tx.competition.findFirst({ where: { id: competitionId, communityId } });
       if (!currentCompetition || currentCompetition.status !== "REGISTRATION_OPEN" || currentCompetition.registrationMode !== "INVITE_ONLY") {
         throw new AppError("This competition is no longer accepting invitations.", 409);
+      }
+      if (invitation.participantType === "PLAYER") {
+        const member = await tx.communityMember.findUnique({
+          where: { communityId_userId: { communityId, userId: actorId } },
+          select: { user: { select: { status: true } } },
+        });
+        if (!member || member.user.status !== "ACTIVE") throw new AppError("An active community membership is required to accept this invitation.", 409);
+      } else if (invitation.teamId) {
+        const captain = await tx.teamMember.findFirst({
+          where: { teamId: invitation.teamId, communityId, role: "CAPTAIN", userId: actorId, user: { status: "ACTIVE" } },
+          select: { id: true },
+        });
+        if (!captain) throw new AppError("Only the current active team captain can accept this invitation.", 403);
       }
       const count = await tx.competitionEntry.count({ where: { competitionId, status: { in: ["PENDING", "APPROVED"] } } });
       if (currentCompetition.maxEntries !== null && count >= currentCompetition.maxEntries) {
