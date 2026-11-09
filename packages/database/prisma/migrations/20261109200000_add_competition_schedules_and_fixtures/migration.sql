@@ -98,7 +98,7 @@ ALTER TABLE "competition_fixtures"
   FOREIGN KEY ("competitionId") REFERENCES "competitions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "competition_fixtures"
   ADD CONSTRAINT "competition_fixtures_participantAEntryId_competitionId_fkey"
-  FOREIGN KEY ("participantAEntryId", "competitionId") REFERENCES "competition_entries"("id", "competitionId") ON DELETE RESTRICT ON UPDATE CASCADE;
+  FOREIGN KEY ("participantAEntryId", "competitionId") REFERENCES "competition_entries"("id", "competitionId") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "competition_fixtures"
   ADD CONSTRAINT "competition_fixtures_participantBEntryId_competitionId_fkey"
   FOREIGN KEY ("participantBEntryId", "competitionId") REFERENCES "competition_entries"("id", "competitionId") ON DELETE RESTRICT ON UPDATE CASCADE;
