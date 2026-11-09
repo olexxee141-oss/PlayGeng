@@ -87,3 +87,7 @@ ALTER TABLE "competition_entries"
 ALTER TABLE "competition_entries"
   ADD CONSTRAINT "competition_entries_reviewedById_fkey"
   FOREIGN KEY ("reviewedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE "competition_entries"
+  ADD CONSTRAINT "competition_entries_communityId_fkey"
+  FOREIGN KEY ("communityId") REFERENCES "communities"("id") ON DELETE CASCADE ON UPDATE CASCADE;
