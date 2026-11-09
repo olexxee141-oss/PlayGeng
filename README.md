@@ -1573,7 +1573,7 @@ FINANCE, PAYMENTS, NOTIFICATIONS & EXPANSION
 - Phase 4 — Match management: merged.
 - Phase 5 — Community sports, teams and rosters: merged.
 - Phase 6 — Sport capability and result contracts: merged (PR #8).
-- Phase 7 — Competition and participant foundation: in progress (competition/registration API merged in PR #10; invite-only workflow under review in PR #11).
+- Phase 7 — Competition and participant foundation: merged (PR #10 and PR #11).
 
 ### What was established in Phase 6
 
