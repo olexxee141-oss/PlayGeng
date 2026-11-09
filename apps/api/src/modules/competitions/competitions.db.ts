@@ -129,13 +129,6 @@ export const expirePendingInvitations = (communityId: string, competitionId: str
   });
 
 
-export const findApprovedEntries = (competitionId: string) =>
-  prisma.competitionEntry.findMany({
-    where: { competitionId, status: "APPROVED" },
-    select: { id: true, seed: true, registeredAt: true },
-    orderBy: [{ registeredAt: "asc" }, { id: "asc" }],
-  });
-
 export const findSchedule = (competitionId: string) =>
   prisma.competitionSchedule.findUnique({
     where: { competitionId },
@@ -151,8 +144,3 @@ export const findSchedule = (competitionId: string) =>
     },
   });
 
-export const updateEntrySeed = (communityId: string, competitionId: string, entryId: string, seed: number | null) =>
-  prisma.competitionEntry.updateMany({
-    where: { id: entryId, communityId, competitionId, status: "APPROVED" },
-    data: { seed },
-  });
