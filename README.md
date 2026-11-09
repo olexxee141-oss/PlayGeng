@@ -1546,7 +1546,7 @@ PHASE 4 — Match Management (merged)
 PHASE 5 — Sports & Teams (merged)
         │
         ▼
-PHASE 6 — Sport Capability Contracts (in progress)
+PHASE 6 — Sport Capability Contracts (merged)
         │
         ▼
 PHASE 7 — Competition & Participant Foundation
@@ -1572,9 +1572,69 @@ FINANCE, PAYMENTS, NOTIFICATIONS & EXPANSION
 - Phase 3 — Communities and memberships: merged.
 - Phase 4 — Match management: merged.
 - Phase 5 — Community sports, teams and rosters: merged.
-- Phase 6 — Sport capability and result contracts: in progress.
+- Phase 6 — Sport capability and result contracts: merged (PR #8).
+- Phase 7 — Competition and participant foundation: next; not yet started.
 
-The next gate is a generic competition/participant model and sport adapter interface. Fixture generation is intentionally blocked until participant identity, result contracts and approval invariants are defined and tested.
+### What was established in Phase 6
+
+The shared package now defines sport capability metadata and generic result envelopes for score-based, sets-based and custom-result sports. These contracts describe supported participant modes and broad competition capability.
+
+They are **not** complete sport rules engines. Official scoring, tiebreaks, standings points, forfeits, overtime, statistics and progression rules still require sport-specific adapters. Do not treat the current contracts as sufficient to validate every sport's result.
+
+### Existing implementation reviewed: newDelyx
+
+The existing [newDelyx repository](https://github.com/Olexxee/newDelyx) was reviewed as a source of domain ideas, not as a codebase to copy wholesale.
+
+Potentially reusable concepts include:
+- Round-robin scheduling and home/away balancing.
+- Knockout seeding, bracket generation and byes.
+- Competition lifecycle and registration workflows.
+- Result reporting, disputes, evidence and administrative approval.
+- Standings and optional player-rating strategies.
+
+The audit also identified important mismatches that must be addressed before reuse:
+- Its competition engine is primarily player-versus-player; PlayGeng must support both player-versus-player and team-versus-team competitions.
+- Some statistics and standings logic assume football-specific fields.
+- A declared Swiss format does not have a complete matching engine and validator.
+- Randomized fixture ordering needs deterministic behavior and tests.
+- Its persistence history and module boundaries do not match PlayGeng's Prisma/workspace architecture.
+
+Therefore, reuse the domain concepts selectively. Do not copy its database schema, migration history, or competition modules directly.
+
+### Current architecture decisions
+
+1. Competition scheduling must operate on a generic participant abstraction, not directly on users or teams.
+2. A competition is scoped to one community and one enabled community sport.
+3. A player participant must be a member of the owning community; a team participant must belong to that same community and sport.
+4. Registration needs explicit lifecycle states and authorization for approval/rejection.
+5. Competition format support must be capability-gated. A format is not supported merely because an enum value exists.
+6. Sport-specific result rules belong behind adapters; the generic competition engine should orchestrate workflows without embedding football assumptions.
+7. Fixture generation remains deferred until participant identity, registration, lifecycle and result contracts are stable.
+
+### Next implementation gate — Phase 7: Competition and Participant Foundation
+
+Build and test the domain foundation before generating fixtures:
+
+- Competition ownership by community and enabled sport.
+- Explicitly supported formats only (initially round-robin and knockout, subject to capability checks).
+- Competition lifecycle: draft, registration open/closed, in progress, completed and cancelled.
+- Registration modes: open, approval-based and invite-only.
+- Generic entries supporting both individual players and teams, with database-enforced community consistency.
+- Registration states: pending, approved, rejected and withdrawn.
+- Duplicate-registration prevention, eligibility checks and participant identity snapshots.
+- Versioned sport-adapter/ruleset metadata so later rule changes do not silently reinterpret existing competitions.
+
+Required tests include cross-community access, invalid participant type/sport combinations, duplicate registrations, unauthorized approvals, invalid lifecycle transitions and concurrent registration/capacity behavior.
+
+**Out of scope for Phase 7:** fixture generation, bracket progression, standings calculation, result approval and sport-specific statistics. These belong in later phases after the foundation is proven.
+
+### Next after Phase 7
+
+Phase 8 will adapt and implement scheduling concepts from newDelyx against PlayGeng's generic participant model. Round-robin and knockout generation must be deterministic, tested for edge cases, and independent of whether an entry represents a player or a team.
+
+### Session checkpoint — November 9, 2026
+
+We stopped after Phase 6 was merged and the newDelyx reuse audit was completed. No Phase 7 competition implementation has started yet. The next task is to inspect the current Prisma schema and module conventions, finalize the competition/entry data model and tenant-integrity constraints, then implement Phase 7 on a branch from the latest `main`. Do not start fixture generation as part of that work.
 
 ---
 
