@@ -38,7 +38,7 @@ export const findUserByEmail = (email: string) =>
 export const addMember = (communityId: string, userId: string, role: CommunityMemberRole) =>
   prisma.communityMember.create({ data: { communityId, userId, role } });
 
-export const updateMemberRole = (communityId: string, userId: string, role: Prisma.CommunityMemberRole) =>
+export const updateMemberRole = (communityId: string, userId: string, role: CommunityMemberRole) =>
   prisma.communityMember.update({ where: { communityId_userId: { communityId, userId } }, data: { role } });
 
 export const removeMember = (communityId: string, userId: string) =>
