@@ -37,7 +37,7 @@ export const updateCommunity = async (communityId: string, userId: string, input
     ...(input.description !== undefined ? { description: input.description } : {}),
     ...(input.sport !== undefined ? { sport: input.sport } : {}),
   };
-  if (input.sport !== undefined) return db.updateCommunityPrimarySport(communityId, input.sport as import("@playgeng/database").Sport);
+  if (input.sport !== undefined) return db.updateCommunityPrimarySport(communityId, data, input.sport as import("@playgeng/database").Sport);
   return db.updateCommunity(communityId, data);
 };
 
