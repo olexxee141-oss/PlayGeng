@@ -48,7 +48,7 @@ export const listEntries = (communityId: string, competitionId: string) =>
     where: { communityId, competitionId, status: { in: ["PENDING", "APPROVED"] } },
     include: {
       team: { select: { id: true, name: true } },
-      player: { select: { user: { select: { id: true, firstName: true, lastName: true } } } },
+      player: { select: { id: true, firstName: true, lastName: true } },
     },
     orderBy: { registeredAt: "asc" },
   });
