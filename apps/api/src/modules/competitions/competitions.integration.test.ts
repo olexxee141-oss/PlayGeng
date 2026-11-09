@@ -164,7 +164,10 @@ test("competition registration enforces tenant boundaries, re-registration, and 
     await setEntrySeed(first.community.id, competition.id, approvedEntries[1]!.id, first.user.id, 2);
     await setEntrySeed(first.community.id, competition.id, approvedEntries[2]!.id, first.user.id, 3);
 
-    const schedule = await generateSchedule(first.community.id, competition.id, first.user.id);
+    const [schedule, repeatedSchedule] = await Promise.all([
+      generateSchedule(first.community.id, competition.id, first.user.id),
+      generateSchedule(first.community.id, competition.id, first.user.id),
+    ]);
     assert.equal(schedule.format, "ROUND_ROBIN");
     assert.equal(schedule.participantCount, 3);
     assert.equal(schedule.roundCount, 3);
@@ -174,7 +177,6 @@ test("competition registration enforces tenant boundaries, re-registration, and 
     assert.equal(schedule.fixtures.filter((fixture) => fixture.status === "BYE").length, 3);
     assert.ok(schedule.fixtures.filter((fixture) => fixture.status === "BYE").every((fixture) => fixture.winnerEntryId === fixture.participantAEntryId));
 
-    const repeatedSchedule = await generateSchedule(first.community.id, competition.id, first.user.id);
     assert.equal(repeatedSchedule.id, schedule.id);
     assert.equal((await getSchedule(first.community.id, competition.id, first.user.id)).id, schedule.id);
     assert.equal((await prisma.competition.findUniqueOrThrow({ where: { id: competition.id } })).status, "IN_PROGRESS");
