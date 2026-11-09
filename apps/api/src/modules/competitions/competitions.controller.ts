@@ -61,5 +61,5 @@ export const getSchedule: RequestHandler = async (req, res) => {
 
 export const generateSchedule: RequestHandler = async (req, res) => {
   const schedule = await service.generateSchedule(param(req, "communityId"), param(req, "competitionId"), auth(res).userId);
-  res.status(201).json({ success: true, data: { schedule } });
+  res.status(200).json({ success: true, data: { schedule } });
 };
