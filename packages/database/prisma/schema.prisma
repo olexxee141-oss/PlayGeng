@@ -64,6 +64,38 @@ enum TeamMemberRole {
   PLAYER
 }
 
+enum CompetitionFormat {
+  ROUND_ROBIN
+  KNOCKOUT
+}
+
+enum CompetitionParticipantType {
+  TEAM
+  PLAYER
+}
+
+enum CompetitionRegistrationMode {
+  OPEN
+  APPROVAL_REQUIRED
+  INVITE_ONLY
+}
+
+enum CompetitionStatus {
+  DRAFT
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CompetitionEntryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
 model User {
   id                       String                  @id @default(cuid())
   email                    String                  @unique @db.VarChar(320)
@@ -149,6 +181,8 @@ model Community {
   matches     Match[]
   sports      CommunitySport[]
   teams       Team[]
+  competitions Competition[]
+  competitionEntries CompetitionEntry[]
 
   @@index([ownerId])
   @@index([status])
@@ -168,6 +202,7 @@ model CommunityMember {
 
   @@unique([communityId, userId])
   teamMemberships TeamMember[]
+  competitionEntries CompetitionEntry[]
   @@index([userId])
   @@index([communityId, role])
   @@map("community_members")
@@ -183,6 +218,7 @@ model CommunitySport {
 
   community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   teams     Team[]
+  competitions Competition[]
 
   @@unique([communityId, sport])
   @@unique([id, communityId])
@@ -206,6 +242,7 @@ model Team {
   createdBy User            @relation("TeamCreator", fields: [createdById], references: [id], onDelete: Restrict)
   sport     CommunitySport @relation(fields: [communitySportId, communityId], references: [id, communityId], onDelete: Restrict)
   members   TeamMember[]
+  competitionEntries CompetitionEntry[]
 
   @@unique([id, communityId])
   @@unique([communityId, name])
@@ -276,4 +313,64 @@ model MatchParticipant {
   @@index([matchId, status])
   @@index([userId, joinedAt])
   @@map("match_participants")
+}
+
+
+model Competition {
+  id                    String                       @id @default(cuid())
+  communityId           String
+  communitySportId      String
+  createdById           String
+  name                  String                       @db.VarChar(140)
+  description           String?                      @db.VarChar(2000)
+  format                CompetitionFormat
+  participantType       CompetitionParticipantType
+  registrationMode      CompetitionRegistrationMode  @default(APPROVAL_REQUIRED)
+  status                CompetitionStatus            @default(DRAFT)
+  maxEntries            Int?
+  registrationOpensAt   DateTime?
+  registrationClosesAt  DateTime?
+  startsAt              DateTime?
+  rulesetVersion        String                       @default("1") @db.VarChar(32)
+  adapterVersion        String                       @default("1") @db.VarChar(32)
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+
+  community       Community      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  sport           CommunitySport @relation(fields: [communitySportId, communityId], references: [id, communityId], onDelete: Restrict)
+  createdBy       User           @relation("CompetitionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  entries         CompetitionEntry[]
+
+  @@unique([id, communityId])
+  @@index([communityId, status, startsAt])
+  @@index([communitySportId, status])
+  @@map("competitions")
+}
+
+model CompetitionEntry {
+  id                    String                    @id @default(cuid())
+  competitionId         String
+  communityId           String
+  participantType       CompetitionParticipantType
+  teamId                String?
+  playerUserId          String?
+  status                CompetitionEntryStatus    @default(PENDING)
+  participantNameSnapshot String                   @db.VarChar(160)
+  registeredAt          DateTime                  @default(now())
+  reviewedAt            DateTime?
+  reviewedById          String?
+  rejectionReason       String?                    @db.VarChar(500)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  competition Competition @relation(fields: [competitionId, communityId], references: [id, communityId], onDelete: Cascade)
+  team        Team?       @relation(fields: [teamId, communityId], references: [id, communityId], onDelete: Restrict)
+  player      CommunityMember? @relation(fields: [communityId, playerUserId], references: [communityId, userId], onDelete: Restrict)
+  reviewedBy  User?       @relation("CompetitionEntryReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+
+  @@unique([competitionId, teamId])
+  @@unique([competitionId, playerUserId])
+  @@index([competitionId, status, registeredAt])
+  @@index([communityId, playerUserId])
+  @@map("competition_entries")
 }
