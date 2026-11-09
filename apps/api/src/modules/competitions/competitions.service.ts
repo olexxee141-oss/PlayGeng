@@ -140,7 +140,7 @@ export const registerEntry = async (communityId: string, competitionId: string, 
     }
     const membership = await db.findTeamMembership(team.id, actorId);
     const communityRole = (await db.findMembership(communityId, actorId))?.role;
-    if (!membership || (membership.role !== "CAPTAIN" && !managerRoles.has(communityRole ?? ""))) {
+    if (membership?.role !== "CAPTAIN" && !managerRoles.has(communityRole ?? "")) {
       throw new AppError("Only the team captain or a community manager can register this team.", 403);
     }
     teamId = team.id;
