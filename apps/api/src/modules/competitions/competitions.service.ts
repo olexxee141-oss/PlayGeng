@@ -28,7 +28,7 @@ const requireCompetition = async (communityId: string, competitionId: string) =>
   return competition;
 };
 
-const validateSportParticipant = (sport: Sport, participantType: CompetitionParticipantType) => {
+export const assertCompetitionSportCompatibility = (sport: Sport, participantType: CompetitionParticipantType) => {
   const capability = getSportCapability(sport);
   if (!capability.competitionSupported) throw new AppError("This sport does not yet have a supported competition adapter.", 409);
   if (capability.participantMode !== participantType) {
@@ -41,7 +41,7 @@ export const createCompetition = async (communityId: string, userId: string, inp
   await requireActiveCommunity(communityId);
   const sport = await db.findCommunitySport(communityId, input.sport as Sport);
   if (!sport) throw new AppError("Enable this sport for the community before creating a competition.", 409);
-  validateSportParticipant(sport.sport, input.participantType as CompetitionParticipantType);
+  assertCompetitionSportCompatibility(sport.sport, input.participantType as CompetitionParticipantType);
 
   return db.createCompetition({
     communityId,
@@ -67,6 +67,7 @@ export const listCompetitions = async (communityId: string, userId: string) => {
 
 export const getCompetition = async (communityId: string, competitionId: string, userId: string) => {
   await requireMembership(communityId, userId);
+  await requireActiveCommunity(communityId);
   return requireCompetition(communityId, competitionId);
 };
 
@@ -159,6 +160,7 @@ export const listEntries = async (communityId: string, competitionId: string, us
 
 export const reviewEntry = async (communityId: string, competitionId: string, entryId: string, actorId: string, input: ReviewCompetitionEntryInput) => {
   await requireManager(communityId, actorId);
+  await requireActiveCommunity(communityId);
   const competition = await requireCompetition(communityId, competitionId);
   if (!["REGISTRATION_OPEN", "REGISTRATION_CLOSED"].includes(competition.status)) throw new AppError("Entries can only be reviewed during registration.", 409);
   const entry = await db.findEntry(communityId, competitionId, entryId);
@@ -182,6 +184,7 @@ export const reviewEntry = async (communityId: string, competitionId: string, en
 
 export const withdrawEntry = async (communityId: string, competitionId: string, entryId: string, actorId: string) => {
   const actorMembership = await requireMembership(communityId, actorId);
+  await requireActiveCommunity(communityId);
   const competition = await requireCompetition(communityId, competitionId);
   if (["IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(competition.status)) throw new AppError("Entries cannot be withdrawn after the competition starts.", 409);
   const entry = await db.findEntry(communityId, competitionId, entryId);
