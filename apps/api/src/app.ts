@@ -6,6 +6,7 @@ import { authRoutes } from "./modules/auth/auth.routes.js";
 import { communityRoutes } from "./modules/communities/communities.routes.js";
 import { matchRoutes } from "./modules/matches/matches.routes.js";
 import { teamRoutes } from "./modules/teams/teams.routes.js";
+import { competitionRoutes } from "./modules/competitions/competitions.routes.js";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { errorMiddleware } from "./shared/middlewares/error.middleware.js";
@@ -39,6 +40,7 @@ export const createApp = () => {
   app.use("/api/v1/auth", authLimiter, authRoutes);
   app.use("/api/v1/communities", communityRoutes);
   app.use("/api/v1/communities/:communityId/matches", matchRoutes);
+  app.use("/api/v1/communities/:communityId/competitions", competitionRoutes);
   app.use("/api/v1/communities/:communityId", teamRoutes);
 
   app.get("/health", (_req, res) => {
