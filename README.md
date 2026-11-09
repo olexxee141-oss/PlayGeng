@@ -1278,6 +1278,141 @@ The final stack should be locked before Phase 1 implementation so the repository
 
 ---
 
+# Local Database Setup
+
+PlayGeng uses PostgreSQL. The repository includes a Docker Compose configuration for local development.
+
+## Prerequisites
+
+Install:
+
+- Node.js 26 or newer
+- npm 11 or newer
+- Docker Desktop
+
+## 1. Clone and install dependencies
+
+```bash
+git clone https://github.com/olexxee141-oss/PlayGeng.git
+cd PlayGeng
+npm install
+```
+
+## 2. Create your environment file
+
+```bash
+cp .env.example .env
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+The default local database configuration is:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/playgeng?schema=public
+DIRECT_URL=postgresql://postgres:postgres@localhost:5432/playgeng?schema=public
+```
+
+## 3. Start PostgreSQL
+
+```bash
+docker compose up -d postgres
+```
+
+Check that PostgreSQL is running:
+
+```bash
+docker compose ps
+```
+
+View database logs if startup fails:
+
+```bash
+docker compose logs -f postgres
+```
+
+## 4. Generate the Prisma client
+
+From the repository root:
+
+```bash
+npm run db:generate
+```
+
+## 5. Apply migrations
+
+For local development:
+
+```bash
+npm run db:migrate:dev
+```
+
+For environments where migrations already exist and should only be applied:
+
+```bash
+npm run db:migrate:deploy
+```
+
+Do **not** use `db:migrate:dev` in production.
+
+## 6. Open Prisma Studio
+
+```bash
+npm run db:studio
+```
+
+Prisma Studio provides a local interface for inspecting database records.
+
+## Daily Development Commands
+
+Start the database:
+
+```bash
+docker compose up -d postgres
+```
+
+Stop the database:
+
+```bash
+docker compose stop postgres
+```
+
+Stop and remove the container:
+
+```bash
+docker compose down
+```
+
+Reset the local database completely, including stored Docker volume data:
+
+```bash
+docker compose down -v
+docker compose up -d postgres
+npm run db:migrate:dev
+```
+
+**Warning:** `docker compose down -v` permanently deletes your local database data.
+
+## Verify the Full Database Setup
+
+Run:
+
+```bash
+docker compose up -d postgres
+npm run db:generate
+npm run db:migrate:dev
+npm run db:studio
+```
+
+If all commands complete successfully, the local PostgreSQL and Prisma setup is working.
+
+
+---
+
 # Proposed Repository Structure
 
 ```text
