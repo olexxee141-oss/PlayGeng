@@ -88,7 +88,8 @@ export const transitionCompetition = async (communityId: string, competitionId: 
   if (nextStatus === "REGISTRATION_OPEN" && competition.registrationOpensAt && competition.registrationOpensAt > new Date()) {
     throw new AppError("The registration opening time has not been reached.", 409);
   }
-  await db.updateCompetitionStatus(communityId, competitionId, nextStatus);
+  const updated = await db.updateCompetitionStatus(communityId, competitionId, competition.status, nextStatus);
+  if (updated.count !== 1) throw new AppError("Competition status changed concurrently. Refresh and try again.", 409);
   return db.findCompetition(communityId, competitionId);
 };
 
