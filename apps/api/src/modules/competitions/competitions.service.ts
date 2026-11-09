@@ -82,6 +82,7 @@ const allowedTransitions: Readonly<Record<CompetitionStatus, readonly Competitio
 export const transitionCompetition = async (communityId: string, competitionId: string, userId: string, nextStatus: CompetitionStatus) => {
   await requireManager(communityId, userId);
   const competition = await requireCompetition(communityId, competitionId);
+  if (nextStatus === "COMPLETED") throw new AppError("A competition can only be completed after fixture and result verification is implemented.", 409);
   if (!allowedTransitions[competition.status].includes(nextStatus)) {
     throw new AppError(`Competition cannot transition from ${competition.status} to ${nextStatus}.`, 409);
   }
@@ -165,8 +166,8 @@ export const reviewEntry = async (communityId: string, competitionId: string, en
   return db.withSerializableTransaction(async (tx) => {
     const current = await tx.competitionEntry.findFirst({ where: { id: entryId, communityId, competitionId, status: "PENDING" } });
     if (!current) throw new AppError("Pending competition entry not found.", 404);
-    return tx.competitionEntry.update({
-      where: { id: entryId },
+    const updated = await tx.competitionEntry.updateMany({
+      where: { id: entryId, communityId, competitionId, status: "PENDING" },
       data: {
         status: input.decision,
         reviewedAt: new Date(),
@@ -174,6 +175,8 @@ export const reviewEntry = async (communityId: string, competitionId: string, en
         ...(input.decision === "REJECTED" ? { rejectionReason: input.rejectionReason } : { rejectionReason: null }),
       },
     });
+    if (updated.count !== 1) throw new AppError("This entry was reviewed concurrently. Refresh and try again.", 409);
+    return tx.competitionEntry.findUniqueOrThrow({ where: { id: entryId } });
   });
 };
 
@@ -188,8 +191,11 @@ export const withdrawEntry = async (communityId: string, competitionId: string, 
     const teamMember = entry.teamId ? await db.findTeamMembership(entry.teamId, actorId) : null;
     if (teamMember?.role !== "CAPTAIN" && !managerRoles.has(actorMembership.role)) throw new AppError("Only the team captain or a community manager can withdraw this entry.", 403);
   }
-  return db.withSerializableTransaction(async (tx) => tx.competitionEntry.updateMany({
-    where: { id: entryId, communityId, competitionId, status: { in: ["PENDING", "APPROVED"] } },
-    data: { status: "WITHDRAWN" },
-  }));
+  return db.withSerializableTransaction(async (tx) => {
+    const updated = await tx.competitionEntry.updateMany({
+      where: { id: entryId, communityId, competitionId, status: { in: ["PENDING", "APPROVED"] } },
+      data: { status: "WITHDRAWN" },
+    });
+    if (updated.count !== 1) throw new AppError("This entry is no longer active.", 409);
+  });
 };
