@@ -80,7 +80,7 @@ export const findTeamMember = (teamId: string, userId: string) =>
 export const updateTeamMemberRole = (teamId: string, userId: string, role: TeamMemberRole) =>
   prisma.$transaction(async (tx) => {
     if (role === "CAPTAIN") {
-      await tx.teamMember.updateMany({ where: { teamId, role: "CAPTAIN", userId: { not: userId } }, data: { role: "PLAYER" } });
+      await tx.teamMember.updateMany({ where: { teamId, role: "CAPTAIN", userId: { not: userId } }, data: { role: "PLAYER", captainKey: null } });
     }
     return tx.teamMember.update({
       where: { teamId_userId: { teamId, userId } },
