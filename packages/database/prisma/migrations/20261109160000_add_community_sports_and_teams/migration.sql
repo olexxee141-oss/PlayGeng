@@ -45,7 +45,7 @@ CREATE TABLE "team_members" (
 );
 
 CREATE UNIQUE INDEX "community_sports_communityId_sport_key" ON "community_sports"("communityId", "sport");
-CREATE UNIQUE INDEX "community_sports_communityId_id_key" ON "community_sports"("communityId", "id");
+CREATE UNIQUE INDEX "community_sports_id_communityId_key" ON "community_sports"("id", "communityId");
 CREATE INDEX "community_sports_communityId_isPrimary_idx" ON "community_sports"("communityId", "isPrimary");
 CREATE UNIQUE INDEX "teams_id_communityId_key" ON "teams"("id", "communityId");
 CREATE UNIQUE INDEX "teams_communityId_name_key" ON "teams"("communityId", "name");
