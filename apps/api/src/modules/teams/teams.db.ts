@@ -30,7 +30,7 @@ export const enableSport = (communityId: string, sport: Sport) =>
   });
 
 export const countTeamsForSport = (communitySportId: string) =>
-  prisma.team.count({ where: { communitySportId, status: "ACTIVE" } });
+  prisma.team.count({ where: { communitySportId } });
 
 export const removeSport = (communitySportId: string) =>
   prisma.communitySport.delete({ where: { id: communitySportId } });
