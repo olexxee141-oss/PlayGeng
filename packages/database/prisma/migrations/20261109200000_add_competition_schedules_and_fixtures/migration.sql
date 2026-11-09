@@ -9,6 +9,8 @@ CREATE UNIQUE INDEX "competition_entries_active_seed_key"
 CREATE UNIQUE INDEX "competition_entries_id_competitionId_key"
   ON "competition_entries"("id", "competitionId");
 
+CREATE UNIQUE INDEX "competitions_id_format_key" ON "competitions"("id", "format");
+
 CREATE TYPE "CompetitionFixtureStatus" AS ENUM ('SCHEDULED', 'BYE', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED');
 
 CREATE TABLE "competition_schedules" (
@@ -81,8 +83,8 @@ CREATE UNIQUE INDEX "competition_fixtures_scheduleId_roundNumber_fixtureNumber_k
   ON "competition_fixtures"("scheduleId", "roundNumber", "fixtureNumber");
 
 ALTER TABLE "competition_schedules"
-  ADD CONSTRAINT "competition_schedules_competitionId_fkey"
-  FOREIGN KEY ("competitionId") REFERENCES "competitions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT "competition_schedules_competitionId_format_fkey"
+  FOREIGN KEY ("competitionId", "format") REFERENCES "competitions"("id", "format") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "competition_schedules"
   ADD CONSTRAINT "competition_schedules_createdById_fkey"
   FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
