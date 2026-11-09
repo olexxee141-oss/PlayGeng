@@ -59,6 +59,9 @@ export const listEntries = (communityId: string, competitionId: string) =>
 export const findEntry = (communityId: string, competitionId: string, entryId: string) =>
   prisma.competitionEntry.findFirst({ where: { id: entryId, communityId, competitionId } });
 
+export const countApprovedEntries = (competitionId: string) =>
+  prisma.competitionEntry.count({ where: { competitionId, status: "APPROVED" } });
+
 export const withSerializableTransaction = async <T>(work: (tx: Prisma.TransactionClient) => Promise<T>) => {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
