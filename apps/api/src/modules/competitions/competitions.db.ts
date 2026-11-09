@@ -81,19 +81,6 @@ export const findTeamWithCaptain = (communityId: string, teamId: string) =>
     },
   });
 
-export const findActiveEntry = (competitionId: string, teamId: string | null, playerUserId: string | null) =>
-  prisma.competitionEntry.findFirst({
-    where: {
-      competitionId,
-      status: { in: ["PENDING", "APPROVED"] },
-      ...(teamId ? { teamId } : { playerUserId: playerUserId! }),
-    },
-    select: { id: true },
-  });
-
-export const createInvitation = (data: Prisma.CompetitionInvitationUncheckedCreateInput) =>
-  prisma.competitionInvitation.create({ data });
-
 export const listInvitations = (communityId: string, competitionId: string, invitedUserId?: string) =>
   prisma.competitionInvitation.findMany({
     where: { communityId, competitionId, ...(invitedUserId ? { invitedUserId } : {}) },
