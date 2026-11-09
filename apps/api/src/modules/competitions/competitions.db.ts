@@ -117,3 +117,15 @@ export const updateInvitationStatus = (invitationId: string, currentStatus: Comp
     where: { id: invitationId, status: currentStatus },
     data: { status: nextStatus },
   });
+
+export const expirePendingInvitations = (communityId: string, competitionId: string, invitedUserId?: string) =>
+  prisma.competitionInvitation.updateMany({
+    where: {
+      communityId,
+      competitionId,
+      status: "PENDING",
+      expiresAt: { lte: new Date() },
+      ...(invitedUserId ? { invitedUserId } : {}),
+    },
+    data: { status: "EXPIRED" },
+  });
