@@ -92,7 +92,8 @@ export const createInvitation = async (communityId: string, competitionId: strin
 export const listInvitations = async (communityId: string, competitionId: string, actorId: string) => {
   const membership = await requireMembership(communityId, actorId);
   await requireActiveCommunity(communityId);
-  await requireInviteCompetition(communityId, competitionId);
+  const competition = await db.findCompetition(communityId, competitionId);
+  if (!competition || competition.registrationMode !== "INVITE_ONLY") throw new AppError("Invite-only competition not found.", 404);
   const isManager = managerRoles.has(membership.role);
   return db.listInvitations(communityId, competitionId, isManager ? undefined : actorId);
 };
