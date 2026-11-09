@@ -110,6 +110,23 @@ test("invite-only competitions invite and admit only the intended player or team
     assert.equal(playerEntry.playerUserId, player.id);
     assert.equal(playerEntry.participantNameSnapshot, "Invite player");
 
+    const capacityCompetition = await createCompetition(community.id, owner.id, {
+      name: "Invitation Capacity Cup",
+      sport: "TENNIS",
+      format: "ROUND_ROBIN",
+      participantType: "PLAYER",
+      registrationMode: "INVITE_ONLY",
+      maxEntries: 1,
+    });
+    await transitionCompetition(community.id, capacityCompetition.id, owner.id, "REGISTRATION_OPEN");
+    const playerCapacityInvite = await createInvitation(community.id, capacityCompetition.id, owner.id, { playerUserId: player.id });
+    const captainCapacityInvite = await createInvitation(community.id, capacityCompetition.id, owner.id, { playerUserId: captain.id });
+    await acceptInvitation(community.id, capacityCompetition.id, playerCapacityInvite.id, player.id);
+    await assert.rejects(
+      acceptInvitation(community.id, capacityCompetition.id, captainCapacityInvite.id, captain.id),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
+
     const declineCompetition = await createCompetition(community.id, owner.id, {
       name: "Decline Cup",
       sport: "TENNIS",
