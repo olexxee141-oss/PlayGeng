@@ -173,6 +173,32 @@ test("competition registration enforces tenant boundaries, re-registration, and 
       setEntrySeed(first.community.id, competition.id, approvedEntries[0]!.id, first.user.id, 4),
       (error: unknown) => error instanceof AppError && error.statusCode === 409,
     );
+
+    const knockoutCompetition = await createCompetition(first.community.id, first.user.id, {
+      name: "Knockout Schedule Cup",
+      sport: "FOOTBALL",
+      format: "KNOCKOUT",
+      participantType: "TEAM",
+      registrationMode: "OPEN",
+      maxEntries: 4,
+    });
+    await transitionCompetition(first.community.id, knockoutCompetition.id, first.user.id, "REGISTRATION_OPEN");
+    await registerEntry(first.community.id, knockoutCompetition.id, first.user.id, { teamId: teams[0]!.id });
+    await registerEntry(first.community.id, knockoutCompetition.id, first.user.id, { teamId: teams[1]!.id });
+    await registerEntry(first.community.id, knockoutCompetition.id, first.user.id, { teamId: teams[2]!.id });
+    await assert.rejects(
+      generateSchedule(first.community.id, knockoutCompetition.id, first.user.id),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
+    await transitionCompetition(first.community.id, knockoutCompetition.id, first.user.id, "REGISTRATION_CLOSED");
+    const knockoutSchedule = await generateSchedule(first.community.id, knockoutCompetition.id, first.user.id);
+    assert.equal(knockoutSchedule.format, "KNOCKOUT");
+    assert.equal(knockoutSchedule.participantCount, 3);
+    assert.equal(knockoutSchedule.roundCount, 2);
+    assert.equal(knockoutSchedule.fixtureCount, 2);
+    assert.equal(knockoutSchedule.matchCount, 1);
+    assert.equal(knockoutSchedule.byeCount, 1);
+    assert.equal(knockoutSchedule.fixtures.filter((fixture) => fixture.status === "BYE").length, 1);
   } finally {
     for (const communityId of communities) {
       await prisma.community.deleteMany({ where: { id: communityId } });
