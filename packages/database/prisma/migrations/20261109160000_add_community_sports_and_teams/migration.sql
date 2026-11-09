@@ -19,6 +19,13 @@ SELECT 'cs_' || md5(c."id" || ':' || upper(c."sport")), c."id",
   true
 FROM "communities" c;
 
+UPDATE "communities"
+SET "sport" = CASE
+  WHEN upper("sport") IN ('FOOTBALL','BASKETBALL','VOLLEYBALL','TENNIS','TABLE_TENNIS','BADMINTON','CRICKET','RUGBY','ESPORTS')
+    THEN upper("sport")
+  ELSE 'OTHER'
+END;
+
 CREATE TABLE "teams" (
   "id" TEXT NOT NULL,
   "communityId" TEXT NOT NULL,
