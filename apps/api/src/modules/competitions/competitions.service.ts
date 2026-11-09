@@ -1,5 +1,5 @@
-import { getSportCapability } from "@playgeng/shared";
-import type { CompetitionParticipantType, CompetitionStatus, Sport } from "@playgeng/database";
+import { generateCompetitionSchedule, getSportCapability } from "@playgeng/shared";
+import type { CompetitionParticipantType, CompetitionStatus, Prisma, Sport } from "@playgeng/database";
 import { AppError } from "../../shared/errors/app-error.js";
 import * as db from "./competitions.db.js";
 import type { CreateCompetitionInput, RegisterCompetitionEntryInput, ReviewCompetitionEntryInput } from "./competitions.validator.js";
@@ -74,8 +74,8 @@ export const getCompetition = async (communityId: string, competitionId: string,
 const allowedTransitions: Readonly<Record<CompetitionStatus, readonly CompetitionStatus[]>> = {
   DRAFT: ["REGISTRATION_OPEN", "CANCELLED"],
   REGISTRATION_OPEN: ["REGISTRATION_CLOSED", "CANCELLED"],
-  REGISTRATION_CLOSED: ["IN_PROGRESS", "CANCELLED"],
-  IN_PROGRESS: ["COMPLETED", "CANCELLED"],
+  REGISTRATION_CLOSED: ["CANCELLED"],
+  IN_PROGRESS: ["CANCELLED"],
   COMPLETED: [],
   CANCELLED: [],
 };
@@ -89,6 +89,7 @@ export const transitionCompetition = async (communityId: string, competitionId: 
   const competition = await requireCompetition(communityId, competitionId);
   if (!canTransitionCompetition(competition.status, nextStatus)) {
     if (nextStatus === "COMPLETED") throw new AppError("A competition can only be completed after fixture and result verification is implemented.", 409);
+    if (nextStatus === "IN_PROGRESS") throw new AppError("Start a competition by generating its schedule.", 409);
     throw new AppError(`Competition cannot transition from ${competition.status} to ${nextStatus}.`, 409);
   }
   if (nextStatus === "REGISTRATION_OPEN" && competition.registrationOpensAt && competition.registrationOpensAt > new Date()) {
@@ -98,10 +99,6 @@ export const transitionCompetition = async (communityId: string, competitionId: 
     const current = await tx.competition.findFirst({ where: { id: competitionId, communityId } });
     if (!current || current.status !== competition.status) {
       throw new AppError("Competition status changed concurrently. Refresh and try again.", 409);
-    }
-    if (nextStatus === "IN_PROGRESS") {
-      const approvedCount = await tx.competitionEntry.count({ where: { competitionId, status: "APPROVED" } });
-      if (approvedCount < 2) throw new AppError("At least two approved entries are required to start a competition.", 409);
     }
     const updated = await tx.competition.updateMany({
       where: { id: competitionId, communityId, status: current.status },
@@ -229,4 +226,137 @@ export const withdrawEntry = async (communityId: string, competitionId: string, 
     });
     if (updated.count !== 1) throw new AppError("This entry is no longer active.", 409);
   });
+};
+
+
+export const setEntrySeed = async (
+  communityId: string,
+  competitionId: string,
+  entryId: string,
+  actorId: string,
+  seed: number | null,
+) => {
+  await requireManager(communityId, actorId);
+  await requireActiveCommunity(communityId);
+  const competition = await requireCompetition(communityId, competitionId);
+  if (competition.status !== "REGISTRATION_CLOSED") {
+    throw new AppError("Seeds can only be assigned after registration closes and before schedule generation.", 409);
+  }
+  if (await db.findSchedule(competitionId)) throw new AppError("The competition schedule has already been generated.", 409);
+  const entry = await db.findEntry(communityId, competitionId, entryId);
+  if (!entry || entry.status !== "APPROVED") throw new AppError("Approved competition entry not found.", 404);
+
+  try {
+    const updated = await db.updateEntrySeed(communityId, competitionId, entryId, seed);
+    if (updated.count !== 1) throw new AppError("The entry changed concurrently. Refresh and try again.", 409);
+    return db.findEntry(communityId, competitionId, entryId);
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+      throw new AppError("That seed is already assigned to another active entry.", 409);
+    }
+    throw error;
+  }
+};
+
+export const getSchedule = async (communityId: string, competitionId: string, userId: string) => {
+  await requireMembership(communityId, userId);
+  await requireActiveCommunity(communityId);
+  await requireCompetition(communityId, competitionId);
+  const schedule = await db.findSchedule(competitionId);
+  if (!schedule) throw new AppError("Competition schedule not found.", 404);
+  return schedule;
+};
+
+export const generateSchedule = async (communityId: string, competitionId: string, actorId: string) => {
+  await requireManager(communityId, actorId);
+  await requireActiveCommunity(communityId);
+  const competition = await requireCompetition(communityId, competitionId);
+  const existing = await db.findSchedule(competitionId);
+  if (existing) return existing;
+  if (competition.status !== "REGISTRATION_CLOSED") {
+    throw new AppError("Close registration before generating the competition schedule.", 409);
+  }
+
+  try {
+    return await db.withSerializableTransaction(async (tx) => {
+      const currentSchedule = await tx.competitionSchedule.findUnique({
+        where: { competitionId },
+        include: { fixtures: { orderBy: [{ roundNumber: "asc" }, { fixtureNumber: "asc" }] } },
+      });
+      if (currentSchedule) return currentSchedule;
+
+      const currentCompetition = await tx.competition.findFirst({
+        where: { id: competitionId, communityId, status: "REGISTRATION_CLOSED" },
+      });
+      const activeCommunity = await tx.community.findFirst({ where: { id: communityId, status: "ACTIVE" }, select: { id: true } });
+      if (!currentCompetition || !activeCommunity) {
+        throw new AppError("Competition is no longer ready for schedule generation.", 409);
+      }
+
+      const entries = await tx.competitionEntry.findMany({
+        where: { competitionId, communityId, status: "APPROVED" },
+        select: { id: true, seed: true, registeredAt: true },
+      });
+      if (entries.length < 2) throw new AppError("At least two approved entries are required to generate a schedule.", 409);
+
+      const generated = generateCompetitionSchedule(
+        currentCompetition.format,
+        entries.map((entry) => ({ entryId: entry.id, registeredAt: entry.registeredAt, seed: entry.seed })),
+      );
+      const matchCount = generated.format === "ROUND_ROBIN" ? generated.matchCount : generated.firstRoundMatchCount;
+      const schedule = await tx.competitionSchedule.create({
+        data: {
+          competitionId,
+          createdById: actorId,
+          format: generated.format,
+          algorithmVersion: generated.algorithmVersion,
+          participantCount: generated.participantCount,
+          roundCount: generated.roundCount,
+          fixtureCount: generated.fixtures.length,
+          matchCount,
+          byeCount: generated.byeCount,
+          orderedEntryIds: generated.orderedEntryIds as Prisma.InputJsonValue,
+        },
+      });
+
+      await tx.competitionFixture.createMany({
+        data: generated.fixtures.map((fixture) => ({
+          scheduleId: schedule.id,
+          competitionId,
+          roundNumber: fixture.roundNumber,
+          fixtureNumber: fixture.fixtureNumber,
+          participantAEntryId: fixture.participantAEntryId,
+          participantBEntryId: fixture.participantBEntryId,
+          winnerEntryId: fixture.byeEntryId,
+          status: fixture.isBye ? "BYE" : "SCHEDULED",
+        })),
+      });
+
+      const updated = await tx.competition.updateMany({
+        where: { id: competitionId, communityId, status: "REGISTRATION_CLOSED" },
+        data: { status: "IN_PROGRESS" },
+      });
+      if (updated.count !== 1) throw new AppError("Competition status changed during schedule generation.", 409);
+
+      return tx.competitionSchedule.findUniqueOrThrow({
+        where: { competitionId },
+        include: {
+          fixtures: {
+            include: {
+              participantA: { select: { id: true, participantNameSnapshot: true } },
+              participantB: { select: { id: true, participantNameSnapshot: true } },
+              winner: { select: { id: true, participantNameSnapshot: true } },
+            },
+            orderBy: [{ roundNumber: "asc" }, { fixtureNumber: "asc" }],
+          },
+        },
+      });
+    });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+      const schedule = await db.findSchedule(competitionId);
+      if (schedule) return schedule;
+    }
+    throw error;
+  }
 };
