@@ -3,6 +3,7 @@ import { prisma, type Prisma, type CommunityMemberRole } from "@playgeng/databas
 const communityInclude = {
   owner: { select: { id: true, email: true, firstName: true, lastName: true } },
   members: { select: { id: true, userId: true, role: true, joinedAt: true } },
+  sports: { orderBy: [{ isPrimary: "desc" as const }, { sport: "asc" as const }] },
 } satisfies Prisma.CommunityInclude;
 
 export const createCommunity = (data: Prisma.CommunityCreateInput) =>
@@ -23,6 +24,18 @@ export const listCommunitiesForUser = (userId: string) =>
 
 export const updateCommunity = (id: string, data: Prisma.CommunityUpdateInput) =>
   prisma.community.update({ where: { id }, data, include: communityInclude });
+
+export const updateCommunityPrimarySport = (id: string, sport: import("@playgeng/database").Sport) =>
+  prisma.$transaction(async (tx) => {
+    const existing = await tx.communitySport.findUnique({ where: { communityId_sport: { communityId: id, sport } } });
+    await tx.communitySport.updateMany({ where: { communityId: id, isPrimary: true }, data: { isPrimary: false } });
+    if (existing) {
+      await tx.communitySport.update({ where: { id: existing.id }, data: { isPrimary: true } });
+    } else {
+      await tx.communitySport.create({ data: { communityId: id, sport, isPrimary: true } });
+    }
+    return tx.community.update({ where: { id }, data: { sport }, include: communityInclude });
+  });
 
 export const archiveCommunity = (id: string) =>
   prisma.community.update({ where: { id }, data: { status: "ARCHIVED" } });
