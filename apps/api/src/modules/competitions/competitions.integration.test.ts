@@ -75,7 +75,7 @@ test("competition registration enforces tenant boundaries, re-registration, and 
     });
     users.push(player.id);
     await prisma.communityMember.create({ data: { communityId: first.community.id, userId: player.id, role: "MEMBER" } });
-    const tennisSport = await prisma.communitySport.create({ data: { communityId: first.community.id, sport: "TENNIS" } });
+    await prisma.communitySport.create({ data: { communityId: first.community.id, sport: "TENNIS" } });
     const individualCompetition = await createCompetition(first.community.id, first.user.id, {
       name: "Singles Cup",
       sport: "TENNIS",
