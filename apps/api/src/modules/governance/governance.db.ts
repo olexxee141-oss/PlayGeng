@@ -59,7 +59,7 @@ export const createElection = async (
   if (!membership || membership.user.status !== "ACTIVE") return { kind: "NOT_MEMBER" as const };
 
   const existing = await tx.communityElection.findFirst({
-    where: { communityId, role: input.role, status: { in: ["NOMINATIONS_OPEN", "VOTING_OPEN"] } },
+    where: { communityId, role: input.role, status: { in: ["NOMINATIONS_OPEN", "NOMINATIONS_CLOSED", "VOTING_OPEN"] } },
     select: { id: true },
   });
   if (existing) return { kind: "ACTIVE_ELECTION_EXISTS" as const };
@@ -138,7 +138,7 @@ export const syncElection = (electionId: string, now: Date) =>
       }
     }
 
-    if (election.status === "NOMINATIONS_CLOSED" && now >= election.votingOpensAt) {
+    if (now >= election.votingOpensAt && election.nominations.length > 0 && (election.status === "NOMINATIONS_CLOSED" || (election.status === "NOMINATIONS_OPEN" && now >= election.nominationsCloseAt))) {
       await tx.communityElection.update({
         where: { id: electionId },
         data: { status: "VOTING_OPEN" },
