@@ -2,9 +2,8 @@ import { getSportCapability } from "@playgeng/shared";
 import type { CompetitionParticipantType, CompetitionStatus, Sport } from "@playgeng/database";
 import { AppError } from "../../shared/errors/app-error.js";
 import * as db from "./competitions.db.js";
+import { requireCommunityPermission } from "../../shared/authorization/community-permissions.js";
 import type { CreateCompetitionInput, RegisterCompetitionEntryInput, ReviewCompetitionEntryInput } from "./competitions.validator.js";
-
-const managerRoles = new Set(["OWNER", "ADMIN", "ORGANIZER"]);
 
 const requireMembership = async (communityId: string, userId: string) => {
   const membership = await db.findMembership(communityId, userId);
@@ -13,8 +12,7 @@ const requireMembership = async (communityId: string, userId: string) => {
 };
 
 const requireManager = async (communityId: string, userId: string) => {
-  const membership = await requireMembership(communityId, userId);
-  if (!managerRoles.has(membership.role)) throw new AppError("You do not have permission to manage competitions.", 403);
+  await requireCommunityPermission(communityId, userId, "MANAGE_COMPETITIONS", "You do not have permission to manage competitions.");
 };
 
 const requireActiveCommunity = async (communityId: string) => {
