@@ -206,7 +206,7 @@ BEFORE UPDATE OR DELETE ON "journal_transactions"
 FOR EACH ROW EXECUTE FUNCTION "prevent_posted_journal_mutation"();
 
 CREATE TRIGGER "ledger_postings_immutable_trigger"
-BEFORE UPDATE OR DELETE ON "ledger_postings"
+BEFORE INSERT OR UPDATE OR DELETE ON "ledger_postings"
 FOR EACH ROW EXECUTE FUNCTION "prevent_posted_journal_mutation"();
 
 CREATE FUNCTION "prevent_financial_audit_mutation"() RETURNS TRIGGER AS $$
