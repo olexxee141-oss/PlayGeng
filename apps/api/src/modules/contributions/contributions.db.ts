@@ -137,7 +137,7 @@ export const createScheduledDraft = async (input: {
 
 export const listMyContributionSnapshots = (communityId: string, memberId: string, cursor?: string, limit = 25) =>
   prisma.contributionAssessmentMember.findMany({
-    where: { memberId, assessment: { communityId } },
+    where: { memberId, assessment: { is: { communityId } } },
     include: {
       assessment: { include: { campaign: { select: { id: true, name: true, frequency: true } } } },
       obligation: { include: { allocations: { select: { amountMinor: true } } } },
