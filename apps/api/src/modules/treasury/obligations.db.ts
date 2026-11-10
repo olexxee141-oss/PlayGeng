@@ -1,4 +1,4 @@
-import { prisma } from "@playgeng/database";
+import { prisma, type Prisma } from "@playgeng/database";
 import { withTreasuryTransaction } from "./treasury.db.js";
 import type { CreateObligationInput } from "./obligations.validator.js";
 
@@ -9,12 +9,12 @@ const incomeAccountBySource = {
   OTHER: "CONTRIBUTION_INCOME",
 } as const;
 
-export const createObligation = (input: {
+export const createObligationInTransaction = async (tx: Prisma.TransactionClient, input: {
   treasuryId: string;
   actorId: string;
   memberId: string;
   data: CreateObligationInput;
-}) => withTreasuryTransaction(async (tx) => {
+}) => {
   const existing = await tx.obligation.findFirst({
     where: { treasuryId: input.treasuryId, OR: [
       { idempotencyKey: input.data.idempotencyKey },
@@ -65,7 +65,14 @@ export const createObligation = (input: {
     data: { treasuryId: input.treasuryId, actorId: input.actorId, action: "OBLIGATION_CREATED", entityType: "OBLIGATION", entityId: obligation.id, metadata: { memberId: input.memberId, sourceType: input.data.sourceType, sourceId: input.data.sourceId, amountMinor: input.data.amountMinor, journalTransactionId: journal.id } },
   });
   return { kind: "CREATED" as const, obligation };
-});
+};
+
+export const createObligation = (input: {
+  treasuryId: string;
+  actorId: string;
+  memberId: string;
+  data: CreateObligationInput;
+}) => withTreasuryTransaction((tx) => createObligationInTransaction(tx, input));
 
 export const findObligationByIdempotency = (treasuryId: string, idempotencyKey: string) =>
   prisma.obligation.findUnique({ where: { treasuryId_idempotencyKey: { treasuryId, idempotencyKey } }, include: { allocations: true } });
