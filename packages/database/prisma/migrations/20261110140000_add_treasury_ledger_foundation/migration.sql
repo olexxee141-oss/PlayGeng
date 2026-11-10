@@ -57,7 +57,7 @@ CREATE TABLE "journal_transactions" (
   CONSTRAINT "journal_transactions_postedAt_check" CHECK (("status" = 'DRAFT' AND "postedAt" IS NULL) OR ("status" = 'POSTED' AND "postedAt" IS NOT NULL))
 );
 CREATE UNIQUE INDEX "journal_transactions_treasuryId_idempotencyKey_key" ON "journal_transactions"("treasuryId", "idempotencyKey");
-CREATE UNIQUE INDEX "journal_transactions_reversalOfId_key" ON "journal_transactions"("reversalOfId");
+CREATE UNIQUE INDEX "journal_transactions_reversalOfId_treasuryId_key" ON "journal_transactions"("reversalOfId", "treasuryId");
 CREATE INDEX "journal_transactions_treasuryId_status_postedAt_idx" ON "journal_transactions"("treasuryId", "status", "postedAt");
 CREATE INDEX "journal_transactions_treasuryId_createdAt_idx" ON "journal_transactions"("treasuryId", "createdAt");
 CREATE INDEX "journal_transactions_sourceType_sourceId_idx" ON "journal_transactions"("sourceType", "sourceId");
