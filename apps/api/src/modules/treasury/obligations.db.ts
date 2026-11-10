@@ -52,7 +52,7 @@ export const createObligation = (input: {
       description: `Obligation issued: ${input.data.description}`,
       sourceType: "OBLIGATION",
       sourceId: obligation.id,
-      idempotencyKey: `obligation:${input.data.idempotencyKey}`,
+      idempotencyKey: `obl:${input.data.idempotencyKey}`,
       createdById: input.actorId,
     },
   });
@@ -123,3 +123,6 @@ export const listObligations = (treasuryId: string, where: { memberId?: string; 
 
 export const findObligation = (treasuryId: string, obligationId: string) =>
   prisma.obligation.findFirst({ where: { id: obligationId, treasuryId }, include: obligationInclude });
+
+export const findObligationBySource = (treasuryId: string, sourceType: "CONTRIBUTION" | "MATCH_FEE" | "COMPETITION_FEE" | "OTHER", sourceId: string) =>
+  prisma.obligation.findUnique({ where: { treasuryId_sourceType_sourceId: { treasuryId, sourceType, sourceId } }, include: { allocations: true } });
