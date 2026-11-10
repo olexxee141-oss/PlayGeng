@@ -98,10 +98,12 @@ test("contribution issuance snapshots active members, posts balanced receivables
     const lateJoiner = await prisma.user.create({
       data: { email: `contribution-late-${suffix}@playgeng.test`, firstName: "Late", lastName: "Joiner", passwordHash: "integration-test-hash" },
     });
-    await communityDb.addMember(fixture.community.id, lateJoiner.id, "MEMBER");
+    const addResult = await communityDb.addMember(fixture.community.id, fixture.creator.id, lateJoiner.id, "MEMBER");
+    assert.equal(addResult.kind, "ADDED");
     assert.equal(await prisma.contributionAssessmentMember.count({ where: { assessmentId: assessment.id, memberId: lateJoiner.id } }), 0);
 
-    await communityDb.removeMember(fixture.community.id, fixture.member.id);
+    const removeResult = await communityDb.removeMember(fixture.community.id, fixture.creator.id, fixture.member.id);
+    assert.equal(removeResult.kind, "REMOVED");
     const history = await listMyContributionHistory(fixture.community.id, fixture.member.id);
     assert.equal(history.items.length, 1);
     assert.equal(history.items[0]?.financialStatus, "UNPAID");
@@ -147,7 +149,7 @@ test("a membership join racing issuance is either fully included or excluded", a
 
     await Promise.all([
       issueAssessment(fixture.community.id, fixture.treasurer.id, assessment.id),
-      communityDb.addMember(fixture.community.id, joiner.id, "MEMBER"),
+      communityDb.addMember(fixture.community.id, fixture.creator.id, joiner.id, "MEMBER"),
     ]);
 
     const snapshot = await prisma.contributionAssessmentMember.findUnique({
@@ -170,7 +172,7 @@ test("a membership removal racing issuance preserves the obligation only if the 
 
     await Promise.all([
       issueAssessment(fixture.community.id, fixture.treasurer.id, assessment.id),
-      communityDb.removeMember(fixture.community.id, fixture.member.id),
+      communityDb.removeMember(fixture.community.id, fixture.creator.id, fixture.member.id),
     ]);
 
     const snapshot = await prisma.contributionAssessmentMember.findUnique({
