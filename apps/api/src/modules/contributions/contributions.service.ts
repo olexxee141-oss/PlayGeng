@@ -154,7 +154,8 @@ export const generateMonthlyDrafts = async (now = new Date()) => {
     try { periodKey = localMonthKey(now, timezone); }
     catch { continue; }
     const boundary = monthStartUtc(periodKey, timezone);
-    const eventsBeforeBoundary = campaign.events.filter((event) => event.createdAt < boundary);\n    const lastEventBeforeBoundary = eventsBeforeBoundary.at(-1);\n    const pausedAtBoundary = lastEventBeforeBoundary?.type === "PAUSED";\n    const pausedDuringPeriod = campaign.events.some((event) => event.type === "PAUSED" && event.createdAt >= boundary);\n    if (campaign.createdAt >= boundary || pausedAtBoundary || pausedDuringPeriod) continue;
+    const eventsBeforeBoundary = campaign.events.filter((event) => event.createdAt < boundary);
+    const lastEventBeforeBoundary = eventsBeforeBoundary.at(-1);\n    const pausedAtBoundary = lastEventBeforeBoundary?.type === "PAUSED";\n    const pausedDuringPeriod = campaign.events.some((event) => event.type === "PAUSED" && event.createdAt >= boundary);\n    if (campaign.createdAt >= boundary || pausedAtBoundary || pausedDuringPeriod) continue;
     if (!campaign.community.treasury) continue;
     const result = await db.createScheduledDraft({
       campaignId: campaign.id,
