@@ -133,3 +133,42 @@ export const createScheduledDraft = async (input: {
     throw error;
   }
 };
+
+
+export const listMyContributionSnapshots = (communityId: string, memberId: string, cursor?: string, limit = 25) =>
+  prisma.contributionAssessmentMember.findMany({
+    where: { memberId, assessment: { is: { communityId } } },
+    include: {
+      assessment: { include: { campaign: { select: { id: true, name: true, frequency: true } } } },
+      obligation: { include: { allocations: { select: { amountMinor: true } } } },
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    take: limit + 1,
+  });
+
+export const findAssessmentReport = (communityId: string, assessmentId: string) =>
+  prisma.contributionAssessment.findFirst({
+    where: { communityId, id: assessmentId },
+    include: {
+      campaign: { select: { id: true, name: true, frequency: true } },
+      _count: { select: { members: true } },
+      members: {
+        include: {
+          obligation: { include: { allocations: { select: { amountMinor: true } } } },
+        },
+      },
+    },
+  });
+
+export const listAssessmentSnapshotMembers = (assessmentId: string, cursor?: string, limit = 25) =>
+  prisma.contributionAssessmentMember.findMany({
+    where: { assessmentId },
+    include: { obligation: { include: { allocations: { select: { amountMinor: true } } } } },
+    orderBy: [{ snapshotAt: "asc" }, { id: "asc" }],
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    take: limit + 1,
+  });
+
+export const findUserStatus = (userId: string) =>
+  prisma.user.findUnique({ where: { id: userId }, select: { status: true } });

@@ -2,6 +2,7 @@ import type { Request, RequestHandler, Response } from "express";
 import type { AuthContext } from "../auth/auth.middleware.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import * as service from "./contributions.service.js";
+import { contributionReportQuerySchema } from "./contributions.validator.js";
 
 const auth = (res: Response) => (res.locals as { auth: AuthContext }).auth;
 const param = (req: Request, name: string) => {
@@ -42,4 +43,22 @@ export const listAssessments: RequestHandler = async (req, res) => {
 export const updateAssessment: RequestHandler = async (req, res) => {
   const assessment = await service.updateAssessment(param(req, "communityId"), auth(res).userId, param(req, "assessmentId"), req.body);
   res.status(200).json({ success: true, data: { assessment } });
+};
+
+
+export const listMine: RequestHandler = async (req, res) => {
+  const query = contributionReportQuerySchema.parse(req.query);
+  const result = await service.listMyContributionHistory(param(req, "communityId"), auth(res).userId, query.cursor, query.limit);
+  res.status(200).json({ success: true, data: result });
+};
+
+export const assessmentReport: RequestHandler = async (req, res) => {
+  const result = await service.getAssessmentReport(param(req, "communityId"), auth(res).userId, param(req, "assessmentId"));
+  res.status(200).json({ success: true, data: result });
+};
+
+export const assessmentReportMembers: RequestHandler = async (req, res) => {
+  const query = contributionReportQuerySchema.parse(req.query);
+  const result = await service.listAssessmentReportMembers(param(req, "communityId"), auth(res).userId, param(req, "assessmentId"), query.cursor, query.limit);
+  res.status(200).json({ success: true, data: result });
 };

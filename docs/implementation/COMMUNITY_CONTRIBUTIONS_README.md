@@ -275,3 +275,20 @@ At minimum, cover:
 4. PR D — hardening and operational readiness.
 
 Do not begin match obligations, competition fees, payment-provider integration, or withdrawals until this community-only contribution workflow is complete and its financial invariants are verified.
+
+
+## 8. PR C — Contribution visibility and reporting implementation
+
+**Branch:** `feat/community-contribution-reporting`
+
+The read-only reporting layer is implemented independently of the still-unmerged atomic issuance work:
+
+- `GET /api/v1/communities/:communityId/contributions/mine` returns only the authenticated user's immutable contribution snapshot rows and linked Treasury allocation totals. It does not require current community membership, so an active user retains access to their own historical records after leaving.
+- `GET /api/v1/communities/:communityId/contributions/assessments/:assessmentId/report` returns assessment metadata, snapshot count, assessed/collected/outstanding minor-unit totals, and derived status counts. Only elected ADMIN and TREASURER roles can access it.
+- `GET /api/v1/communities/:communityId/contributions/assessments/:assessmentId/members` returns paginated snapshot member rows for elected ADMIN/TREASURER roles. Member identity fields come from the immutable snapshot, not current membership.
+- Allocation sums are read from Treasury and no contribution-specific paid, overdue, or balance columns are introduced.
+- Draft assessments with no snapshot are not represented as collectible member obligations.
+- An ISSUED assessment with a missing obligation link is surfaced through `counts.integrityErrors` and `totals.complete: false`; it is not silently counted as unpaid.
+- Amounts are serialized as integer minor-unit strings. Reporting pagination is bounded to 1–100 rows (default 25).
+
+This reporting layer does not repair or validate PR B. Until atomic issuance is merged, member history may be empty and draft assessments will have no issued member rows. PR C must still pass its own migration, typecheck, test, and build checks before merge.

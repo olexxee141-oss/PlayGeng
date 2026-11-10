@@ -18,3 +18,7 @@ contributionRoutes.post("/campaigns/:campaignId/cancel", validate(transitionSche
 contributionRoutes.get("/assessments", asyncHandler(controller.listAssessments));
 contributionRoutes.post("/campaigns/:campaignId/assessments", validate(createAssessmentSchema), asyncHandler(controller.createAssessment));
 contributionRoutes.patch("/assessments/:assessmentId", validate(updateAssessmentSchema), asyncHandler(controller.updateAssessment));
+
+contributionRoutes.get("/mine", asyncHandler(controller.listMine));
+contributionRoutes.get("/assessments/:assessmentId/report", asyncHandler(controller.assessmentReport));
+contributionRoutes.get("/assessments/:assessmentId/members", asyncHandler(controller.assessmentReportMembers));
