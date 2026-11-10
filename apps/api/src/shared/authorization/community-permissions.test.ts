@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { roleHasCommunityPermission } from "./community-permissions.js";
+import { roleHasCommunityPermission } from "./community-role-policy.js";
 
 test("admin can manage community operations but cannot archive the community", () => {
   assert.equal(roleHasCommunityPermission("ADMIN", "MANAGE_COMMUNITY"), true);
