@@ -23,7 +23,9 @@ CREATE TABLE "community_elections" (
   CONSTRAINT "community_elections_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "community_elections_winnerId_fkey" FOREIGN KEY ("winnerId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "community_elections_quorumPercent_check" CHECK ("quorumPercent" >= 50 AND "quorumPercent" <= 100),
-  CONSTRAINT "community_elections_eligibleVoterCount_check" CHECK ("eligibleVoterCount" > 0)
+  CONSTRAINT "community_elections_eligibleVoterCount_check" CHECK ("eligibleVoterCount" > 0),
+  CONSTRAINT "community_elections_nomination_window_check" CHECK ("nominationsCloseAt" <= "votingOpensAt"),
+  CONSTRAINT "community_elections_voting_window_check" CHECK ("votingOpensAt" < "votingClosesAt")
 );
 
 CREATE TABLE "election_eligible_voters" (
@@ -68,3 +70,6 @@ CREATE UNIQUE INDEX "election_ballots_electionId_voterId_key" ON "election_ballo
 CREATE INDEX "election_ballots_electionId_candidateId_idx" ON "election_ballots"("electionId", "candidateId");
 CREATE INDEX "community_elections_communityId_status_role_idx" ON "community_elections"("communityId", "status", "role");
 CREATE INDEX "community_elections_communityId_createdAt_idx" ON "community_elections"("communityId", "createdAt");
+CREATE UNIQUE INDEX "community_elections_one_active_role_key"
+  ON "community_elections"("communityId", "role")
+  WHERE "status" IN ('NOMINATIONS_OPEN', 'NOMINATIONS_CLOSED', 'VOTING_OPEN');
