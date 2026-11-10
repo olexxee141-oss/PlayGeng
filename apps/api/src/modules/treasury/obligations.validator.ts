@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-const amountMinor = z.string().regex(/^[1-9]\\d{0,17}$/, "Amount must be a positive integer string in minor units.");
+const amountMinor = z.string().regex(/^[1-9]\d{0,17}$/, "Amount must be a positive integer string in minor units.");
 
 export const createObligationSchema = z.object({
   memberId: z.string().min(1).max(128),
   sourceType: z.enum(["CONTRIBUTION", "MATCH_FEE", "COMPETITION_FEE", "OTHER"]),
   sourceId: z.string().trim().min(1).max(128),
-  idempotencyKey: z.string().trim().min(8).max(160),
+  idempotencyKey: z.string().trim().min(8).max(150),
   description: z.string().trim().min(3).max(500),
   amountMinor,
   dueAt: z.string().datetime().optional(),
