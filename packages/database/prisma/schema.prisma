@@ -297,6 +297,7 @@ model Community {
   elections CommunityElection[]
   treasury Treasury?
   contributionCampaigns ContributionCampaign[]
+  contributionAssessments ContributionAssessment[]
 
   @@index([ownerId])
   @@index([status])
