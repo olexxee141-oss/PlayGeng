@@ -1,6 +1,7 @@
 CREATE TYPE "ContributionFrequency" AS ENUM ('ONE_OFF', 'MONTHLY');
 CREATE TYPE "ContributionCampaignStatus" AS ENUM ('ACTIVE', 'PAUSED', 'ENDED', 'CANCELLED');
 CREATE TYPE "ContributionAssessmentStatus" AS ENUM ('DRAFT', 'ISSUED', 'CANCELLED');
+CREATE TYPE "ContributionCampaignEventType" AS ENUM ('PAUSED', 'RESUMED', 'ENDED', 'CANCELLED');
 
 CREATE TABLE "contribution_campaigns" (
   "id" TEXT NOT NULL,
@@ -11,18 +12,15 @@ CREATE TABLE "contribution_campaigns" (
   "frequency" "ContributionFrequency" NOT NULL,
   "status" "ContributionCampaignStatus" NOT NULL DEFAULT 'ACTIVE',
   "createdById" TEXT NOT NULL,
-  "lastLifecycleActorId" TEXT,
   "pausedAt" TIMESTAMP(3),
   "endedAt" TIMESTAMP(3),
   "cancelledAt" TIMESTAMP(3),
-  "lifecycleReason" VARCHAR(500),
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,
   CONSTRAINT "contribution_campaigns_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "contribution_campaigns_amount_positive" CHECK ("amountMinor" > 0),
   CONSTRAINT "contribution_campaigns_community_fkey" FOREIGN KEY ("communityId") REFERENCES "communities"("id") ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT "contribution_campaigns_creator_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "contribution_campaigns_lifecycle_actor_fkey" FOREIGN KEY ("lastLifecycleActorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT "contribution_campaigns_creator_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 CREATE INDEX "contribution_campaigns_communityId_status_createdAt_idx"
@@ -85,3 +83,20 @@ CREATE INDEX "contribution_assessment_members_assessmentId_snapshotAt_idx"
   ON "contribution_assessment_members"("assessmentId", "snapshotAt");
 CREATE INDEX "contribution_assessment_members_memberId_createdAt_idx"
   ON "contribution_assessment_members"("memberId", "createdAt");
+
+CREATE TABLE "contribution_campaign_events" (
+  "id" TEXT NOT NULL,
+  "campaignId" TEXT NOT NULL,
+  "actorId" TEXT NOT NULL,
+  "type" "ContributionCampaignEventType" NOT NULL,
+  "reason" VARCHAR(500) NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "contribution_campaign_events_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "contribution_campaign_events_campaign_fkey" FOREIGN KEY ("campaignId") REFERENCES "contribution_campaigns"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "contribution_campaign_events_actor_fkey" FOREIGN KEY ("actorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE INDEX "contribution_campaign_events_campaignId_createdAt_idx"
+  ON "contribution_campaign_events"("campaignId", "createdAt");
+CREATE INDEX "contribution_campaign_events_actorId_createdAt_idx"
+  ON "contribution_campaign_events"("actorId", "createdAt");
