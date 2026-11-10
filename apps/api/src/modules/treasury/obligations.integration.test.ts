@@ -55,7 +55,7 @@ test("obligations issue receivables, are idempotent, member-scoped and cancel th
     assert.equal(mine.length, 1);
     assert.equal(mine[0]?.id, obligation.id);
     assert.equal((await listForFinance(community.id, admin.id)).length, 1);
-    await assert.rejects(getOne(community.id, admin.id, obligation.id), (error: unknown) => error instanceof AppError && error.statusCode === 403);
+    await assert.rejects(getOne(community.id, creator.id, obligation.id), (error: unknown) => error instanceof AppError && error.statusCode === 403);
     assert.equal((await getOne(community.id, member.id, obligation.id)).id, obligation.id);
 
     const summary = await getTreasury(community.id, admin.id);
