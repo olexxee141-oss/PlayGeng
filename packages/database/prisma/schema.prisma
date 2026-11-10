@@ -65,6 +65,13 @@ enum ContributionAssessmentStatus {
   CANCELLED
 }
 
+enum ContributionCampaignEventType {
+  PAUSED
+  RESUMED
+  ENDED
+  CANCELLED
+}
+
 enum ReceiptSource {
   MANUAL_RECONCILIATION
 }
@@ -216,7 +223,7 @@ model User {
   createdObligations Obligation[] @relation("ObligationActor")
   memberObligations Obligation[] @relation("ObligationMember")
   createdContributionCampaigns ContributionCampaign[] @relation("ContributionCampaignCreator")
-  contributionCampaignLifecycleActions ContributionCampaign[] @relation("ContributionCampaignLifecycleActor")
+  contributionCampaignEvents ContributionCampaignEvent[]
   createdContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentCreator")
   issuedContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentIssuer")
   cancelledContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentCanceller")
@@ -779,18 +786,16 @@ model ContributionCampaign {
   frequency            ContributionFrequency
   status               ContributionCampaignStatus @default(ACTIVE)
   createdById          String
-  lastLifecycleActorId String?
   pausedAt             DateTime?
   endedAt              DateTime?
   cancelledAt          DateTime?
-  lifecycleReason      String?                   @db.VarChar(500)
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
 
   community          Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   createdBy          User      @relation("ContributionCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  lastLifecycleActor User?     @relation("ContributionCampaignLifecycleActor", fields: [lastLifecycleActorId], references: [id], onDelete: Restrict)
   assessments        ContributionAssessment[]
+  events             ContributionCampaignEvent[]
 
   @@index([communityId, status, createdAt])
   @@map("contribution_campaigns")
@@ -848,4 +853,21 @@ model ContributionAssessmentMember {
   @@index([assessmentId, snapshotAt])
   @@index([memberId, createdAt])
   @@map("contribution_assessment_members")
+}
+
+
+model ContributionCampaignEvent {
+  id         String                        @id @default(cuid())
+  campaignId String
+  actorId    String
+  type       ContributionCampaignEventType
+  reason     String                        @db.VarChar(500)
+  createdAt  DateTime                      @default(now())
+
+  campaign ContributionCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  actor    User                 @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([campaignId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("contribution_campaign_events")
 }
