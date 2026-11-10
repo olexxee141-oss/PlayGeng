@@ -1,31 +1,15 @@
 import { prisma } from "@playgeng/database";
 import { AppError } from "../errors/app-error.js";
+import { roleHasCommunityPermission, type CommunityPermission } from "./community-role-policy.js";
 
-export type CommunityPermission =
-  | "MANAGE_COMMUNITY"
-  | "MANAGE_MEMBERS"
-  | "ARCHIVE_COMMUNITY"
-  | "MANAGE_MATCHES"
-  | "MANAGE_TEAMS"
-  | "MANAGE_COMPETITIONS";
-
-const rolePermissions: Record<CommunityPermission, readonly string[]> = {
-  MANAGE_COMMUNITY: ["ADMIN"],
-  MANAGE_MEMBERS: ["ADMIN"],
-  ARCHIVE_COMMUNITY: [],
-  MANAGE_MATCHES: ["ADMIN", "ORGANIZER"],
-  MANAGE_TEAMS: ["ADMIN", "ORGANIZER"],
-  MANAGE_COMPETITIONS: ["ADMIN", "ORGANIZER"],
-};
+export { roleHasCommunityPermission } from "./community-role-policy.js";
+export type { CommunityPermission } from "./community-role-policy.js";
 
 export const getCommunityAccess = (communityId: string, userId: string) =>
   prisma.communityMember.findUnique({
     where: { communityId_userId: { communityId, userId } },
     include: { community: { select: { ownerId: true, status: true } } },
   });
-
-export const roleHasCommunityPermission = (role: string, permission: CommunityPermission): boolean =>
-  rolePermissions[permission].includes(role);
 
 export const hasCommunityPermission = async (
   communityId: string,
