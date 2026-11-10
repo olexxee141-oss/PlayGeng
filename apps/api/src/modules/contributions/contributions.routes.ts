@@ -18,3 +18,4 @@ contributionRoutes.post("/campaigns/:campaignId/cancel", validate(transitionSche
 contributionRoutes.get("/assessments", asyncHandler(controller.listAssessments));
 contributionRoutes.post("/campaigns/:campaignId/assessments", validate(createAssessmentSchema), asyncHandler(controller.createAssessment));
 contributionRoutes.patch("/assessments/:assessmentId", validate(updateAssessmentSchema), asyncHandler(controller.updateAssessment));
+contributionRoutes.post("/assessments/:assessmentId/issue", asyncHandler(controller.issueAssessment));
