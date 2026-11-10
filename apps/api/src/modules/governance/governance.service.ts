@@ -33,7 +33,7 @@ export const listElections = async (communityId: string, userId: string) => {
   const membership = await db.findMembership(communityId, userId);
   if (!membership || membership.user.status !== "ACTIVE") throw new AppError("Community not found.", 404);
   const elections = await db.listElections(communityId);
-  return Promise.all(elections.map((election) => db.syncElection(election.id, new Date())));
+  return Promise.all(elections.map((election) => getElection(communityId, election.id, userId)));
 };
 
 export const getElection = async (communityId: string, electionId: string, userId: string) => {
