@@ -58,7 +58,7 @@ CREATE TABLE "election_ballots" (
   CONSTRAINT "election_ballots_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "election_ballots_electionId_fkey" FOREIGN KEY ("electionId") REFERENCES "community_elections"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "election_ballots_voterId_fkey" FOREIGN KEY ("voterId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT "election_ballots_candidateId_electionId_fkey" FOREIGN KEY ("candidateId", "electionId") REFERENCES "election_nominations"("id", "electionId") ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT "election_ballots_candidateId_electionId_fkey" FOREIGN KEY ("candidateId", "electionId") REFERENCES "election_nominations"("id", "electionId") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE UNIQUE INDEX "election_eligible_voters_electionId_userId_key" ON "election_eligible_voters"("electionId", "userId");
