@@ -164,6 +164,11 @@ AFTER INSERT OR UPDATE OR DELETE ON "ledger_postings"
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION "assert_journal_transaction_balanced"();
 
+CREATE CONSTRAINT TRIGGER "journal_transactions_insert_balanced_constraint"
+AFTER INSERT ON "journal_transactions"
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION "assert_journal_transaction_balanced"();
+
 CREATE CONSTRAINT TRIGGER "journal_transactions_balanced_constraint"
 AFTER UPDATE OF "status" ON "journal_transactions"
 DEFERRABLE INITIALLY DEFERRED
@@ -178,16 +183,21 @@ BEGIN
       RAISE EXCEPTION 'Posted journal transactions are immutable; create a reversal instead'
         USING ERRCODE = '55000';
     END IF;
+    IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
     RETURN NEW;
   END IF;
 
-  SELECT "status" INTO current_status FROM "journal_transactions"
-    WHERE "id" = COALESCE(OLD."journalTransactionId", NEW."journalTransactionId");
+  IF TG_OP = 'DELETE' THEN
+    SELECT "status" INTO current_status FROM "journal_transactions" WHERE "id" = OLD."journalTransactionId";
+  ELSE
+    SELECT "status" INTO current_status FROM "journal_transactions" WHERE "id" = NEW."journalTransactionId";
+  END IF;
   IF current_status = 'POSTED' THEN
     RAISE EXCEPTION 'Postings for a posted journal transaction are immutable'
       USING ERRCODE = '55000';
   END IF;
-  RETURN COALESCE(NEW, OLD);
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -209,3 +219,41 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER "financial_audit_events_immutable_trigger"
 BEFORE UPDATE OR DELETE ON "financial_audit_events"
 FOR EACH ROW EXECUTE FUNCTION "prevent_financial_audit_mutation"();
+
+
+CREATE FUNCTION "protect_treasury_currency"() RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD."currency" <> NEW."currency" AND EXISTS (
+    SELECT 1 FROM "journal_transactions"
+    WHERE "treasuryId" = OLD."id" AND "status" = 'POSTED'
+  ) THEN
+    RAISE EXCEPTION 'Treasury currency cannot change after the first posted journal transaction'
+      USING ERRCODE = '55000';
+  END IF;
+  IF OLD."communityId" <> NEW."communityId" THEN
+    RAISE EXCEPTION 'Treasury community ownership is immutable'
+      USING ERRCODE = '55000';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER "treasuries_currency_immutable_after_posting"
+BEFORE UPDATE ON "treasuries"
+FOR EACH ROW EXECUTE FUNCTION "protect_treasury_currency"();
+
+CREATE FUNCTION "protect_treasury_account_identity"() RETURNS TRIGGER AS $$
+BEGIN
+  IF (OLD."code" <> NEW."code" OR OLD."type" <> NEW."type") AND EXISTS (
+    SELECT 1 FROM "ledger_postings" WHERE "accountId" = OLD."id"
+  ) THEN
+    RAISE EXCEPTION 'Treasury account code and type cannot change after postings exist'
+      USING ERRCODE = '55000';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER "treasury_accounts_identity_immutable_after_posting"
+BEFORE UPDATE ON "treasury_accounts"
+FOR EACH ROW EXECUTE FUNCTION "protect_treasury_account_identity"();
