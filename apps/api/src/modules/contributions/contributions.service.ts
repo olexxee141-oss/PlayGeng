@@ -276,6 +276,7 @@ export const getAssessmentReport = async (communityId: string, userId: string, a
       assessedMinor: assessed.toString(),
       collectedMinor: collected.toString(),
       outstandingMinor: outstanding.toString(),
+      complete: counts.integrityErrors === 0 && (assessment.status !== "ISSUED" || members.length === assessment._count.members),
     },
     counts,
   };
