@@ -17,11 +17,10 @@ const requireTreasurer = async (communityId: string, userId: string) => {
   if (membership.role !== "TREASURER") throw new AppError("Only the elected Treasurer can verify manual receipts.", 403);
 };
 
-const present = (receipt: {
+const present = <T extends {
   amountMinor: bigint;
   allocations: { id: string; obligationId: string; amountMinor: bigint; createdAt: Date; obligation: { id: string; description: string; amountMinor: bigint; dueAt: Date | null; status: string } }[];
-  [key: string]: unknown;
-}) => ({
+}>(receipt: T) => ({
   ...receipt,
   amountMinor: receipt.amountMinor.toString(),
   allocations: receipt.allocations.map((allocation) => ({
