@@ -1895,3 +1895,16 @@ Authorization is intentionally narrower than the general community permission he
 The database transaction writes the draft header and postings, then changes the journal to POSTED in one serializable transaction. Deferred PostgreSQL constraints verify that posted journals have at least two postings and equal debit/credit totals. Idempotency retries return the original transaction only when the supplied transaction details match. Reversals write opposite postings; original posted records remain immutable.
 
 This API is an internal ledger foundation, not a payment confirmation or cash custody integration. Only verified receipts/manual reconciliation in a later phase may justify posting real receipts. The current journal endpoint must not be exposed as a general public payment endpoint.
+
+
+### Verified receipts and obligation allocation schema
+
+The treasury schema now separates:
+
+- **Obligations:** amounts a member owes for a contribution, match fee, competition registration or other approved source.
+- **Verified receipts:** money independently received and reconciled, with an external reference, evidence reference, verifying Treasurer and idempotency key.
+- **Allocations:** the amount of a verified receipt applied to a specific obligation.
+
+A receipt is not a payment attempt, and an obligation is not a payment. Partial allocations are supported by the data model; paid and outstanding amounts are derived from allocations rather than mutable balance fields. Database relations prevent allocations across different treasuries or members.
+
+The current schema foundation supports manual reconciliation only. Receipt creation, allocation services, ledger posting, member-facing obligation reads and payment-provider integration are separate implementation steps. No unverified payment claim can settle an obligation.
