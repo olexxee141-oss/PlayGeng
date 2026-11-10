@@ -24,6 +24,9 @@ export const getCommunityAccess = (communityId: string, userId: string) =>
     include: { community: { select: { ownerId: true, status: true } } },
   });
 
+export const roleHasCommunityPermission = (role: string, permission: CommunityPermission): boolean =>
+  rolePermissions[permission].includes(role);
+
 export const hasCommunityPermission = async (
   communityId: string,
   userId: string,
@@ -32,7 +35,7 @@ export const hasCommunityPermission = async (
   const access = await getCommunityAccess(communityId, userId);
   if (!access) return false;
   if (access.community.ownerId === userId) return true;
-  return rolePermissions[permission].includes(access.role);
+  return roleHasCommunityPermission(access.role, permission);
 };
 
 export const requireCommunityPermission = async (
@@ -44,7 +47,7 @@ export const requireCommunityPermission = async (
   const access = await getCommunityAccess(communityId, userId);
   if (!access) throw new AppError("Community not found.", 404);
   const isCreator = access.community.ownerId === userId;
-  const allowed = isCreator || rolePermissions[permission].includes(access.role);
+  const allowed = isCreator || roleHasCommunityPermission(access.role, permission);
   if (!allowed) throw new AppError(message, 403);
   return access;
 };
