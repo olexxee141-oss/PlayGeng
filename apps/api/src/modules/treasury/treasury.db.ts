@@ -75,8 +75,10 @@ export const postJournal = (input: {
       idempotencyKey: input.idempotencyKey, createdById: input.actorId,
       ...(input.sourceType ? { sourceType: input.sourceType } : {}),
       ...(input.sourceId ? { sourceId: input.sourceId } : {}),
-      postings: { create: input.postings.map((posting) => ({ treasuryId: input.treasuryId, accountId: posting.accountId, side: posting.side, amountMinor: posting.amountMinor })) },
     },
+  });
+  await tx.ledgerPosting.createMany({
+    data: input.postings.map((posting) => ({ treasuryId: input.treasuryId, journalTransactionId: transaction.id, accountId: posting.accountId, side: posting.side, amountMinor: posting.amountMinor })),
   });
   const posted = await tx.journalTransaction.update({
     where: { id: transaction.id },
@@ -116,11 +118,13 @@ export const reverseJournal = (input: { treasuryId: string; transactionId: strin
       data: {
         treasuryId: input.treasuryId, type: "REVERSAL", description: `Reversal: ${input.reason}`,
         idempotencyKey: input.idempotencyKey, createdById: input.actorId, reversalOfId: original.id,
-        postings: { create: original.postings.map((posting) => ({
-          treasuryId: input.treasuryId, accountId: posting.accountId,
-          side: posting.side === "DEBIT" ? "CREDIT" : "DEBIT", amountMinor: posting.amountMinor,
-        })) },
       },
+    });
+    await tx.ledgerPosting.createMany({
+      data: original.postings.map((posting) => ({
+        treasuryId: input.treasuryId, journalTransactionId: reversal.id, accountId: posting.accountId,
+        side: posting.side === "DEBIT" ? "CREDIT" : "DEBIT", amountMinor: posting.amountMinor,
+      })),
     });
     const posted = await tx.journalTransaction.update({
       where: { id: reversal.id }, data: { status: "POSTED", postedAt: new Date() },
