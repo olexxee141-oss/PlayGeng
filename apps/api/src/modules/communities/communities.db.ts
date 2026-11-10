@@ -48,11 +48,28 @@ export const findMembership = (communityId: string, userId: string) =>
 export const findUserByEmail = (email: string) =>
   prisma.user.findUnique({ where: { email }, select: { id: true, email: true, firstName: true, lastName: true, status: true } });
 
+const lockMembershipBoundary = async (tx: Prisma.TransactionClient, communityId: string) => {
+  await tx.$queryRaw<Array<{ id: string }>>`
+    UPDATE "communities" SET "updatedAt" = "updatedAt"
+    WHERE "id" = ${communityId}
+    RETURNING "id"
+  `;
+};
+
 export const addMember = (communityId: string, userId: string, role: CommunityMemberRole) =>
-  prisma.communityMember.create({ data: { communityId, userId, role } });
+  prisma.$transaction(async (tx) => {
+    await lockMembershipBoundary(tx, communityId);
+    return tx.communityMember.create({ data: { communityId, userId, role } });
+  }, { isolationLevel: "Serializable" });
 
 export const updateMemberRole = (communityId: string, userId: string, role: CommunityMemberRole) =>
-  prisma.communityMember.update({ where: { communityId_userId: { communityId, userId } }, data: { role } });
+  prisma.$transaction(async (tx) => {
+    await lockMembershipBoundary(tx, communityId);
+    return tx.communityMember.update({ where: { communityId_userId: { communityId, userId } }, data: { role } });
+  }, { isolationLevel: "Serializable" });
 
 export const removeMember = (communityId: string, userId: string) =>
-  prisma.communityMember.delete({ where: { communityId_userId: { communityId, userId } } });
+  prisma.$transaction(async (tx) => {
+    await lockMembershipBoundary(tx, communityId);
+    return tx.communityMember.delete({ where: { communityId_userId: { communityId, userId } } });
+  }, { isolationLevel: "Serializable" });
