@@ -68,6 +68,18 @@ test("obligations issue receivables, are idempotent, member-scoped and cancel th
       idempotencyKey: `cancel-${suffix}`,
     });
     assert.equal(cancelled.status, "CANCELLED");
+    const cancellationRetry = await cancel(community.id, treasurer.id, obligation.id, {
+      reason: "Contribution assessment was entered in error",
+      idempotencyKey: "cancel-" + suffix,
+    });
+    assert.equal(cancellationRetry.status, "CANCELLED");
+    await assert.rejects(
+      cancel(community.id, treasurer.id, obligation.id, {
+        reason: "Different cancellation reason",
+        idempotencyKey: "cancel-" + suffix,
+      }),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
     const afterCancellation = await getTreasury(community.id, admin.id);
     assert.equal(afterCancellation.balances.find((account) => account.code === "CASH")?.balanceMinor, "0");
     assert.equal(afterCancellation.balances.find((account) => account.code === "RECEIVABLES")?.balanceMinor, "0");
