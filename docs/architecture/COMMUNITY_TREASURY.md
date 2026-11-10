@@ -1,7 +1,7 @@
 # Community Treasury — Architecture and Implementation Contract
 
 **Status:** Approved implementation baseline, November 10, 2026  
-**Scope:** Treasury ledger and obligations foundation. This document does not authorize production custody, payment collection, or withdrawal flows.
+**Scope:** Treasury ledger, obligations, and manually verified receipts. This document does not authorize provider collection, production custody, or withdrawal flows.
 
 ## 1. Audit findings
 
@@ -92,10 +92,10 @@ This phase is provider-neutral and ledger-first. Do not activate production coll
 
 1. Add treasury, chart-of-accounts, obligation, journal, posting and audit schema. **Implemented in PR #19.**
 2. Add balanced, append-only journal posting service with reversal support. **Implemented in the current journal-service PR.**
-3. Add obligation creation/cancellation and allocation logic with idempotency. Pending.
-4. Add read APIs for treasury summary, ledger history and member obligations. Treasury summary and posted journal history are implemented; member obligation reads are pending.
-5. Add Treasurer authorization and manual-reconciliation controls. Treasurer-only initialization/posting/reversal and ADMIN/TREASURER read access are implemented; manual reconciliation remains pending.
-6. Add PostgreSQL constraints and integration tests for balancing, over-allocation, duplicate source events, duplicate receipts, immutable posted entries, role revocation and concurrent posting. Journal balancing, immutability and basic idempotency integration coverage are implemented; obligation/receipt/concurrency coverage remains pending.
+3. Add obligation creation/cancellation and allocation logic with idempotency. **Obligation issuance/cancellation implemented in PR #23; manual receipt verification and allocation implemented in this phase.**
+4. Add read APIs for treasury summary, ledger history, member obligations and receipts. **Implemented.**
+5. Add Treasurer authorization and manual-reconciliation controls. **Manual receipt verification is TREASURER-only; ADMIN/TREASURER can inspect community receipts; members can inspect only their own.**
+6. Add PostgreSQL constraints and integration tests for balancing, over-allocation, duplicate source events, duplicate receipts, immutable posted entries, role revocation and concurrent posting. **Journal, obligation, receipt, allocation and concurrent settlement coverage is implemented; continue extending as commercial workflows are connected.**
 7. Document operational reconciliation and migration behavior.
 
 ### Payment Integration (separate phase)
@@ -151,7 +151,7 @@ The next schema layer separates money received from amounts owed and the applica
 - Database checks reject zero or negative receipt/allocation amounts. Allocation upper bounds (not exceeding the receipt's remaining unallocated amount or the obligation's remaining balance) require serialized service logic and concurrency tests; those are not claimed as enforced by this schema migration.
 - The schema deliberately does not store a mutable paid amount or balance. Outstanding amounts must be derived from allocations and the obligation's original amount.
 
-This is a schema-only foundation. It does not yet expose receipt or allocation APIs, post receipt journals, or connect match/competition workflows. The next implementation must atomically create a verified receipt, post its balanced journal entry (debit CASH, credit RECEIVABLES), allocate it, and update the obligation's derived status within a serializable transaction. A receipt must never be posted from client-submitted payment status alone.
+The schema foundation is now backed by a manual-reconciliation service. A Treasurer verifies an independently reconciled receipt and supplies one or more allocations. The receipt, full allocation set, balanced journal (debit CASH, credit RECEIVABLES), and audit event commit in one serializable transaction. The allocation total must equal the receipt amount exactly; unallocated excess is rejected. Obligation balances and status remain derived from allocations. A member-submitted claim or screenshot alone is not a verified receipt.
 
 
 ## Obligation service implementation checkpoint — November 10, 2026
@@ -179,3 +179,25 @@ Receipt verification, allocations and cash receipt posting are deliberately not 
 ### Journal workflow guardrails added with obligation services
 
 The generic journal endpoint is now restricted to documented opening balances and non-cash adjustments. An opening balance must debit CASH and credit OPENING_EQUITY and include a source reference; it is audited. Generic adjustments cannot touch CASH, RECEIVABLES or operational income accounts. Obligation-issued journals cannot be reversed through the generic reversal endpoint; they must use the obligation cancellation workflow. This prevents a manual journal request from bypassing receipt verification or leaving an obligation open after its receivable has been reversed.
+
+
+## 12. Manual receipt verification and allocation — implementation checkpoint
+
+The first receipt workflow is provider-neutral and TREASURER-only.
+
+- `POST /api/v1/communities/:communityId/treasury/receipts` records a manually reconciled receipt with an external bank/payment reference, evidence reference, received timestamp, idempotency key and one or more obligation allocations.
+- A receipt's allocations must sum exactly to its verified amount. The workflow rejects partial/unallocated receipt value rather than silently leaving cash unapplied.
+- Every allocation must target an active, non-cancelled obligation belonging to the same member and treasury. An obligation cannot be over-allocated.
+- Receipt creation, allocation rows, the posted journal (DR CASH / CR RECEIVABLES), and the audit event commit in one serializable transaction.
+- Idempotency retries return the original receipt only when the receipt details and complete allocation set match. External references are unique within the treasury.
+- Obligation rows are serialized across receipt allocation and cancellation. Concurrent settlement attempts cannot both consume the same outstanding amount.
+- Members can list and inspect only their own receipts. ADMIN/TREASURER can inspect community receipts; only TREASURER can verify them.
+- No member-submitted payment claim, unverified screenshot, payment attempt, provider callback, cash custody, or withdrawal can post to the ledger.
+
+Receipt API:
+- `POST /receipts` verify a manual receipt and allocate it.
+- `GET /receipts` list receipts for ADMIN/TREASURER.
+- `GET /receipts/mine` list the authenticated member's receipts.
+- `GET /receipts/:receiptId` retrieve a receipt subject to ownership/finance-role checks.
+
+The evidence reference is a reconciliation pointer, not a file upload or proof that the platform controls the receiving account. Treasurers must independently inspect bank/provider records before verification. Production provider integration and custody remain separate decisions.
