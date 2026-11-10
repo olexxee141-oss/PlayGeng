@@ -248,10 +248,10 @@ export const getAssessmentReport = async (communityId: string, userId: string, a
     }
     const amount = member.obligation.amountMinor as bigint;
     const paid = member.obligation.allocations.reduce((sum: bigint, item: { amountMinor: bigint }) => sum + item.amountMinor, 0n);
+    const status = contributionFinancialStatus(member);
     assessed += amount;
     collected += paid;
     outstanding += status === "CANCELLED" ? 0n : amount - paid;
-    const status = contributionFinancialStatus(member);
     if (status === "PAID") counts.paid += 1;
     else if (status === "PARTIALLY_PAID") counts.partiallyPaid += 1;
     else if (status === "OVERDUE") counts.overdue += 1;
