@@ -1,4 +1,5 @@
 import { prisma, type ElectionRole, type Prisma } from "@playgeng/database";
+import { resolveElectionOutcome } from "./governance.policy.js";
 
 const isSerializationConflict = (error: unknown): boolean => {
   if (typeof error !== "object" || error === null) return false;
@@ -161,21 +162,21 @@ export const syncElection = (electionId: string, now: Date) =>
       where: { electionId },
       _count: { _all: true },
     });
-    const votesCast = voteGroups.reduce((total, group) => total + group._count._all, 0);
-    const quorumMet = votesCast * 100 >= current.eligibleVoterCount * current.quorumPercent;
-    const maxVotes = Math.max(0, ...voteGroups.map((group) => group._count._all));
-    const leaders = voteGroups.filter((group) => group._count._all === maxVotes);
-    const winnerNomination = quorumMet && votesCast > 0 && leaders.length === 1 && maxVotes * 2 > votesCast
-      ? current.nominations.find((nomination) => nomination.id === leaders[0]?.candidateId)
+    const outcome = resolveElectionOutcome(
+      current.eligibleVoterCount,
+      current.quorumPercent,
+      new Map(voteGroups.map((group) => [group.candidateId, group._count._all])),
+    );
+    const { votesCast, failureReason: resultFailureReason } = outcome;
+    const winnerNomination = outcome.winnerCandidateId
+      ? current.nominations.find((nomination) => nomination.id === outcome.winnerCandidateId)
       : undefined;
 
     let winnerId: string | null = null;
     let failureReason: string | null = null;
 
-    if (!quorumMet) {
-      failureReason = "QUORUM_NOT_MET";
-    } else if (!winnerNomination) {
-      failureReason = "NO_MAJORITY";
+    if (!winnerNomination) {
+      failureReason = resultFailureReason ?? "NO_MAJORITY";
     } else {
       const candidateMembership = await tx.communityMember.findUnique({
         where: { communityId_userId: { communityId: current.communityId, userId: winnerNomination.userId } },
