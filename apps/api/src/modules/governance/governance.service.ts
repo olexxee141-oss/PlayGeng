@@ -104,7 +104,7 @@ export const castBallot = async (communityId: string, electionId: string, voterI
   const candidate = await db.findActiveNomination(electionId, input.candidateId);
   if (!candidate || candidate.user.status !== "ACTIVE") throw new AppError("The selected candidate is not eligible.", 400);
   const candidateMembership = await db.findMembership(communityId, candidate.userId);
-  if (!candidateMembership || candidateMembership.role === "CREATOR") throw new AppError("The selected candidate is no longer eligible.", 409);
+  if (!candidateMembership || candidateMembership.role === "CREATOR" || (["ADMIN", "TREASURER", "ORGANIZER"].includes(candidateMembership.role) && candidateMembership.role !== election.role)) throw new AppError("The selected candidate is no longer eligible.", 409);
   try {
     const ballot = await db.castBallot(electionId, voterId, input.candidateId);
     return { id: ballot.id, electionId: ballot.electionId, castAt: ballot.castAt };
@@ -112,4 +112,13 @@ export const castBallot = async (communityId: string, electionId: string, voterI
     if (isUniqueConflict(error)) throw new AppError("You have already voted in this election.", 409);
     throw error;
   }
+};
+
+
+export const processDueElections = async () => {
+  const due = await db.listDueElections(new Date());
+  for (const election of due) {
+    await db.syncElection(election.id, new Date());
+  }
+  return due.length;
 };
