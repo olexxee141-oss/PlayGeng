@@ -35,3 +35,9 @@ export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
 export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;
 export type CreateAssessmentInput = z.infer<typeof createAssessmentSchema>;
 export type UpdateAssessmentInput = z.infer<typeof updateAssessmentSchema>;
+
+
+export const contributionReportQuerySchema = z.object({
+  cursor: z.string().min(1).max(128).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+}).strict();
