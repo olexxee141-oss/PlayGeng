@@ -47,6 +47,24 @@ enum ObligationStatus {
   CANCELLED
 }
 
+enum ContributionFrequency {
+  ONE_OFF
+  MONTHLY
+}
+
+enum ContributionCampaignStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+  CANCELLED
+}
+
+enum ContributionAssessmentStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+
 enum ReceiptSource {
   MANUAL_RECONCILIATION
 }
@@ -197,6 +215,12 @@ model User {
   createdJournalTransactions JournalTransaction[] @relation("JournalActor")
   createdObligations Obligation[] @relation("ObligationActor")
   memberObligations Obligation[] @relation("ObligationMember")
+  createdContributionCampaigns ContributionCampaign[] @relation("ContributionCampaignCreator")
+  contributionCampaignLifecycleActions ContributionCampaign[] @relation("ContributionCampaignLifecycleActor")
+  createdContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentCreator")
+  issuedContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentIssuer")
+  cancelledContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentCanceller")
+  contributionAssessmentSnapshots ContributionAssessmentMember[]
   financialAuditEvents FinancialAuditEvent[] @relation("FinancialAuditActor")
   verifiedReceipts PaymentReceipt[] @relation("ReceiptVerifier")
   memberReceipts PaymentReceipt[] @relation("ReceiptMember")
@@ -272,6 +296,7 @@ model Community {
   competitionInvitations CompetitionInvitation[]
   elections CommunityElection[]
   treasury Treasury?
+  contributionCampaigns ContributionCampaign[]
 
   @@index([ownerId])
   @@index([status])
@@ -675,6 +700,7 @@ model Obligation {
   @@index([treasuryId, status, dueAt])
   @@index([memberId, status])
   allocations ObligationAllocation[]
+  contributionSnapshot ContributionAssessmentMember?
   @@map("obligations")
 }
 
@@ -740,4 +766,85 @@ model FinancialAuditEvent {
   @@index([entityType, entityId])
   @@index([actorId, createdAt])
   @@map("financial_audit_events")
+}
+
+
+model ContributionCampaign {
+  id                   String                    @id @default(cuid())
+  communityId          String
+  name                 String                    @db.VarChar(140)
+  description          String?                   @db.VarChar(500)
+  amountMinor          BigInt
+  frequency            ContributionFrequency
+  status               ContributionCampaignStatus @default(ACTIVE)
+  createdById          String
+  lastLifecycleActorId String?
+  pausedAt             DateTime?
+  endedAt              DateTime?
+  cancelledAt          DateTime?
+  lifecycleReason      String?                   @db.VarChar(500)
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  community          Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy          User      @relation("ContributionCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  lastLifecycleActor User?     @relation("ContributionCampaignLifecycleActor", fields: [lastLifecycleActorId], references: [id], onDelete: Restrict)
+  assessments        ContributionAssessment[]
+
+  @@index([communityId, status, createdAt])
+  @@map("contribution_campaigns")
+}
+
+model ContributionAssessment {
+  id            String                       @id @default(cuid())
+  campaignId    String
+  communityId   String
+  periodKey     String                       @db.VarChar(32)
+  description   String                       @db.VarChar(500)
+  amountMinor   BigInt
+  currency      String                       @db.Char(3)
+  dueAt         DateTime
+  status        ContributionAssessmentStatus @default(DRAFT)
+  createdById   String
+  issuedById    String?
+  cancelledById String?
+  issuedAt      DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+
+  campaign   ContributionCampaign       @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  community  Community                  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy  User                       @relation("ContributionAssessmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  issuedBy   User?                      @relation("ContributionAssessmentIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  cancelledBy User?                     @relation("ContributionAssessmentCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
+  members    ContributionAssessmentMember[]
+
+  @@unique([campaignId, periodKey])
+  @@index([communityId, status, dueAt])
+  @@index([campaignId, createdAt])
+  @@map("contribution_assessments")
+}
+
+model ContributionAssessmentMember {
+  id                  String              @id @default(cuid())
+  assessmentId        String
+  memberId            String
+  memberRole          CommunityMemberRole
+  memberJoinedAt      DateTime
+  memberFirstName     String              @db.VarChar(80)
+  memberLastName      String              @db.VarChar(80)
+  memberEmail         String              @db.VarChar(320)
+  snapshotAt          DateTime
+  obligationId        String?             @unique
+  createdAt           DateTime            @default(now())
+
+  assessment ContributionAssessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  member     User                   @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  obligation Obligation?            @relation(fields: [obligationId], references: [id], onDelete: Restrict)
+
+  @@unique([assessmentId, memberId])
+  @@index([assessmentId, snapshotAt])
+  @@index([memberId, createdAt])
+  @@map("contribution_assessment_members")
 }
