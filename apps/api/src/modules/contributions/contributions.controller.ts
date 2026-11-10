@@ -43,3 +43,23 @@ export const updateAssessment: RequestHandler = async (req, res) => {
   const assessment = await service.updateAssessment(param(req, "communityId"), auth(res).userId, param(req, "assessmentId"), req.body);
   res.status(200).json({ success: true, data: { assessment } });
 };
+
+
+import { contributionReportQuerySchema } from "./contributions.validator.js";
+
+export const listMine: RequestHandler = async (req, res) => {
+  const query = contributionReportQuerySchema.parse(req.query);
+  const result = await service.listMyContributionHistory(param(req, "communityId"), auth(res).userId, query.cursor, query.limit);
+  res.status(200).json({ success: true, data: result });
+};
+
+export const assessmentReport: RequestHandler = async (req, res) => {
+  const result = await service.getAssessmentReport(param(req, "communityId"), auth(res).userId, param(req, "assessmentId"));
+  res.status(200).json({ success: true, data: result });
+};
+
+export const assessmentReportMembers: RequestHandler = async (req, res) => {
+  const query = contributionReportQuerySchema.parse(req.query);
+  const result = await service.listAssessmentReportMembers(param(req, "communityId"), auth(res).userId, param(req, "assessmentId"), query.cursor, query.limit);
+  res.status(200).json({ success: true, data: result });
+};
