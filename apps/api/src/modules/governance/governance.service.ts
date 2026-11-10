@@ -21,7 +21,13 @@ export const createElection = async (communityId: string, userId: string, input:
   const active = await db.listActiveElections(communityId);
   for (const election of active) await db.syncElection(election.id, now);
 
-  const result = await db.createElection(communityId, userId, input);
+  let result: Awaited<ReturnType<typeof db.createElection>>;
+  try {
+    result = await db.createElection(communityId, userId, input);
+  } catch (error) {
+    if (isUniqueConflict(error)) throw new AppError("An election for this office is already active.", 409);
+    throw error;
+  }
   if (result.kind === "COMMUNITY_NOT_FOUND") throw new AppError("Community not found.", 404);
   if (result.kind === "NOT_MEMBER") throw new AppError("Only active community members can create elections.", 403);
   if (result.kind === "ACTIVE_ELECTION_EXISTS") throw new AppError("An election for this office is already active.", 409);
