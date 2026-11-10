@@ -7,6 +7,46 @@ datasource db {
   provider = "postgresql"
 }
 
+
+enum TreasuryAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+enum JournalTransactionType {
+  OPENING_BALANCE
+  OBLIGATION_ISSUED
+  PAYMENT_RECEIVED
+  CONTRIBUTION_RECEIVED
+  EXPENSE_PAID
+  REFUND
+  ADJUSTMENT
+  REVERSAL
+}
+enum JournalTransactionStatus {
+  DRAFT
+  POSTED
+}
+enum LedgerPostingSide {
+  DEBIT
+  CREDIT
+}
+enum ObligationSourceType {
+  CONTRIBUTION
+  MATCH_FEE
+  COMPETITION_FEE
+  OTHER
+}
+enum ObligationStatus {
+  OPEN
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -149,6 +189,11 @@ model User {
   eligibleElectionVotes ElectionEligibleVoter[]
   electionNominations ElectionNomination[]
   electionBallots ElectionBallot[] @relation("ElectionVoter")
+  createdTreasuries Treasury[] @relation("TreasuryCreator")
+  createdJournalTransactions JournalTransaction[] @relation("JournalActor")
+  createdObligations Obligation[] @relation("ObligationActor")
+  memberObligations Obligation[] @relation("ObligationMember")
+  financialAuditEvents FinancialAuditEvent[] @relation("FinancialAuditActor")
 
   @@index([status])
   @@map("users")
@@ -219,6 +264,7 @@ model Community {
   competitionEntries CompetitionEntry[]
   competitionInvitations CompetitionInvitation[]
   elections CommunityElection[]
+  treasury Treasury?
 
   @@index([ownerId])
   @@index([status])
@@ -516,4 +562,125 @@ model ElectionBallot {
   @@unique([electionId, voterId])
   @@index([electionId, candidateId])
   @@map("election_ballots")
+}
+
+
+model Treasury {
+  id          String   @id @default(cuid())
+  communityId String   @unique
+  createdById String
+  currency    String   @db.Char(3)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  community Community @relation(fields: [communityId], references: [id], onDelete: Restrict)
+  createdBy User @relation("TreasuryCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  accounts TreasuryAccount[]
+  journalTransactions JournalTransaction[]
+  obligations Obligation[]
+  auditEvents FinancialAuditEvent[]
+  @@map("treasuries")
+}
+
+model TreasuryAccount {
+  id String @id @default(cuid())
+  treasuryId String
+  code String @db.VarChar(32)
+  name String @db.VarChar(100)
+  type TreasuryAccountType
+  isSystem Boolean @default(false)
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  postings LedgerPosting[]
+  @@unique([treasuryId, code])
+  @@unique([id, treasuryId])
+  @@index([treasuryId, type, isActive])
+  @@map("treasury_accounts")
+}
+
+model JournalTransaction {
+  id String @id @default(cuid())
+  treasuryId String
+  type JournalTransactionType
+  status JournalTransactionStatus @default(DRAFT)
+  description String @db.VarChar(500)
+  sourceType String? @db.VarChar(64)
+  sourceId String? @db.VarChar(128)
+  idempotencyKey String @db.VarChar(160)
+  createdById String
+  reversalOfId String?
+  createdAt DateTime @default(now())
+  postedAt DateTime?
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  createdBy User @relation("JournalActor", fields: [createdById], references: [id], onDelete: Restrict)
+  postings LedgerPosting[]
+  reversalOf JournalTransaction? @relation("JournalReversals", fields: [reversalOfId, treasuryId], references: [id, treasuryId], onDelete: Restrict)
+  reversals JournalTransaction? @relation("JournalReversals")
+  @@unique([treasuryId, idempotencyKey])
+  @@unique([id, treasuryId])
+  @@unique([reversalOfId, treasuryId])
+  @@index([treasuryId, status, postedAt])
+  @@index([treasuryId, createdAt])
+  @@index([sourceType, sourceId])
+  @@map("journal_transactions")
+}
+
+model LedgerPosting {
+  id String @id @default(cuid())
+  treasuryId String
+  journalTransactionId String
+  accountId String
+  side LedgerPostingSide
+  amountMinor BigInt
+  createdAt DateTime @default(now())
+  journalTransaction JournalTransaction @relation(fields: [journalTransactionId, treasuryId], references: [id, treasuryId], onDelete: Restrict)
+  account TreasuryAccount @relation(fields: [accountId, treasuryId], references: [id, treasuryId], onDelete: Restrict)
+  @@index([treasuryId, accountId, createdAt])
+  @@index([journalTransactionId])
+  @@map("ledger_postings")
+}
+
+model Obligation {
+  id String @id @default(cuid())
+  treasuryId String
+  memberId String
+  sourceType ObligationSourceType
+  sourceId String @db.VarChar(128)
+  idempotencyKey String @db.VarChar(160)
+  description String @db.VarChar(500)
+  amountMinor BigInt
+  status ObligationStatus @default(OPEN)
+  dueAt DateTime?
+  createdById String
+  cancelledAt DateTime?
+  cancellationReason String? @db.VarChar(300)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  member User @relation("ObligationMember", fields: [memberId], references: [id], onDelete: Restrict)
+  createdBy User @relation("ObligationActor", fields: [createdById], references: [id], onDelete: Restrict)
+  @@unique([treasuryId, idempotencyKey])
+  @@unique([treasuryId, sourceType, sourceId])
+  @@index([treasuryId, status, dueAt])
+  @@index([memberId, status])
+  @@map("obligations")
+}
+
+model FinancialAuditEvent {
+  id String @id @default(cuid())
+  treasuryId String
+  actorId String
+  action String @db.VarChar(80)
+  entityType String @db.VarChar(80)
+  entityId String @db.VarChar(128)
+  reason String? @db.VarChar(500)
+  metadata Json?
+  createdAt DateTime @default(now())
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  actor User @relation("FinancialAuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  @@index([treasuryId, createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@map("financial_audit_events")
 }
