@@ -30,10 +30,12 @@ export const createManualReceipt = (input: {
   // Lock each obligation in a stable order. Cancellation takes the same row lock,
   // preventing a receipt from settling an obligation while it is being cancelled.
   for (const obligationId of obligationIds) {
+    // A no-op UPDATE creates a row version, forcing concurrent SERIALIZABLE
+    // transactions that waited here to retry with a fresh allocation snapshot.
     const locked = await tx.$queryRaw<Array<{ id: string }>>`
-      SELECT "id" FROM "obligations"
+      UPDATE "obligations" SET "updatedAt" = "updatedAt"
       WHERE "id" = ${obligationId} AND "treasuryId" = ${input.treasuryId}
-      FOR UPDATE
+      RETURNING "id"
     `;
     if (locked.length !== 1) return { kind: "OBLIGATION_NOT_FOUND" as const };
   }
