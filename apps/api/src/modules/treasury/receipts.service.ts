@@ -49,6 +49,9 @@ export const verifyManualReceipt = async (communityId: string, actorId: string, 
   await requireTreasurer(communityId, actorId);
   const treasury = await treasuryDb.findTreasury(communityId);
   if (!treasury) throw new AppError("Community treasury has not been initialized.", 404);
+  if (new Date(input.receivedAt).getTime() > Date.now()) {
+    throw new AppError("Receipt received time cannot be in the future.", 400);
+  }
   const member = await prisma.communityMember.findUnique({
     where: { communityId_userId: { communityId, userId: input.memberId } },
     include: { user: { select: { status: true } } },
