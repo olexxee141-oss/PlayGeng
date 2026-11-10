@@ -80,7 +80,8 @@ export const cancelObligation = (input: { treasuryId: string; obligationId: stri
       RETURNING "id"
     `;
     if (locked.length !== 1) return { kind: "NOT_FOUND" as const };
-    const obligation = await tx.obligation.findFirst({\n      where: { id: input.obligationId, treasuryId: input.treasuryId },
+    const obligation = await tx.obligation.findFirst({
+      where: { id: input.obligationId, treasuryId: input.treasuryId },
       include: { allocations: true },
     });
     if (!obligation) return { kind: "NOT_FOUND" as const };
