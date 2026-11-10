@@ -511,7 +511,7 @@ model ElectionBallot {
 
   election CommunityElection @relation(fields: [electionId], references: [id], onDelete: Cascade)
   voter    User              @relation("ElectionVoter", fields: [voterId], references: [id], onDelete: Cascade)
-  candidate ElectionNomination @relation(fields: [candidateId, electionId], references: [id, electionId], onDelete: Restrict)
+  candidate ElectionNomination @relation(fields: [candidateId, electionId], references: [id, electionId], onDelete: Cascade)
 
   @@unique([electionId, voterId])
   @@index([electionId, candidateId])
