@@ -56,6 +56,19 @@ export const postJournalTransaction = async (communityId: string, actorId: strin
   if (input.postings.length < 2 || !input.postings.some((p) => p.side === "DEBIT") || !input.postings.some((p) => p.side === "CREDIT") || debit !== credit) {
     throw new AppError("Journal postings must contain debits and credits with equal totals.", 400);
   }
+  const cashPosting = input.postings.some((posting) => posting.accountCode === "CASH");
+  if (cashPosting && input.type !== "OPENING_BALANCE") throw new AppError("Cash can only be introduced through a documented opening balance or a verified receipt workflow.", 400);
+  if (input.type === "OPENING_BALANCE" && (
+    input.postings.length !== 2 ||
+    input.postings[0]?.accountCode !== "CASH" ||
+    input.postings[0]?.side !== "DEBIT" ||
+    input.postings[1]?.accountCode !== "OPENING_EQUITY" ||
+    input.postings[1]?.side !== "CREDIT" ||
+    !input.sourceType || !input.sourceId
+  )) throw new AppError("Opening balance must debit CASH and credit OPENING_EQUITY with a supporting source reference.", 400);
+  if (input.type === "ADJUSTMENT" && input.postings.some((posting) => ["CASH", "RECEIVABLES", "CONTRIBUTION_INCOME", "MATCH_INCOME", "REGISTRATION_INCOME"].includes(posting.accountCode))) {
+    throw new AppError("Cash, receivables and operational income must be changed through their owning financial workflows.", 400);
+  }
   const codes = [...new Set(input.postings.map((posting) => posting.accountCode))];
   const accounts = await prisma.treasuryAccount.findMany({
     where: { treasuryId: treasury.id, code: { in: codes }, isActive: true },
@@ -93,6 +106,8 @@ export const reverseJournalTransaction = async (communityId: string, actorId: st
   await requireTreasurer(communityId, actorId);
   const treasury = await db.findTreasury(communityId);
   if (!treasury) throw new AppError("Community treasury has not been initialized.", 404);
+  const original = await db.findJournal(treasury.id, transactionId);
+  if (original?.sourceType === "OBLIGATION") throw new AppError("Obligation journals must be reversed through the obligation cancellation workflow.", 409);
   const result = await db.reverseJournal({ treasuryId: treasury.id, transactionId, actorId, ...input });
   if (result.kind === "NOT_FOUND") throw new AppError("Posted journal transaction not found.", 404);
   if (result.kind === "ALREADY_REVERSED") throw new AppError("This journal transaction has already been reversed.", 409);
