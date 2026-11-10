@@ -72,7 +72,7 @@ export const listForMember = async (communityId: string, userId: string, cursor?
   await requireActiveMember(communityId, userId);
   const treasury = await treasuryDb.findTreasury(communityId);
   if (!treasury) throw new AppError("Community treasury has not been initialized.", 404);
-  const rows = await db.listObligations(treasury.id, { memberId: userId, cursor, limit });
+  const rows = await db.listObligations(treasury.id, { memberId: userId, ...(cursor ? { cursor } : {}), limit });
   return rows.map(present);
 };
 
@@ -81,7 +81,7 @@ export const listForFinance = async (communityId: string, userId: string, cursor
   if (membership.role !== "TREASURER" && membership.role !== "ADMIN") throw new AppError("You do not have permission to inspect community obligations.", 403);
   const treasury = await treasuryDb.findTreasury(communityId);
   if (!treasury) throw new AppError("Community treasury has not been initialized.", 404);
-  const rows = await db.listObligations(treasury.id, { cursor, limit });
+  const rows = await db.listObligations(treasury.id, { ...(cursor ? { cursor } : {}), limit });
   return rows.map(present);
 };
 
