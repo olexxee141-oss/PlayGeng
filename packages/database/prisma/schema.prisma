@@ -40,6 +40,20 @@ enum CommunityMemberRole {
   MEMBER
 }
 
+enum ElectionRole {
+  ADMIN
+  TREASURER
+  ORGANIZER
+}
+
+enum ElectionStatus {
+  NOMINATIONS_OPEN
+  VOTING_OPEN
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 enum Sport {
   FOOTBALL
   BASKETBALL
@@ -129,6 +143,11 @@ model User {
   sentCompetitionInvitations CompetitionInvitation[] @relation("CompetitionInvitationSender")
   receivedCompetitionInvitations CompetitionInvitation[] @relation("CompetitionInvitationRecipient")
   invitedPlayerCompetitionInvitations CompetitionInvitation[] @relation("CompetitionInvitationPlayer")
+  createdCommunityElections CommunityElection[] @relation("ElectionCreator")
+  wonCommunityElections CommunityElection[] @relation("ElectionWinner")
+  eligibleElectionVotes ElectionEligibleVoter[]
+  electionNominations ElectionNomination[]
+  electionBallots ElectionBallot[] @relation("ElectionVoter")
 
   @@index([status])
   @@map("users")
@@ -198,6 +217,7 @@ model Community {
   competitions Competition[]
   competitionEntries CompetitionEntry[]
   competitionInvitations CompetitionInvitation[]
+  elections CommunityElection[]
 
   @@index([ownerId])
   @@index([status])
@@ -417,4 +437,82 @@ model CompetitionInvitation {
   @@index([competitionId, status, expiresAt])
   @@index([communityId, invitedUserId, status])
   @@map("competition_invitations")
+}
+
+
+model CommunityElection {
+  id                 String         @id @default(cuid())
+  communityId        String
+  role               ElectionRole
+  status             ElectionStatus @default(NOMINATIONS_OPEN)
+  createdById        String
+  nominationsCloseAt DateTime
+  votingOpensAt      DateTime
+  votingClosesAt     DateTime
+  quorumPercent      Int
+  eligibleVoterCount Int
+  votesCast          Int            @default(0)
+  winnerId           String?
+  failureReason      String?        @db.VarChar(300)
+  completedAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  community  Community             @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy  User                  @relation("ElectionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  winner     User?                 @relation("ElectionWinner", fields: [winnerId], references: [id], onDelete: Restrict)
+  electorate ElectionEligibleVoter[]
+  nominations ElectionNomination[]
+  ballots    ElectionBallot[]
+
+  @@index([communityId, status, role])
+  @@index([communityId, createdAt])
+  @@map("community_elections")
+}
+
+model ElectionEligibleVoter {
+  id         String   @id @default(cuid())
+  electionId String
+  userId     String
+  snapshotAt DateTime @default(now())
+
+  election CommunityElection @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([electionId, userId])
+  @@index([userId, electionId])
+  @@map("election_eligible_voters")
+}
+
+model ElectionNomination {
+  id          String    @id @default(cuid())
+  electionId  String
+  userId      String
+  createdAt   DateTime  @default(now())
+  withdrawnAt DateTime?
+
+  election CommunityElection @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ballots  ElectionBallot[]
+
+  @@unique([electionId, userId])
+  @@unique([id, electionId])
+  @@index([electionId, withdrawnAt])
+  @@map("election_nominations")
+}
+
+model ElectionBallot {
+  id          String   @id @default(cuid())
+  electionId  String
+  voterId     String
+  candidateId String
+  castAt      DateTime @default(now())
+
+  election CommunityElection @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  voter    User              @relation("ElectionVoter", fields: [voterId], references: [id], onDelete: Cascade)
+  candidate ElectionNomination @relation(fields: [candidateId, electionId], references: [id, electionId], onDelete: Restrict)
+
+  @@unique([electionId, voterId])
+  @@index([electionId, candidateId])
+  @@map("election_ballots")
 }
