@@ -160,6 +160,7 @@ model User {
   createdTreasuries Treasury[] @relation("TreasuryCreator")
   createdJournalTransactions JournalTransaction[] @relation("JournalActor")
   createdObligations Obligation[] @relation("ObligationActor")
+  memberObligations Obligation[] @relation("ObligationMember")
   financialAuditEvents FinancialAuditEvent[] @relation("FinancialAuditActor")
 
   @@index([status])
@@ -583,7 +584,7 @@ model JournalTransaction {
   createdBy User @relation("JournalActor", fields: [createdById], references: [id], onDelete: Restrict)
   postings LedgerPosting[]
   reversalOf JournalTransaction? @relation("JournalReversals", fields: [reversalOfId, treasuryId], references: [id, treasuryId], onDelete: Restrict)
-  reversals JournalTransaction[] @relation("JournalReversals")
+  reversals JournalTransaction? @relation("JournalReversals")
   @@unique([treasuryId, idempotencyKey])
   @@unique([id, treasuryId])
   @@index([treasuryId, status, postedAt])
@@ -624,7 +625,7 @@ model Obligation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
-  member User @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  member User @relation("ObligationMember", fields: [memberId], references: [id], onDelete: Restrict)
   createdBy User @relation("ObligationActor", fields: [createdById], references: [id], onDelete: Restrict)
   @@unique([treasuryId, idempotencyKey])
   @@unique([treasuryId, sourceType, sourceId])
