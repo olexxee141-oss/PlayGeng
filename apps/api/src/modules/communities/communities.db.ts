@@ -48,11 +48,52 @@ export const findMembership = (communityId: string, userId: string) =>
 export const findUserByEmail = (email: string) =>
   prisma.user.findUnique({ where: { email }, select: { id: true, email: true, firstName: true, lastName: true, status: true } });
 
+const lockMembershipBoundary = async (tx: Prisma.TransactionClient, communityId: string) => {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    UPDATE "communities" SET "updatedAt" = "updatedAt"
+    WHERE "id" = ${communityId}
+    RETURNING "id"
+  `;
+  if (rows.length !== 1) throw new Error("Community membership boundary could not be locked.");
+};
+
+const isSerializationConflict = (error: unknown): boolean => {
+  if (typeof error !== "object" || error === null) return false;
+  if ("code" in error && error.code === "P2034") return true;
+  if ("cause" in error) {
+    const cause = error.cause;
+    if (typeof cause === "object" && cause !== null && "originalCode" in cause && cause.originalCode === "40001") return true;
+    return isSerializationConflict(cause);
+  }
+  return false;
+};
+
+const withMembershipBoundaryTransaction = async <T>(work: (tx: Prisma.TransactionClient) => Promise<T>) => {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      return await prisma.$transaction(work, { isolationLevel: "Serializable" });
+    } catch (error) {
+      if (!isSerializationConflict(error) || attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 10 * (attempt + 1)));
+    }
+  }
+  throw new Error("Membership boundary transaction retry limit reached.");
+};
+
 export const addMember = (communityId: string, userId: string, role: CommunityMemberRole) =>
-  prisma.communityMember.create({ data: { communityId, userId, role } });
+  withMembershipBoundaryTransaction(async (tx) => {
+    await lockMembershipBoundary(tx, communityId);
+    return tx.communityMember.create({ data: { communityId, userId, role } });
+  });
 
 export const updateMemberRole = (communityId: string, userId: string, role: CommunityMemberRole) =>
-  prisma.communityMember.update({ where: { communityId_userId: { communityId, userId } }, data: { role } });
+  withMembershipBoundaryTransaction(async (tx) => {
+    await lockMembershipBoundary(tx, communityId);
+    return tx.communityMember.update({ where: { communityId_userId: { communityId, userId } }, data: { role } });
+  });
 
 export const removeMember = (communityId: string, userId: string) =>
-  prisma.communityMember.delete({ where: { communityId_userId: { communityId, userId } } });
+  withMembershipBoundaryTransaction(async (tx) => {
+    await lockMembershipBoundary(tx, communityId);
+    return tx.communityMember.delete({ where: { communityId_userId: { communityId, userId } } });
+  });

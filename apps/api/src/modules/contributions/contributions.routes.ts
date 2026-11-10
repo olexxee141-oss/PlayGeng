@@ -22,3 +22,4 @@ contributionRoutes.patch("/assessments/:assessmentId", validate(updateAssessment
 contributionRoutes.get("/mine", asyncHandler(controller.listMine));
 contributionRoutes.get("/assessments/:assessmentId/report", asyncHandler(controller.assessmentReport));
 contributionRoutes.get("/assessments/:assessmentId/members", asyncHandler(controller.assessmentReportMembers));
+contributionRoutes.post("/assessments/:assessmentId/issue", asyncHandler(controller.issueAssessment));

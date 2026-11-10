@@ -114,6 +114,17 @@ export const listElections = (communityId: string) =>
 
 export const syncElection = (electionId: string, now: Date) =>
   withSerializableTransaction(async (tx) => {
+    // Share the community membership boundary lock with contribution issuance,
+    // joins, leaves, and role mutations.
+    const communityLock = await tx.$queryRaw<Array<{ id: string }>>`
+      UPDATE "communities" SET "updatedAt" = "updatedAt"
+      WHERE "id" = (
+        SELECT "communityId" FROM "community_elections" WHERE "id" = ${electionId}
+      )
+      RETURNING "id"
+    `;
+    if (communityLock.length !== 1) return null;
+
     const election = await tx.communityElection.findUnique({
       where: { id: electionId },
       include: {
