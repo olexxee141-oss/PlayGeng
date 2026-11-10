@@ -90,17 +90,44 @@ export const listAutomaticCampaigns = () =>
   });
 
 export const createScheduledDraft = async (input: {
-  campaignId: string; communityId: string; periodKey: string; description: string;
-  amountMinor: bigint; currency: string; createdById: string;
+  campaignId: string; communityId: string; periodKey: string; boundary: Date; timezone: string;
 }) => {
   try {
-    return await prisma.contributionAssessment.create({
-      data: {
-        ...input,
-        dueAt: null,
-        status: "DRAFT",
-      },
-    });
+    return await prisma.$transaction(async (tx) => {
+      // Serialize draft generation against campaign pause/resume/end/configuration writes.
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+        UPDATE "contribution_campaigns" SET "updatedAt" = "updatedAt"
+        WHERE "id" = ${input.campaignId} AND "communityId" = ${input.communityId}
+        RETURNING "id"
+      `;
+      if (locked.length !== 1) return null;
+      const campaign = await tx.contributionCampaign.findUnique({
+        where: { id: input.campaignId },
+        include: {
+          community: { select: { timezone: true, status: true, treasury: { select: { currency: true } } } },
+          events: { where: { createdAt: { lte: input.boundary } }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
+        },
+      });
+      if (!campaign || campaign.community.status !== "ACTIVE" || campaign.community.timezone !== input.timezone ||
+        campaign.frequency !== "MONTHLY" || campaign.assessmentGenerationMode !== "AUTOMATIC" ||
+        campaign.status === "CANCELLED" || campaign.createdAt >= input.boundary ||
+        (campaign.endedAt !== null && campaign.endedAt <= input.boundary) ||
+        campaign.events.at(-1)?.type === "PAUSED" || campaign.events.at(-1)?.type === "ENDED" ||
+        campaign.events.at(-1)?.type === "CANCELLED" || !campaign.community.treasury) return null;
+      return await tx.contributionAssessment.create({
+        data: {
+          campaignId: campaign.id,
+          communityId: campaign.communityId,
+          periodKey: input.periodKey,
+          description: campaign.description ?? campaign.name,
+          amountMinor: campaign.amountMinor,
+          currency: campaign.community.treasury.currency,
+          dueAt: null,
+          status: "DRAFT",
+          createdById: campaign.createdById,
+        },
+      });
+    }, { isolationLevel: "Serializable" });
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") return null;
     throw error;
