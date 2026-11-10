@@ -1,0 +1,20 @@
+import { Router } from "express";
+import { asyncHandler } from "../../shared/utils/async-handler.js";
+import { validate } from "../../shared/middlewares/validate.middleware.js";
+import { requireAuth } from "../auth/auth.middleware.js";
+import * as controller from "./contributions.controller.js";
+import { createAssessmentSchema, createCampaignSchema, transitionSchema, updateAssessmentSchema, updateCampaignSchema } from "./contributions.validator.js";
+
+export const contributionRoutes = Router({ mergeParams: true });
+contributionRoutes.use(requireAuth);
+contributionRoutes.get("/campaigns", asyncHandler(controller.listCampaigns));
+contributionRoutes.post("/campaigns", validate(createCampaignSchema), asyncHandler(controller.createCampaign));
+contributionRoutes.get("/campaigns/:campaignId", asyncHandler(controller.getCampaign));
+contributionRoutes.patch("/campaigns/:campaignId", validate(updateCampaignSchema), asyncHandler(controller.updateCampaign));
+contributionRoutes.post("/campaigns/:campaignId/pause", validate(transitionSchema), asyncHandler(controller.transition("PAUSED")));
+contributionRoutes.post("/campaigns/:campaignId/resume", validate(transitionSchema), asyncHandler(controller.transition("RESUMED")));
+contributionRoutes.post("/campaigns/:campaignId/end", validate(transitionSchema), asyncHandler(controller.transition("ENDED")));
+contributionRoutes.post("/campaigns/:campaignId/cancel", validate(transitionSchema), asyncHandler(controller.transition("CANCELLED")));
+contributionRoutes.get("/assessments", asyncHandler(controller.listAssessments));
+contributionRoutes.post("/campaigns/:campaignId/assessments", validate(createAssessmentSchema), asyncHandler(controller.createAssessment));
+contributionRoutes.patch("/assessments/:assessmentId", validate(updateAssessmentSchema), asyncHandler(controller.updateAssessment));
