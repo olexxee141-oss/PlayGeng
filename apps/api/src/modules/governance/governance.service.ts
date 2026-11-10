@@ -74,7 +74,14 @@ export const nominateSelf = async (communityId: string, electionId: string, user
   const eligible = await db.isEligibleVoter(electionId, userId);
   if (!eligible) throw new AppError("You were not a member when this election electorate was recorded.", 403);
   try {
-    return await db.nominate(electionId, userId);
+    const result = await db.nominate(communityId, electionId, userId, now);
+    if (result.kind === "NOT_FOUND") throw new AppError("Election not found.", 404);
+    if (result.kind === "CLOSED") throw new AppError("The nomination period is closed.", 409);
+    if (result.kind === "NOT_MEMBER") throw new AppError("Only active community members can nominate themselves.", 403);
+    if (result.kind === "CREATOR") throw new AppError("The community creator is not eligible to hold elected offices.", 403);
+    if (result.kind === "OTHER_OFFICE") throw new AppError("A member may hold only one elected office at a time.", 409);
+    if (result.kind === "NOT_IN_ELECTORATE") throw new AppError("You were not a member when this election electorate was recorded.", 403);
+    return result.nomination;
   } catch (error) {
     if (isUniqueConflict(error)) throw new AppError("You have already nominated yourself for this election.", 409);
     throw error;
@@ -86,9 +93,10 @@ export const withdrawSelfNomination = async (communityId: string, electionId: st
   if (election.status !== "NOMINATIONS_OPEN" || new Date() >= election.nominationsCloseAt) {
     throw new AppError("The nomination period is closed.", 409);
   }
-  const nomination = await db.findNomination(electionId, userId);
-  if (!nomination || nomination.withdrawnAt) throw new AppError("Active nomination not found.", 404);
-  await db.withdrawNomination(nomination.id, new Date());
+  const result = await db.withdrawNomination(communityId, electionId, userId, new Date());
+  if (result.kind === "NOT_FOUND") throw new AppError("Election not found.", 404);
+  if (result.kind === "CLOSED") throw new AppError("The nomination period is closed.", 409);
+  if (result.kind === "NOMINATION_NOT_FOUND") throw new AppError("Active nomination not found.", 404);
 };
 
 export const castBallot = async (communityId: string, electionId: string, voterId: string, input: CastBallotInput) => {
@@ -106,8 +114,14 @@ export const castBallot = async (communityId: string, electionId: string, voterI
   const candidateMembership = await db.findMembership(communityId, candidate.userId);
   if (!candidateMembership || candidateMembership.role === "CREATOR" || (["ADMIN", "TREASURER", "ORGANIZER"].includes(candidateMembership.role) && candidateMembership.role !== election.role)) throw new AppError("The selected candidate is no longer eligible.", 409);
   try {
-    const ballot = await db.castBallot(electionId, voterId, input.candidateId);
-    return { id: ballot.id, electionId: ballot.electionId, castAt: ballot.castAt };
+    const result = await db.castBallot(communityId, electionId, voterId, input.candidateId, now);
+    if (result.kind === "NOT_FOUND") throw new AppError("Election not found.", 404);
+    if (result.kind === "CLOSED") throw new AppError("Voting is not currently open.", 409);
+    if (result.kind === "NOT_ELIGIBLE") throw new AppError("You are not eligible to vote in this election.", 403);
+    if (result.kind === "NOT_MEMBER") throw new AppError("Only active community members can vote.", 403);
+    if (result.kind === "INVALID_CANDIDATE") throw new AppError("The selected candidate is not eligible.", 400);
+    if (result.kind === "CANDIDATE_INELIGIBLE") throw new AppError("The selected candidate is no longer eligible.", 409);
+    return { id: result.ballot.id, electionId: result.ballot.electionId, castAt: result.ballot.castAt };
   } catch (error) {
     if (isUniqueConflict(error)) throw new AppError("You have already voted in this election.", 409);
     throw error;
