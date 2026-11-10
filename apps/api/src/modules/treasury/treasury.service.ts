@@ -1,3 +1,4 @@
+import { prisma } from "@playgeng/database";
 import { AppError } from "../../shared/errors/app-error.js";
 import * as db from "./treasury.db.js";
 import type { InitializeTreasuryInput, PostJournalInput, ReverseJournalInput } from "./treasury.validator.js";
@@ -56,27 +57,36 @@ export const postJournalTransaction = async (communityId: string, actorId: strin
     throw new AppError("Journal postings must contain debits and credits with equal totals.", 400);
   }
   const codes = [...new Set(input.postings.map((posting) => posting.accountCode))];
-  const accounts = await import("@playgeng/database").then(({ prisma }) => prisma.treasuryAccount.findMany({
+  const accounts = await prisma.treasuryAccount.findMany({
     where: { treasuryId: treasury.id, code: { in: codes }, isActive: true },
-  }));
+  });
   if (accounts.length !== codes.length) throw new AppError("One or more ledger accounts are invalid or inactive.", 400);
   const accountByCode = new Map(accounts.map((account) => [account.code, account.id]));
-  const result = await db.postJournal({
-    treasuryId: treasury.id, actorId, type: input.type, description: input.description,
-    idempotencyKey: input.idempotencyKey,
-    ...(input.sourceType ? { sourceType: input.sourceType } : {}),
-    ...(input.sourceId ? { sourceId: input.sourceId } : {}),
-    postings: input.postings.map((posting) => ({ accountId: accountByCode.get(posting.accountCode)!, side: posting.side, amountMinor: BigInt(posting.amountMinor) })),
-  });
-  if (result.kind === "EXISTS") {
+  const assertSameRequest = (transaction: NonNullable<Awaited<ReturnType<typeof db.findJournalByIdempotency>>>) => {
     const expected = input.postings.map((p) => ({ code: p.accountCode, side: p.side, amount: p.amountMinor })).sort((a,b) => a.code.localeCompare(b.code) || a.side.localeCompare(b.side) || a.amount.localeCompare(b.amount));
-    const actual = result.transaction.postings.map((p) => ({ code: p.account.code, side: p.side, amount: p.amountMinor.toString() })).sort((a,b) => a.code.localeCompare(b.code) || a.side.localeCompare(b.side) || a.amount.localeCompare(b.amount));
-    if (result.transaction.type !== input.type || result.transaction.description !== input.description || JSON.stringify(expected) !== JSON.stringify(actual)) {
+    const actual = transaction.postings.map((p) => ({ code: p.account.code, side: p.side, amount: p.amountMinor.toString() })).sort((a,b) => a.code.localeCompare(b.code) || a.side.localeCompare(b.side) || a.amount.localeCompare(b.amount));
+    if (transaction.type !== input.type || transaction.description !== input.description || JSON.stringify(expected) !== JSON.stringify(actual)) {
       throw new AppError("Idempotency key has already been used for a different journal transaction.", 409);
     }
+    return transaction;
+  };
+  try {
+    const result = await db.postJournal({
+      treasuryId: treasury.id, actorId, type: input.type, description: input.description,
+      idempotencyKey: input.idempotencyKey,
+      ...(input.sourceType ? { sourceType: input.sourceType } : {}),
+      ...(input.sourceId ? { sourceId: input.sourceId } : {}),
+      postings: input.postings.map((posting) => ({ accountId: accountByCode.get(posting.accountCode)!, side: posting.side, amountMinor: BigInt(posting.amountMinor) })),
+    });
+    if (result.kind === "EXISTS") return assertSameRequest(result.transaction);
     return result.transaction;
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+      const existing = await db.findJournalByIdempotency(treasury.id, input.idempotencyKey);
+      if (existing) return assertSameRequest(existing);
+    }
+    throw error;
   }
-  return result.transaction;
 };
 
 export const reverseJournalTransaction = async (communityId: string, actorId: string, transactionId: string, input: ReverseJournalInput) => {
