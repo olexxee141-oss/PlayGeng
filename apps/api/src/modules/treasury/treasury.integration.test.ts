@@ -7,14 +7,11 @@ import { getTreasury, initializeTreasury, postJournalTransaction, reverseJournal
 
 test("treasury journal posts balanced entries once and reverses without mutating history", async () => {
   const suffix = randomUUID();
-  const userIds: string[] = [];
-  let communityId: string | undefined;
   try {
     const createUser = async (label: string) => {
       const user = await prisma.user.create({
         data: { email: `treasury-${label}-${suffix}@playgeng.test`, firstName: "Treasury", lastName: label, passwordHash: "integration-test-hash" },
       });
-      userIds.push(user.id);
       return user;
     };
     const creator = await createUser("creator");
@@ -31,7 +28,6 @@ test("treasury journal posts balanced entries once and reverses without mutating
         sports: { create: { sport: "FOOTBALL", isPrimary: true } },
       },
     });
-    communityId = community.id;
 
     await assert.rejects(initializeTreasury(community.id, creator.id, { currency: "NGN" }), (error: unknown) => error instanceof AppError && error.statusCode === 403);
     const treasury = await initializeTreasury(community.id, treasurer.id, { currency: "NGN" });
@@ -85,8 +81,7 @@ test("treasury journal posts balanced entries once and reverses without mutating
     );
     assert.equal((await prisma.journalTransaction.findUniqueOrThrow({ where: { id: posted.id } })).description, "Verified test contribution");
   } finally {
-    if (communityId) await prisma.community.deleteMany({ where: { id: communityId } });
-    for (const userId of userIds) await prisma.user.deleteMany({ where: { id: userId } });
+    // This test uses a disposable CI database. Treasury and audit history are intentionally non-deletable.
     await prisma.$disconnect();
   }
 });
