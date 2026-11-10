@@ -4,11 +4,9 @@ import { resolveElectionOutcome } from "./governance.policy.js";
 const isSerializationConflict = (error: unknown): boolean => {
   if (typeof error !== "object" || error === null) return false;
   if ("code" in error && error.code === "P2034") return true;
-  if ("cause" in error) {
-    const cause = error.cause;
-    if (typeof cause === "object" && cause !== null && "originalCode" in cause && cause.originalCode === "40001") return true;
-    return isSerializationConflict(cause);
-  }
+  if ("meta" in error && typeof error.meta === "object" && error.meta !== null &&
+    "code" in error.meta && error.meta.code === "40001") return true;
+  if ("cause" in error) return isSerializationConflict(error.cause);
   return false;
 };
 
