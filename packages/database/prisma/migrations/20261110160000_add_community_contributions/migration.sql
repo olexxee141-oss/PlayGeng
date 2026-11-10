@@ -19,8 +19,8 @@ CREATE TABLE "contribution_campaigns" (
   "updatedAt" TIMESTAMP(3) NOT NULL,
   CONSTRAINT "contribution_campaigns_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "contribution_campaigns_amount_positive" CHECK ("amountMinor" > 0),
-  CONSTRAINT "contribution_campaigns_community_fkey" FOREIGN KEY ("communityId") REFERENCES "communities"("id") ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT "contribution_campaigns_creator_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT "contribution_campaigns_communityId_fkey" FOREIGN KEY ("communityId") REFERENCES "communities"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "contribution_campaigns_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 CREATE INDEX "contribution_campaigns_communityId_status_createdAt_idx"
@@ -46,11 +46,11 @@ CREATE TABLE "contribution_assessments" (
   CONSTRAINT "contribution_assessments_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "contribution_assessments_amount_positive" CHECK ("amountMinor" > 0),
   CONSTRAINT "contribution_assessments_currency_format" CHECK ("currency" ~ '^[A-Z]{3}$'),
-  CONSTRAINT "contribution_assessments_campaign_fkey" FOREIGN KEY ("campaignId") REFERENCES "contribution_campaigns"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "contribution_assessments_community_fkey" FOREIGN KEY ("communityId") REFERENCES "communities"("id") ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT "contribution_assessments_creator_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "contribution_assessments_issuer_fkey" FOREIGN KEY ("issuedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "contribution_assessments_canceller_fkey" FOREIGN KEY ("cancelledById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "contribution_assessments_campaignId_fkey" FOREIGN KEY ("campaignId") REFERENCES "contribution_campaigns"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "contribution_assessments_communityId_fkey" FOREIGN KEY ("communityId") REFERENCES "communities"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "contribution_assessments_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "contribution_assessments_issuedById_fkey" FOREIGN KEY ("issuedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "contribution_assessments_cancelledById_fkey" FOREIGN KEY ("cancelledById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "contribution_assessments_campaignId_periodKey_key" UNIQUE ("campaignId", "periodKey")
 );
 
@@ -72,9 +72,9 @@ CREATE TABLE "contribution_assessment_members" (
   "obligationId" TEXT,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "contribution_assessment_members_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "contribution_assessment_members_assessment_fkey" FOREIGN KEY ("assessmentId") REFERENCES "contribution_assessments"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "contribution_assessment_members_member_fkey" FOREIGN KEY ("memberId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "contribution_assessment_members_obligation_fkey" FOREIGN KEY ("obligationId") REFERENCES "obligations"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "contribution_assessment_members_assessmentId_fkey" FOREIGN KEY ("assessmentId") REFERENCES "contribution_assessments"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "contribution_assessment_members_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "contribution_assessment_members_obligationId_fkey" FOREIGN KEY ("obligationId") REFERENCES "obligations"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "contribution_assessment_members_assessmentId_memberId_key" UNIQUE ("assessmentId", "memberId"),
   CONSTRAINT "contribution_assessment_members_obligationId_key" UNIQUE ("obligationId")
 );
@@ -92,8 +92,8 @@ CREATE TABLE "contribution_campaign_events" (
   "reason" VARCHAR(500) NOT NULL,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "contribution_campaign_events_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "contribution_campaign_events_campaign_fkey" FOREIGN KEY ("campaignId") REFERENCES "contribution_campaigns"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "contribution_campaign_events_actor_fkey" FOREIGN KEY ("actorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT "contribution_campaign_events_campaignId_fkey" FOREIGN KEY ("campaignId") REFERENCES "contribution_campaigns"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "contribution_campaign_events_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 CREATE INDEX "contribution_campaign_events_campaignId_createdAt_idx"
