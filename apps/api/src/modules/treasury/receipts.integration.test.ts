@@ -65,7 +65,7 @@ test("manual receipts verify once, allocate atomically, protect balances and ser
       (error: unknown) => error instanceof AppError && error.statusCode === 400,
     );
     await assert.rejects(
-      verifyManualReceipt(community.id, treasurer.id, { ...receiptInput, allocations: [{ obligationId: first.id, amountMinor: "1200000" }] }),
+      verifyManualReceipt(community.id, treasurer.id, { ...receiptInput, allocations: [{ obligationId: first.id, amountMinor: "1200000" }], amountMinor: "1200000" }),
       (error: unknown) => error instanceof AppError && error.statusCode === 409,
     );
 
