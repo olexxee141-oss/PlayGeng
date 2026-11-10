@@ -31,7 +31,7 @@ export const findMembership = (communityId: string, userId: string) =>
 
 export const listActiveElections = (communityId: string) =>
   prisma.communityElection.findMany({
-    where: { communityId, status: { in: ["NOMINATIONS_OPEN", "VOTING_OPEN"] } },
+    where: { communityId, status: { in: ["NOMINATIONS_OPEN", "NOMINATIONS_CLOSED", "VOTING_OPEN"] } },
     select: { id: true },
   });
 
@@ -130,12 +130,19 @@ export const syncElection = (electionId: string, now: Date) =>
           where: { id: electionId },
           data: { status: "FAILED", failureReason: "NO_CANDIDATES", completedAt: now },
         });
-      } else if (now >= election.votingOpensAt) {
+      } else {
         await tx.communityElection.update({
           where: { id: electionId },
-          data: { status: "VOTING_OPEN" },
+          data: { status: "NOMINATIONS_CLOSED" },
         });
       }
+    }
+
+    if (election.status === "NOMINATIONS_CLOSED" && now >= election.votingOpensAt) {
+      await tx.communityElection.update({
+        where: { id: electionId },
+        data: { status: "VOTING_OPEN" },
+      });
     }
 
     const current = await tx.communityElection.findUnique({
