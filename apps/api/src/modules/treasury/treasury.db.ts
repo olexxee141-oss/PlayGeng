@@ -85,6 +85,9 @@ export const postJournal = (input: {
     data: { status: "POSTED", postedAt: new Date() },
     include: { postings: { include: { account: { select: { code: true } } } } },
   });
+  await tx.financialAuditEvent.create({
+    data: { treasuryId: input.treasuryId, actorId: input.actorId, action: "JOURNAL_POSTED", entityType: "JOURNAL_TRANSACTION", entityId: posted.id, reason: input.description, metadata: { type: input.type, idempotencyKey: input.idempotencyKey, sourceType: input.sourceType ?? null, sourceId: input.sourceId ?? null } },
+  });
   return { kind: "CREATED" as const, transaction: posted };
 });
 
