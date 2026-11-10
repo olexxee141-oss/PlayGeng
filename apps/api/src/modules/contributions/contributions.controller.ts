@@ -43,3 +43,8 @@ export const updateAssessment: RequestHandler = async (req, res) => {
   const assessment = await service.updateAssessment(param(req, "communityId"), auth(res).userId, param(req, "assessmentId"), req.body);
   res.status(200).json({ success: true, data: { assessment } });
 };
+
+export const issueAssessment: RequestHandler = async (req, res) => {
+  const assessment = await service.issueAssessment(param(req, "communityId"), auth(res).userId, param(req, "assessmentId"));
+  res.status(200).json({ success: true, data: { assessment } });
+};
