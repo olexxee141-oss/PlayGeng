@@ -2,7 +2,7 @@ import { getSportCapability } from "@playgeng/shared";
 import type { CompetitionParticipantType, CompetitionStatus, Sport } from "@playgeng/database";
 import { AppError } from "../../shared/errors/app-error.js";
 import * as db from "./competitions.db.js";
-import { requireCommunityPermission } from "../../shared/authorization/community-permissions.js";
+import { hasCommunityPermission, requireCommunityPermission } from "../../shared/authorization/community-permissions.js";
 import type { CreateCompetitionInput, RegisterCompetitionEntryInput, ReviewCompetitionEntryInput } from "./competitions.validator.js";
 
 const requireMembership = async (communityId: string, userId: string) => {
@@ -137,8 +137,8 @@ export const registerEntry = async (communityId: string, competitionId: string, 
       throw new AppError("An active team registered for this competition's sport is required.", 409);
     }
     const membership = await db.findTeamMembership(team.id, actorId);
-    const communityRole = (await db.findMembership(communityId, actorId))?.role;
-    if (membership?.role !== "CAPTAIN" && !managerRoles.has(communityRole ?? "")) {
+    const isCommunityManager = await hasCommunityPermission(communityId, actorId, "MANAGE_COMPETITIONS");
+    if (membership?.role !== "CAPTAIN" && !isCommunityManager) {
       throw new AppError("Only the team captain or a community manager can register this team.", 403);
     }
     teamId = team.id;
