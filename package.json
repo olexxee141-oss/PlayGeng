@@ -17,7 +17,9 @@
     "build": "npm run build --workspace=@playgeng/database && npm run build --workspace=@playgeng/api && npm run build --workspace=@playgeng/web",
     "typecheck": "npm run build --workspace=@playgeng/database && npm run typecheck --workspace=@playgeng/api && npm run typecheck --workspace=@playgeng/web",
     "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "dev:contribution-scheduler": "npm run dev:scheduler --workspace=@playgeng/api",
+    "start:contribution-scheduler": "npm run start:scheduler --workspace=@playgeng/api"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
