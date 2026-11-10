@@ -13,6 +13,7 @@ export const createCommunity = async (ownerId: string, input: CreateCommunityInp
     slug: input.slug,
     ...(input.description ? { description: input.description } : {}),
     sport: input.sport,
+    ...(input.timezone ? { timezone: input.timezone } : {}),
     owner: { connect: { id: ownerId } },
     members: { create: { userId: ownerId, role: "CREATOR" } },
     sports: { create: { sport: input.sport, isPrimary: true } },
@@ -35,6 +36,7 @@ export const updateCommunity = async (communityId: string, userId: string, input
     ...(input.name !== undefined ? { name: input.name } : {}),
     ...(input.description !== undefined ? { description: input.description } : {}),
     ...(input.sport !== undefined ? { sport: input.sport } : {}),
+    ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
   };
   if (input.sport !== undefined) return db.updateCommunityPrimarySport(communityId, data, input.sport as import("@playgeng/database").Sport);
   return db.updateCommunity(communityId, data);

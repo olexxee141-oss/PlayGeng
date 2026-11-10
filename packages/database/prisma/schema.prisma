@@ -52,6 +52,11 @@ enum ContributionFrequency {
   MONTHLY
 }
 
+enum ContributionAssessmentGenerationMode {
+  AUTOMATIC
+  MANUAL
+}
+
 enum ContributionCampaignStatus {
   ACTIVE
   PAUSED
@@ -289,6 +294,7 @@ model Community {
   description String?         @db.VarChar(1000)
   sport       String          @default("FOOTBALL") @db.VarChar(50)
   status      CommunityStatus @default(ACTIVE)
+  timezone    String          @default("UTC") @db.VarChar(64)
   ownerId     String
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
@@ -784,6 +790,7 @@ model ContributionCampaign {
   description          String?                   @db.VarChar(500)
   amountMinor          BigInt
   frequency            ContributionFrequency
+  assessmentGenerationMode ContributionAssessmentGenerationMode @default(MANUAL)
   status               ContributionCampaignStatus @default(ACTIVE)
   createdById          String
   pausedAt             DateTime?
@@ -809,7 +816,7 @@ model ContributionAssessment {
   description   String                       @db.VarChar(500)
   amountMinor   BigInt
   currency      String                       @db.Char(3)
-  dueAt         DateTime
+  dueAt         DateTime?
   status        ContributionAssessmentStatus @default(DRAFT)
   createdById   String
   issuedById    String?
