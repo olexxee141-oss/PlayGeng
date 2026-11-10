@@ -180,7 +180,7 @@ export const issueAssessmentInTransaction = async (tx: Prisma.TransactionClient,
   actorId: string;
 }) => {
   // This row lock is the membership issuance boundary. Community membership
-  // add/remove writes take the same lock before mutating community_members.
+  // joins/leaves and elected-role assignments take the same lock before writes.
   const lockedCommunity = await tx.$queryRaw<Array<{ id: string }>>`
     UPDATE "communities" SET "updatedAt" = "updatedAt"
     WHERE "id" = ${input.communityId} AND "status" = 'ACTIVE'
@@ -213,7 +213,7 @@ export const issueAssessmentInTransaction = async (tx: Prisma.TransactionClient,
   });
   if (!assessment) return { kind: "ASSESSMENT_NOT_FOUND" as const };
   if (assessment.status === "ISSUED") {
-    const complete = assessment.members.every((snapshot) => {
+    const complete = assessment.members.length > 0 && assessment.members.every((snapshot) => {
       const obligation = snapshot.obligation;
       return Boolean(
         obligation &&
