@@ -172,10 +172,8 @@ export const generateMonthlyDrafts = async (now = new Date()) => {
       campaignId: campaign.id,
       communityId: campaign.communityId,
       periodKey,
-      description: campaign.description ?? campaign.name,
-      amountMinor: campaign.amountMinor,
-      currency: campaign.community.treasury.currency,
-      createdById: campaign.createdById,
+      boundary,
+      timezone,
     });
     if (result) created += 1;
   }
