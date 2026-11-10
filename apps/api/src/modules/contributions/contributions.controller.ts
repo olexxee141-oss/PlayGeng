@@ -2,6 +2,7 @@ import type { Request, RequestHandler, Response } from "express";
 import type { AuthContext } from "../auth/auth.middleware.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import * as service from "./contributions.service.js";
+import { contributionReportQuerySchema } from "./contributions.validator.js";
 
 const auth = (res: Response) => (res.locals as { auth: AuthContext }).auth;
 const param = (req: Request, name: string) => {
@@ -44,8 +45,6 @@ export const updateAssessment: RequestHandler = async (req, res) => {
   res.status(200).json({ success: true, data: { assessment } });
 };
 
-
-import { contributionReportQuerySchema } from "./contributions.validator.js";
 
 export const listMine: RequestHandler = async (req, res) => {
   const query = contributionReportQuerySchema.parse(req.query);
