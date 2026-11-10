@@ -49,6 +49,8 @@ CREATE TABLE "election_nominations" (
   CONSTRAINT "election_nominations_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE UNIQUE INDEX "election_nominations_id_electionId_key" ON "election_nominations"("id", "electionId");
+
 CREATE TABLE "election_ballots" (
   "id" TEXT NOT NULL,
   "electionId" TEXT NOT NULL,
@@ -64,7 +66,6 @@ CREATE TABLE "election_ballots" (
 CREATE UNIQUE INDEX "election_eligible_voters_electionId_userId_key" ON "election_eligible_voters"("electionId", "userId");
 CREATE INDEX "election_eligible_voters_userId_electionId_idx" ON "election_eligible_voters"("userId", "electionId");
 CREATE UNIQUE INDEX "election_nominations_electionId_userId_key" ON "election_nominations"("electionId", "userId");
-CREATE UNIQUE INDEX "election_nominations_id_electionId_key" ON "election_nominations"("id", "electionId");
 CREATE INDEX "election_nominations_electionId_withdrawnAt_idx" ON "election_nominations"("electionId", "withdrawnAt");
 CREATE UNIQUE INDEX "election_ballots_electionId_voterId_key" ON "election_ballots"("electionId", "voterId");
 CREATE INDEX "election_ballots_electionId_candidateId_idx" ON "election_ballots"("electionId", "candidateId");
