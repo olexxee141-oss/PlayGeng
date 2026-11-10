@@ -33,7 +33,7 @@ enum MatchParticipantStatus {
 }
 
 enum CommunityMemberRole {
-  OWNER
+  CREATOR
   ADMIN
   TREASURER
   ORGANIZER

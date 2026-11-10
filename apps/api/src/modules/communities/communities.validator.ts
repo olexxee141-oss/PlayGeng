@@ -17,7 +17,6 @@ export const updateCommunitySchema = z.object({
 
 export const addMemberSchema = z.object({
   email: z.string().trim().email().max(320),
-  role: z.enum(["ADMIN","TREASURER","ORGANIZER","MEMBER"]).default("MEMBER"),
 });
 
 export const updateMemberRoleSchema = z.object({

@@ -1,8 +1,7 @@
 import { AppError } from "../../shared/errors/app-error.js";
 import * as db from "./competitions.db.js";
+import { hasCommunityPermission, requireCommunityPermission } from "../../shared/authorization/community-permissions.js";
 import type { CreateCompetitionInvitationInput } from "./competition-invitations.validator.js";
-
-const managerRoles = new Set(["OWNER", "ADMIN", "ORGANIZER"]);
 
 const requireMembership = async (communityId: string, userId: string) => {
   const membership = await db.findMembership(communityId, userId);
@@ -11,8 +10,7 @@ const requireMembership = async (communityId: string, userId: string) => {
 };
 
 const requireManager = async (communityId: string, userId: string) => {
-  const membership = await requireMembership(communityId, userId);
-  if (!managerRoles.has(membership.role)) throw new AppError("You do not have permission to manage competition invitations.", 403);
+  await requireCommunityPermission(communityId, userId, "MANAGE_COMPETITIONS", "You do not have permission to manage competition invitations.");
 };
 
 const requireActiveCommunity = async (communityId: string) => {
@@ -111,11 +109,11 @@ export const createInvitation = async (communityId: string, competitionId: strin
 };
 
 export const listInvitations = async (communityId: string, competitionId: string, actorId: string) => {
-  const membership = await requireMembership(communityId, actorId);
+  await requireMembership(communityId, actorId);
   await requireActiveCommunity(communityId);
   const competition = await db.findCompetition(communityId, competitionId);
   if (!competition || competition.registrationMode !== "INVITE_ONLY") throw new AppError("Invite-only competition not found.", 404);
-  const isManager = managerRoles.has(membership.role);
+  const isManager = await hasCommunityPermission(communityId, actorId, "MANAGE_COMPETITIONS");
   await db.expirePendingInvitations(communityId, competitionId, isManager ? undefined : actorId);
   return db.listInvitations(communityId, competitionId, isManager ? undefined : actorId);
 };

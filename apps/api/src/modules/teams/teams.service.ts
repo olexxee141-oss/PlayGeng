@@ -1,9 +1,8 @@
 import { AppError } from "../../shared/errors/app-error.js";
 import type { TeamMemberRole, Sport } from "@playgeng/database";
 import * as db from "./teams.db.js";
+import { requireCommunityPermission } from "../../shared/authorization/community-permissions.js";
 import type { CreateTeamInput, SportInput, TeamMemberInput, UpdateTeamInput } from "./teams.validator.js";
-
-const managerRoles = new Set(["OWNER", "ADMIN", "ORGANIZER"]);
 
 const requireMembership = async (communityId: string, userId: string) => {
   const membership = await db.findMembership(communityId, userId);
@@ -12,8 +11,7 @@ const requireMembership = async (communityId: string, userId: string) => {
 };
 
 const requireManager = async (communityId: string, userId: string) => {
-  const membership = await requireMembership(communityId, userId);
-  if (!managerRoles.has(membership.role)) throw new AppError("You do not have permission to manage community teams.", 403);
+  await requireCommunityPermission(communityId, userId, "MANAGE_TEAMS", "You do not have permission to manage community teams.");
 };
 
 const requireActiveCommunity = async (communityId: string) => {
