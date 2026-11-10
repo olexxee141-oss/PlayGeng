@@ -138,8 +138,17 @@ const monthStartUtc = (periodKey: string, timezone: string) => {
       timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
       hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
     }).formatToParts(new Date(candidate));
-    const values = Object.fromEntries(parts.map((part) => [part.type, Number(part.value)]));
-    const represented = Date.UTC(values.year, values.month - 1, values.day, values.hour, values.minute, values.second);
+    const partValue = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? Number.NaN);
+    const year = partValue("year");
+    const month = partValue("month");
+    const day = partValue("day");
+    const hour = partValue("hour");
+    const minute = partValue("minute");
+    const second = partValue("second");
+    if (![year, month, day, hour, minute, second].every(Number.isFinite)) {
+      throw new Error("Unable to resolve the community timezone month boundary.");
+    }
+    const represented = Date.UTC(year, month - 1, day, hour, minute, second);
     candidate += target - represented;
   }
   return new Date(candidate);
