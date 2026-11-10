@@ -68,6 +68,22 @@ test("manual receipts verify once, allocate atomically, protect balances and ser
       verifyManualReceipt(community.id, treasurer.id, { ...receiptInput, allocations: [{ obligationId: first.id, amountMinor: "1200000" }], amountMinor: "1200000" }),
       (error: unknown) => error instanceof AppError && error.statusCode === 409,
     );
+    const otherMemberDue = await createObligation(community.id, treasurer.id, {
+      memberId: otherMember.id,
+      sourceType: "CONTRIBUTION",
+      sourceId: `other-member-${suffix}`,
+      idempotencyKey: `other-member-${suffix}`,
+      description: "Other member contribution",
+      amountMinor: "100000",
+    });
+    await assert.rejects(
+      verifyManualReceipt(community.id, treasurer.id, {
+        ...receiptInput,
+        allocations: [{ obligationId: otherMemberDue.id, amountMinor: "100000" }],
+        amountMinor: "100000",
+      }),
+      (error: unknown) => error instanceof AppError && error.statusCode === 400,
+    );
 
     const receipt = await verifyManualReceipt(community.id, treasurer.id, receiptInput);
     assert.equal(receipt.amountMinor, "1200000");
@@ -106,6 +122,18 @@ test("manual receipts verify once, allocate atomically, protect balances and ser
     assert.equal(summary.balances.find((account) => account.code === "CASH")?.balanceMinor, "1200000");
     assert.equal(summary.balances.find((account) => account.code === "RECEIVABLES")?.balanceMinor, "300000");
     assert.equal(summary.balances.find((account) => account.code === "CONTRIBUTION_INCOME")?.balanceMinor, "1500000");
+
+    const duplicateReferenceDue = await createDue(`duplicate-reference-${suffix}`, "1000000");
+    await assert.rejects(
+      verifyManualReceipt(community.id, treasurer.id, {
+        ...receiptInput,
+        idempotencyKey: `duplicate-reference-${suffix}`,
+        evidenceReference: `second-evidence-${suffix}`,
+        amountMinor: "100000",
+        allocations: [{ obligationId: duplicateReferenceDue.id, amountMinor: "100000" }],
+      }),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
 
     const concurrentDue = await createDue(`concurrent-${suffix}`, "1000000");
     const makeConcurrentReceipt = (label: string) => verifyManualReceipt(community.id, treasurer.id, {
