@@ -47,6 +47,10 @@ enum ObligationStatus {
   CANCELLED
 }
 
+enum ReceiptSource {
+  MANUAL_RECONCILIATION
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -194,6 +198,9 @@ model User {
   createdObligations Obligation[] @relation("ObligationActor")
   memberObligations Obligation[] @relation("ObligationMember")
   financialAuditEvents FinancialAuditEvent[] @relation("FinancialAuditActor")
+  verifiedReceipts PaymentReceipt[] @relation("ReceiptVerifier")
+  memberReceipts PaymentReceipt[] @relation("ReceiptMember")
+  createdAllocations ObligationAllocation[] @relation("AllocationActor")
 
   @@index([status])
   @@map("users")
@@ -578,6 +585,8 @@ model Treasury {
   journalTransactions JournalTransaction[]
   obligations Obligation[]
   auditEvents FinancialAuditEvent[]
+  receipts PaymentReceipt[]
+  allocations ObligationAllocation[]
   @@map("treasuries")
 }
 
@@ -662,9 +671,57 @@ model Obligation {
   createdBy User @relation("ObligationActor", fields: [createdById], references: [id], onDelete: Restrict)
   @@unique([treasuryId, idempotencyKey])
   @@unique([treasuryId, sourceType, sourceId])
+  @@unique([id, treasuryId, memberId])
   @@index([treasuryId, status, dueAt])
   @@index([memberId, status])
+  allocations ObligationAllocation[]
   @@map("obligations")
+}
+
+model PaymentReceipt {
+  id String @id @default(cuid())
+  treasuryId String
+  memberId String
+  source ReceiptSource @default(MANUAL_RECONCILIATION)
+  amountMinor BigInt
+  currency String @db.Char(3)
+  externalReference String @db.VarChar(160)
+  evidenceReference String @db.VarChar(500)
+  idempotencyKey String @db.VarChar(160)
+  receivedAt DateTime
+  verifiedById String
+  verifiedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  member User @relation("ReceiptMember", fields: [memberId], references: [id], onDelete: Restrict)
+  verifiedBy User @relation("ReceiptVerifier", fields: [verifiedById], references: [id], onDelete: Restrict)
+  allocations ObligationAllocation[]
+  @@unique([treasuryId, externalReference])
+  @@unique([treasuryId, idempotencyKey])
+  @@unique([id, treasuryId, memberId])
+  @@index([treasuryId, memberId, receivedAt])
+  @@map("payment_receipts")
+}
+
+model ObligationAllocation {
+  id String @id @default(cuid())
+  treasuryId String
+  memberId String
+  receiptId String
+  obligationId String
+  amountMinor BigInt
+  idempotencyKey String @db.VarChar(160)
+  createdById String
+  createdAt DateTime @default(now())
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  receipt PaymentReceipt @relation(fields: [receiptId, treasuryId, memberId], references: [id, treasuryId, memberId], onDelete: Restrict)
+  obligation Obligation @relation(fields: [obligationId, treasuryId, memberId], references: [id, treasuryId, memberId], onDelete: Restrict)
+  createdBy User @relation("AllocationActor", fields: [createdById], references: [id], onDelete: Restrict)
+  @@unique([treasuryId, idempotencyKey])
+  @@unique([receiptId, obligationId])
+  @@index([treasuryId, obligationId, createdAt])
+  @@index([treasuryId, receiptId])
+  @@map("obligation_allocations")
 }
 
 model FinancialAuditEvent {
