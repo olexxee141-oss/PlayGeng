@@ -48,6 +48,7 @@ enum ElectionRole {
 
 enum ElectionStatus {
   NOMINATIONS_OPEN
+  NOMINATIONS_CLOSED
   VOTING_OPEN
   COMPLETED
   FAILED
