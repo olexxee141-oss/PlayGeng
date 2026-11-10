@@ -74,6 +74,10 @@ Groups that collect money need to know:
 
 Money is where informal groups become vulnerable to disputes. The financial model therefore cannot be an afterthought.
 
+## Community Contributions
+
+Community-only assessments and recurring contributions are governed by the [Community Obligations architecture contract](docs/architecture/COMMUNITY_OBLIGATIONS.md). The initial release supports one-off and monthly assessments, immutable membership snapshots, equal per-member amounts, explicit due dates and audited campaign lifecycle transitions. Match and competition obligations remain separate future work.
+
 ## Tournaments
 
 Tournament organizers often separately manage:
