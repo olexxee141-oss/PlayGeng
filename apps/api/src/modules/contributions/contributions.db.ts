@@ -187,9 +187,8 @@ export const issueAssessmentInTransaction = async (tx: Prisma.TransactionClient,
     orderBy: { userId: "asc" },
   });
 
-  const snapshots = [];
   for (const member of members) {
-    snapshots.push(await tx.contributionAssessmentMember.create({
+    const snapshot = await tx.contributionAssessmentMember.create({
       data: {
         assessmentId: assessment.id,
         memberId: member.userId,
@@ -200,10 +199,7 @@ export const issueAssessmentInTransaction = async (tx: Prisma.TransactionClient,
         memberEmail: member.user.email,
         snapshotAt,
       },
-    }));
-  }
-
-  for (const snapshot of snapshots) {
+    });
     const result = await createObligationInTransaction(tx, {
       treasuryId: treasury.id,
       actorId: input.actorId,
