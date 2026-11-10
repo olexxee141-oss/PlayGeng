@@ -1850,3 +1850,31 @@ The first election workflow uses these explicit rules:
 - Election and ballot records are retained as the governance history. Manual privileged-role changes remain disabled.
 
 The first API implementation exposes elections under `/api/v1/communities/:communityId/elections`. Treasury permissions and financial controls are intentionally not included in this module.
+
+
+## Community Treasury implementation contract — November 10, 2026
+
+The first governance workflow is merged (PR #17). Treasury is now the next financial foundation.
+
+The repository audit found no existing treasury, payment, receipt, obligation, expense, journal, ledger, webhook or financial audit models. Match participants and competition entries also have no payment state. Finance will therefore be implemented as a shared domain rather than separate paid flags in matches and competitions.
+
+The architecture and invariants are documented in [docs/architecture/COMMUNITY_TREASURY.md](docs/architecture/COMMUNITY_TREASURY.md). Key rules:
+
+- Use a double-entry, append-only journal. Posted entries are immutable; corrections are reversals.
+- Store money as integer minor units and give each community treasury one ISO-4217 currency, immutable after its first posting.
+- Separate obligations, payment attempts, verified receipts and ledger postings. An obligation is not cash; a payment attempt is not proof of receipt.
+- Enforce balanced debit/credit postings, atomic settlement, idempotency and audit attribution.
+- Match participation and approved competition registration create obligations through Treasury; those domains do not own payment status.
+- Manual reconciliation requires Treasurer authorization, evidence, a reason and an audit record.
+- The Creator role does not provide a hidden financial override. Current elected-role authorization is checked at operation time.
+- Production collection, custody, transfers and withdrawals remain disabled until the receiving-account/custody model, segregation, dual authorization, provider terms and Nigerian compliance requirements are validated.
+
+### Treasury delivery order
+
+1. Treasury and chart-of-accounts schema.
+2. Append-only balanced journal posting and reversal service.
+3. Idempotent obligations, receipts and allocation rules.
+4. Treasury summary, ledger and member-obligation read APIs.
+5. Treasurer permissions, manual reconciliation and audit trail.
+6. PostgreSQL integrity constraints and concurrency-focused integration tests.
+7. Payment-provider and funds-custody integration as a separate phase.
