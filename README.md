@@ -1704,7 +1704,6 @@ Governance must be enforced by the backend. Hiding UI controls is not authorizat
 
 Do not invent these rules during implementation. Confirm and document them before building the election workflow:
 
-- Whether the creator has voting rights as a community member.
 - Whether the creator has any emergency or override powers, and their exact limits.
 - Voter eligibility (for example, membership tenure or account standing).
 - Candidate eligibility for each role.
@@ -1816,3 +1815,20 @@ The audit output must identify existing behavior, missing behavior, unsafe assum
 - Test authorization at service/API boundaries, not only in the frontend.
 - Add auditability for governance and financial actions from the first implementation.
 - Update this README and the relevant architecture documents when decisions are finalized or implementation status changes.
+
+
+### Confirmed first-election policy — November 10, 2026
+
+The following baseline rules are approved for the first governance implementation:
+
+- The community creator may vote as an ordinary eligible member and receives exactly one vote per election.
+- The creator has no additional vote weight, unilateral veto or power to appoint elected officers outside the election process.
+- Each eligible community member may cast one ballot per election. Duplicate ballots are prevented by a database uniqueness constraint.
+- An election requires a participation quorum. The numeric quorum threshold must be finalized in the governance implementation before elections can open; it must not be guessed in code.
+- The winner must receive a simple majority of valid votes. A tie or failed quorum produces no appointment and requires a new election.
+- Elected officers have no fixed term in the first release. They remain in office until resignation, a valid removal process or a subsequent election.
+- Membership is not an elected office. Members become eligible voters and candidates only under the published eligibility rules.
+- The creator is represented by the immutable `Community.ownerId` identity. The membership enum uses `CREATOR` only as a display/classification label; authorization must derive creator privileges from `Community.ownerId`, not from the membership role string.
+- ADMIN, TREASURER and ORGANIZER are elected offices. Adding another privileged community role must require an explicit governance policy and election path.
+
+These defaults do not authorize the creator to bypass election results. Emergency powers, candidate tenure requirements, recall thresholds and numerical quorum remain explicit policy decisions and must be documented before the related workflows ship.
