@@ -13,6 +13,7 @@ The product and financial rules in [Community Obligations](../architecture/COMMU
 ### Included
 
 - One-off and monthly community contribution campaigns.
+- An ADMIN-selected assessment generation mode for monthly campaigns: AUTOMATIC or MANUAL.
 - One fixed amount per assessment, applied equally to every member in that assessment's immutable active-member snapshot.
 - Explicit due dates and the community Treasury's configured currency.
 - ADMIN-controlled campaign configuration and lifecycle.
@@ -52,6 +53,21 @@ Do not expand scope through convenience fields or generic abstractions that impl
 
 The work is intentionally divided into small PRs. Each PR must include its own tests and pass the repository's configured CI before merge.
 
+### Assessment generation mode (approved product decision)
+
+Each monthly campaign has an ADMIN-controlled `assessmentGenerationMode` setting with two values:
+
+- `AUTOMATIC`: the system creates the month's assessment occurrence on the configured monthly schedule. The generated assessment is a draft awaiting financial issuance.
+- `MANUAL`: the system does not generate monthly occurrences. An ADMIN explicitly creates each month's assessment occurrence when ready.
+
+This is a per-campaign setting, not a global community setting. The ADMIN may change it only for future, uncreated occurrences; changing the mode never deletes, duplicates, or rewrites an existing assessment. The campaign's period key remains unique regardless of mode, so switching modes cannot create two assessments for the same month.
+
+**Automatic generation is not automatic financial issuance.** In both modes, the assessment remains unissued until the currently elected TREASURER explicitly issues it. The scheduler must never create obligations, journal entries, receipts, or cash movements. This preserves the separation between campaign administration and Treasury authorization.
+
+The monthly schedule must have a defined timezone and deterministic occurrence boundary. Store the intended period key independently of job execution time. Scheduler retries and delayed runs must be idempotent. Pausing a campaign suppresses future automatic occurrences; resuming does not backfill paused periods. Ending a campaign stops future generation. A generated but unissued assessment remains subject to the existing campaign lifecycle rules and must not be silently discarded.
+
+For one-off campaigns, the ADMIN explicitly creates the single assessment occurrence; the monthly generation-mode switch does not apply.
+
 ### PR A — Campaign administration and assessment lifecycle
 
 **Proposed branch:** `feat/community-contribution-campaigns`  
@@ -70,11 +86,11 @@ contributions/
 
 Responsibilities:
 
-- ADMIN-only campaign creation and configuration.
+- ADMIN-only campaign creation and configuration, including the monthly assessment generation mode switch (`AUTOMATIC` / `MANUAL`).
 - Validate positive integer minor-unit amounts, campaign name/description, and supported frequency.
 - Resolve currency from the community Treasury; never accept a caller-selected assessment currency.
 - Require an initialized Treasury before campaign creation.
-- Create one-off or monthly assessment occurrences with a stable period key and explicit due date.
+- Create one-off assessment occurrences explicitly; create monthly occurrences manually or through an idempotent scheduler according to the campaign's generation mode. Every occurrence has a stable period key and explicit due date.
 - Enforce uniqueness for campaign + period; make occurrence creation idempotent under retries and concurrency.
 - Implement pause, resume, end, and cancel-before-first-issuance transitions.
 - Require a reason for every lifecycle transition and write append-only campaign events.
@@ -85,8 +101,12 @@ Acceptance criteria:
 
 - Non-ADMIN roles, including CREATOR, TREASURER and ORGANIZER, cannot create or administer campaigns unless they separately hold the ADMIN office.
 - Campaign creation does not grant Treasury write access.
-- One-off campaign has exactly one occurrence.
-- Monthly occurrence identity is deterministic and duplicate-safe.
+- One-off campaign has exactly one explicitly created occurrence.
+- Monthly campaigns support ADMIN-selected AUTOMATIC and MANUAL generation modes.
+- AUTOMATIC mode creates draft occurrences only; it never issues obligations or posts financial entries.
+- MANUAL mode creates no monthly occurrence until an ADMIN explicitly requests it.
+- Switching modes cannot duplicate or rewrite an existing period; occurrence identity is deterministic and duplicate-safe.
+- Automatic scheduling uses a documented timezone and period boundary; retries and delayed jobs are idempotent.
 - Paused campaigns produce no future occurrences; resuming does not create catch-up periods.
 - Ended campaigns cannot resume or create future occurrences.
 - Campaign cancellation is rejected once any assessment has been issued.
@@ -223,7 +243,7 @@ At minimum, cover:
 |---|---|
 | Authorization | ADMIN campaign actions; TREASURER issuance; ADMIN/TREASURER read; member-own read; CREATOR identity is not an override |
 | Campaign lifecycle | pause/resume/end/cancel rules; cancellation prohibited after first issue |
-| Frequency | one-off single occurrence; monthly unique periods; no catch-up after pause |
+| Frequency/generation | one-off single occurrence; monthly AUTOMATIC/MANUAL modes; deterministic timezone/period; idempotent scheduler; no catch-up after pause; scheduler never issues obligations |
 | Snapshot | active members included; later joiners excluded; leavers retain obligations; roles and identity facts captured |
 | Uniform assessment | same amount/currency/due date for every snapshot member |
 | Treasury | receivable/income journal balanced; no cash increase; receipt allocations drive settlement |
@@ -249,7 +269,7 @@ At minimum, cover:
 
 ## 7. Execution order
 
-1. PR A — campaign administration and assessment lifecycle.
+1. PR A — campaign administration, monthly generation-mode switch, and assessment lifecycle (including scheduler for AUTOMATIC mode).
 2. PR B — Treasury transaction composition, membership snapshot consistency, and atomic issuance.
 3. PR C — visibility and reporting.
 4. PR D — hardening and operational readiness.
