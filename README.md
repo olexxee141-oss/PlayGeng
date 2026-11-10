@@ -1832,3 +1832,21 @@ The following baseline rules are approved for the first governance implementatio
 - ADMIN, TREASURER and ORGANIZER are elected offices. Adding another privileged community role must require an explicit governance policy and election path.
 
 These defaults do not authorize the creator to bypass election results. Emergency powers, candidate tenure requirements, recall thresholds and numerical quorum remain explicit policy decisions and must be documented before the related workflows ship.
+
+
+### Governance implementation contract
+
+The first election workflow uses these explicit rules:
+
+- ADMIN, TREASURER and ORGANIZER are the elected offices. MEMBER is ordinary membership; CREATOR is a distinct immutable identity.
+- Any active community member may initiate an election for an office. Only one non-terminal election for the same office may exist in a community at a time.
+- The eligible electorate is snapshotted when the election is created. Every active member at that point is included, including the creator. New members do not join an election already in progress.
+- The creator has exactly one ballot and is not eligible to stand for an elected office.
+- Candidates nominate themselves. A candidate must be in the snapshotted electorate, remain an active community member and hold no other elected office. An incumbent may stand for re-election to the same office.
+- Each election must declare a quorum between 50% and 100% of the snapshotted electorate. The quorum is calculated against that frozen electorate, not only the people who remain members later.
+- An officer is appointed only if quorum is met and one candidate receives strictly more than half of valid ballots. Ties, no majority, no candidates, failed quorum or an ineligible winner result in no appointment.
+- Ballots are immutable and the database enforces one ballot per voter per election. Ballot choices are not returned by election read endpoints; vote totals are revealed only after the election is terminal.
+- Role assignment and election completion occur in one serializable database transaction. Previous holders of that office are demoted to MEMBER as the winner is assigned.
+- Election and ballot records are retained as the governance history. Manual privileged-role changes remain disabled.
+
+The first API implementation exposes elections under `/api/v1/communities/:communityId/elections`. Treasury permissions and financial controls are intentionally not included in this module.
