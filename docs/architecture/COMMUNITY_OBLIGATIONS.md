@@ -1,6 +1,6 @@
 # Community-Only Obligations — Product and Architecture Contract
 
-**Status:** Scope and membership-snapshot policy approved; detailed assessment rules remain open.  
+**Status:** Scope and membership-liability policy approved; remaining assessment rules are open.  
 **Date:** November 10, 2026  
 **Current implementation phase:** Community-only obligations. Match and competition commercial integrations are excluded.
 
@@ -23,24 +23,25 @@ Explicitly out of scope:
 - **Community membership:** authoritative source for membership state at the instant an assessment is issued.
 - **Treasury:** owns resulting member obligations, verified receipts, allocations, outstanding amounts, payment status, journal postings and financial audit trail.
 
-A campaign is not an obligation, and an obligation is not a payment. One assessment may issue one obligation to each eligible member. Treasury remains the single source of truth for amounts owed and settled.
+A campaign is not an obligation, and an obligation is not a payment. One assessment issues one obligation to each eligible member. Treasury remains the single source of truth for amounts owed and settled.
 
 Do not add contribution-specific paid flags or balances. Do not duplicate Treasury allocation or payment state in the contribution domain.
 
-## 3. Approved eligibility policy: membership snapshot
+## 3. Approved eligibility and membership-liability policy
 
-**Eligibility is frozen when an assessment is issued.** Persist the exact eligible-member set used for that assessment.
+**Every member whose community membership is active at the instant an assessment is issued receives an obligation.** Eligibility is frozen at issuance. The eligible-member set must be persisted as an immutable snapshot.
 
 At issuance:
-1. Determine eligible members using authoritative community membership data and the campaign's approved eligibility rule.
-2. Persist an immutable snapshot of member identities and the relevant membership/eligibility facts needed to explain inclusion.
-3. Issue one obligation for each eligible member, using a deterministic source identity and idempotency key.
+1. Read the authoritative community membership state and identify every active member.
+2. Persist an immutable snapshot of those member identities and the relevant membership facts needed to explain inclusion.
+3. Issue exactly one obligation for each snapshotted member, using a deterministic source identity and idempotency key.
 4. Persist the assessment and its member obligations consistently so a partial failure cannot leave an assessment appearing fully issued when only some obligations exist.
 
 Consequences:
-- A member joining after issuance is not added retroactively.
-- A member leaving after issuance remains in the historical snapshot; leaving does not silently erase an already-issued obligation.
-- A later role change does not rewrite the snapshot.
+- A member joining after issuance is not added retroactively. They may be assessed in a later assessment.
+- A member leaving after issuance remains in the historical snapshot, and leaving does not silently erase or cancel the existing obligation.
+- A later role or membership-status change does not rewrite the snapshot or automatically cancel the obligation.
+- Exemptions and cancellations require an explicitly authorized action, with actor attribution, reason, timestamp and an audit record. They are never inferred from a membership change.
 - Retrying issuance must not create duplicate snapshots or obligations.
 - Corrections must be explicit, authorized and audited. Never mutate the historical snapshot to match current membership.
 
@@ -54,7 +55,7 @@ Distinguish:
 - The frozen eligible-member snapshot for that occurrence.
 - The Treasury obligation issued for each assessed member.
 
-Campaign edits after issuance must not change that assessment's amount, due date, purpose or eligibility snapshot. Corrections use an explicit adjustment/cancellation workflow with actor, reason, timestamp and audit evidence.
+Campaign edits after issuance must not change that assessment's amount, due date, purpose or membership snapshot. Corrections use an explicit adjustment/cancellation workflow with actor, reason, timestamp and audit evidence.
 
 Issuance must be idempotent. Use a stable assessment ID as source identity and a deterministic key for each member obligation. A retry must return or complete the same issuance, not create another assessment or debt.
 
@@ -72,17 +73,16 @@ The existing Treasury authorization contract remains in force:
 
 ## 6. Decisions deliberately not assumed
 
-The snapshot policy is approved, but these rules remain undecided and must not be invented:
+The membership-liability rule is approved. These rules remain undecided and must not be invented:
 1. Who may create a campaign, and whether campaign creation requires a community vote or officer approval.
-2. Whether every active member is assessed by default or eligibility can target a defined subset.
-3. Which frequencies are supported initially (one-off, monthly or other recurring intervals).
-4. Whether an assessment amount is fixed or can vary by member.
-5. How exemptions are requested, approved, time-bounded and audited.
-6. Due dates, grace periods, reminders and overdue treatment.
-7. Whether members joining mid-cycle can be included in a later catch-up assessment.
-8. Whether a campaign can be paused, ended or cancelled, and what happens to already-issued obligations.
-9. Who can authorize waivers or adjustments, including when the Treasurer is the affected member.
-10. How removal from a community affects outstanding obligations beyond the approved rule that removal does not silently erase them.
+2. Which frequencies are supported initially (one-off, monthly or other recurring intervals).
+3. Whether an assessment amount is fixed or can vary by member.
+4. The exemption request, approval, duration and review process; the authorization and audit requirements themselves are mandatory.
+5. Due dates, grace periods, reminders and overdue treatment.
+6. Whether members joining mid-cycle can be included in a later catch-up assessment.
+7. Whether a campaign can be paused, ended or cancelled, and what happens to already-issued obligations.
+8. Who can authorize waivers or adjustments, including when the Treasurer is the affected member.
+9. How removal from a community affects outstanding obligations beyond the approved rule that removal does not silently erase them.
 
 These are product policy decisions, not implementation details. The data model must not hardcode assumptions that foreclose them.
 
@@ -99,13 +99,13 @@ These are product policy decisions, not implementation details. The data model m
 
 ## 8. Acceptance criteria
 
-- The issued assessment retains the exact eligible-member snapshot used at issuance.
+- The issued assessment retains the exact snapshot of all active members at issuance.
 - Members joining after issuance are not added to that assessment.
 - Members leaving after issuance do not disappear from the snapshot or have obligations silently cancelled.
 - Later campaign edits or assessments do not mutate a prior assessment.
-- Each eligible member receives at most one obligation per assessment.
+- Each snapshotted member receives at most one obligation per assessment.
+- Exemptions and cancellations occur only through authorized, attributable, reasoned and audited actions.
 - Retrying issuance produces no duplicate assessment, obligation or journal effect.
 - Assessment issuance cannot be reported complete while expected obligations are missing.
 - Treasury remains the sole source of truth for outstanding and settled amounts.
-- All corrections and cancellations are authorized, attributable, reasoned and auditable.
 - Match and competition workflows are not introduced in this phase.
