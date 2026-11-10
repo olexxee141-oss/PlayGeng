@@ -49,12 +49,26 @@ export const findUserByEmail = (email: string) =>
   prisma.user.findUnique({ where: { email }, select: { id: true, email: true, firstName: true, lastName: true, status: true } });
 
 const lockMembershipBoundary = async (tx: Prisma.TransactionClient, communityId: string) => {
-  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+  const rows = await tx.$queryRaw<Array<{ id: string; ownerId: string }>>`
     UPDATE "communities" SET "updatedAt" = "updatedAt"
     WHERE "id" = ${communityId} AND "status" = 'ACTIVE'
-    RETURNING "id"
+    RETURNING "id", "ownerId"
   `;
-  if (rows.length !== 1) throw new Error("Community membership boundary could not be locked.");
+  return rows[0] ?? null;
+};
+
+const canManageMembersInTransaction = async (
+  tx: Prisma.TransactionClient,
+  communityId: string,
+  actorId: string,
+  ownerId: string,
+) => {
+  if (actorId === ownerId) return true;
+  const actor = await tx.communityMember.findUnique({
+    where: { communityId_userId: { communityId, userId: actorId } },
+    select: { role: true },
+  });
+  return actor?.role === "ADMIN";
 };
 
 const isSerializationConflict = (error: unknown): boolean => {
@@ -80,21 +94,24 @@ const withMembershipBoundaryTransaction = async <T>(work: (tx: Prisma.Transactio
   throw new Error("Membership boundary transaction retry limit reached.");
 };
 
-export const addMember = (communityId: string, userId: string, role: CommunityMemberRole) =>
+export const addMember = (communityId: string, actorId: string, userId: string, role: CommunityMemberRole) =>
   withMembershipBoundaryTransaction(async (tx) => {
-    await lockMembershipBoundary(tx, communityId);
-    return tx.communityMember.create({ data: { communityId, userId, role } });
+    const community = await lockMembershipBoundary(tx, communityId);
+    if (!community) return { kind: "COMMUNITY_NOT_ACTIVE" as const };
+    if (!await canManageMembersInTransaction(tx, communityId, actorId, community.ownerId)) {
+      return { kind: "FORBIDDEN" as const };
+    }
+    const member = await tx.communityMember.create({ data: { communityId, userId, role } });
+    return { kind: "ADDED" as const, member };
   });
 
-export const updateMemberRole = (communityId: string, userId: string, role: CommunityMemberRole) =>
+export const removeMember = (communityId: string, actorId: string, userId: string) =>
   withMembershipBoundaryTransaction(async (tx) => {
-    await lockMembershipBoundary(tx, communityId);
-    return tx.communityMember.update({ where: { communityId_userId: { communityId, userId } }, data: { role } });
-  });
-
-export const removeMember = (communityId: string, userId: string) =>
-  withMembershipBoundaryTransaction(async (tx) => {
-    await lockMembershipBoundary(tx, communityId);
+    const community = await lockMembershipBoundary(tx, communityId);
+    if (!community) return { kind: "COMMUNITY_NOT_ACTIVE" as const };
+    if (!await canManageMembersInTransaction(tx, communityId, actorId, community.ownerId)) {
+      return { kind: "FORBIDDEN" as const };
+    }
     const target = await tx.communityMember.findUnique({
       where: { communityId_userId: { communityId, userId } },
       select: { role: true },
