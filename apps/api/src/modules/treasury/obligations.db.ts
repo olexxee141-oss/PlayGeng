@@ -81,11 +81,12 @@ export const cancelObligation = (input: { treasuryId: string; obligationId: stri
       const priorReversal = await tx.journalTransaction.findFirst({
         where: { treasuryId: input.treasuryId, reversalOfId: { not: null }, idempotencyKey: input.idempotencyKey },
       });
-      if (priorReversal?.reversalOfId === (await tx.journalTransaction.findFirst({
+      const originalJournal = await tx.journalTransaction.findFirst({
         where: { treasuryId: input.treasuryId, sourceType: "OBLIGATION", sourceId: obligation.id, status: "POSTED" },
         select: { id: true },
-      }))?.id) {
-        if (priorReversal.description !== `Obligation cancellation: ${input.reason}`) return { kind: "IDEMPOTENCY_CONFLICT" as const };
+      });
+      if (priorReversal) {
+        if (priorReversal.reversalOfId !== originalJournal?.id || priorReversal.description !== "Obligation cancellation: " + input.reason) return { kind: "IDEMPOTENCY_CONFLICT" as const };
         return { kind: "CANCELLED" as const, obligation };
       }
       return { kind: "ALREADY_CANCELLED" as const };
