@@ -137,3 +137,18 @@ The first service/API layer is being delivered separately from the schema migrat
 - Balances are derived from posted ledger postings using each account's normal debit/credit side. No mutable balance column is used.
 
 API: `/api/v1/communities/:communityId/treasury`. The current service is an internal ledger capability only. It does not accept provider callbacks, create receipts, settle obligations or move money externally.
+
+
+## 11. Verified receipts and obligation allocations — schema foundation
+
+The next schema layer separates money received from amounts owed and the application of one to the other.
+
+- `PaymentReceipt` represents money that has already been independently verified and reconciled. This schema version only permits `MANUAL_RECONCILIATION`; it does not represent a payment attempt or an unverified member claim.
+- A receipt records the community treasury, member, amount in minor units, currency, external reference, evidence reference, received time, verifying Treasurer and an idempotency key.
+- `ObligationAllocation` applies part or all of one receipt to one obligation. It records the actor and a treasury-scoped idempotency key.
+- Composite foreign keys enforce that an allocation's receipt and obligation belong to the same treasury and the same member. Cross-community or cross-member allocation is therefore rejected by PostgreSQL, not merely by API validation.
+- Receipt external references and idempotency keys are unique within a treasury. A receipt/obligation pair can be allocated once; additional payments use additional receipts.
+- Database checks reject zero or negative receipt/allocation amounts. Allocation upper bounds (not exceeding the receipt's remaining unallocated amount or the obligation's remaining balance) require serialized service logic and concurrency tests; those are not claimed as enforced by this schema migration.
+- The schema deliberately does not store a mutable paid amount or balance. Outstanding amounts must be derived from allocations and the obligation's original amount.
+
+This is a schema-only foundation. It does not yet expose receipt or allocation APIs, post receipt journals, or connect match/competition workflows. The next implementation must atomically create a verified receipt, post its balanced journal entry (debit CASH, credit RECEIVABLES), allocate it, and update the obligation's derived status within a serializable transaction. A receipt must never be posted from client-submitted payment status alone.
