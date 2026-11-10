@@ -7,7 +7,7 @@ export const initializeTreasurySchema = z.object({
 }).strict();
 
 export const postJournalSchema = z.object({
-  type: z.enum(["OPENING_BALANCE", "OBLIGATION_ISSUED", "PAYMENT_RECEIVED", "CONTRIBUTION_RECEIVED", "EXPENSE_PAID", "REFUND", "ADJUSTMENT", "REVERSAL"]),
+  type: z.enum(["OPENING_BALANCE", "ADJUSTMENT"]),
   description: z.string().trim().min(3).max(500),
   idempotencyKey: z.string().trim().min(8).max(160),
   sourceType: z.string().trim().min(1).max(64).optional(),
