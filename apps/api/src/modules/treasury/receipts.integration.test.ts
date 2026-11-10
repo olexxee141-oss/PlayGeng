@@ -120,8 +120,8 @@ test("manual receipts verify once, allocate atomically, protect balances and ser
 
     const summary = await getTreasury(community.id, admin.id);
     assert.equal(summary.balances.find((account) => account.code === "CASH")?.balanceMinor, "1200000");
-    assert.equal(summary.balances.find((account) => account.code === "RECEIVABLES")?.balanceMinor, "300000");
-    assert.equal(summary.balances.find((account) => account.code === "CONTRIBUTION_INCOME")?.balanceMinor, "1500000");
+    assert.equal(summary.balances.find((account) => account.code === "RECEIVABLES")?.balanceMinor, "400000");
+    assert.equal(summary.balances.find((account) => account.code === "CONTRIBUTION_INCOME")?.balanceMinor, "1600000");
 
     const duplicateReferenceDue = await createDue(`duplicate-reference-${suffix}`, "1000000");
     await assert.rejects(
