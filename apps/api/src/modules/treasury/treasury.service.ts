@@ -78,7 +78,7 @@ export const postJournalTransaction = async (communityId: string, actorId: strin
   const assertSameRequest = (transaction: NonNullable<Awaited<ReturnType<typeof db.findJournalByIdempotency>>>) => {
     const expected = input.postings.map((p) => ({ code: p.accountCode, side: p.side, amount: p.amountMinor })).sort((a,b) => a.code.localeCompare(b.code) || a.side.localeCompare(b.side) || a.amount.localeCompare(b.amount));
     const actual = transaction.postings.map((p) => ({ code: p.account.code, side: p.side, amount: p.amountMinor.toString() })).sort((a,b) => a.code.localeCompare(b.code) || a.side.localeCompare(b.side) || a.amount.localeCompare(b.amount));
-    if (transaction.type !== input.type || transaction.description !== input.description || JSON.stringify(expected) !== JSON.stringify(actual)) {
+    if (transaction.type !== input.type || transaction.description !== input.description || transaction.sourceType !== (input.sourceType ?? null) || transaction.sourceId !== (input.sourceId ?? null) || JSON.stringify(expected) !== JSON.stringify(actual)) {
       throw new AppError("Idempotency key has already been used for a different journal transaction.", 409);
     }
     return transaction;
