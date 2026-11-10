@@ -1,5 +1,6 @@
 import { AppError } from "../../shared/errors/app-error.js";
 import * as db from "./contributions.db.js";
+import { withTreasuryTransaction } from "../treasury/treasury.db.js";
 import type { CreateAssessmentInput, CreateCampaignInput, UpdateAssessmentInput, UpdateCampaignInput } from "./contributions.validator.js";
 
 const requireMember = async (communityId: string, userId: string) => {
@@ -178,4 +179,34 @@ export const generateMonthlyDrafts = async (now = new Date()) => {
     if (result) created += 1;
   }
   return { scanned: campaigns.length, created };
+};
+
+
+export const issueAssessment = async (communityId: string, actorId: string, assessmentId: string) => {
+  const result = await withTreasuryTransaction((tx) =>
+    db.issueAssessmentInTransaction(tx, { communityId, assessmentId, actorId })
+  );
+
+  if (result.kind === "NOT_FOUND" || result.kind === "ASSESSMENT_NOT_FOUND") {
+    throw new AppError("Assessment not found.", 404);
+  }
+  if (result.kind === "FORBIDDEN") {
+    throw new AppError("Only the currently elected Treasurer can issue contribution assessments.", 403);
+  }
+  if (result.kind === "TREASURY_MISSING") {
+    throw new AppError("Community treasury has not been initialized.", 409);
+  }
+  if (result.kind === "INVALID_STATE") {
+    throw new AppError("Only draft assessments can be issued.", 409);
+  }
+  if (result.kind === "DUE_DATE_REQUIRED") {
+    throw new AppError("Set an assessment due date before issuing it.", 409);
+  }
+  if (result.kind === "CURRENCY_MISMATCH") {
+    throw new AppError("Assessment currency does not match the community Treasury.", 409);
+  }
+  if (result.kind === "ISSUED" || result.kind === "CREATED") {
+    return presentAssessment(result.assessment);
+  }
+  throw new AppError("Unable to issue assessment.", 409);
 };
