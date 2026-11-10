@@ -19,7 +19,8 @@ const present = (obligation: { amountMinor: bigint; dueAt: Date | null; status: 
   const allocated = obligation.allocations.reduce((sum, allocation) => sum + allocation.amountMinor, 0n);
   const outstanding = obligation.amountMinor - allocated;
   const status = obligation.status === "CANCELLED" ? "CANCELLED" : outstanding === 0n ? "PAID" : allocated > 0n ? "PARTIALLY_PAID" : obligation.dueAt && obligation.dueAt < new Date() ? "OVERDUE" : "OPEN";
-  return { ...obligation, amountMinor: obligation.amountMinor.toString(), allocatedMinor: allocated.toString(), outstandingMinor: outstanding.toString(), status };
+  const { allocations: _allocations, amountMinor, ...details } = obligation;
+  return { ...details, amountMinor: amountMinor.toString(), allocatedMinor: allocated.toString(), outstandingMinor: outstanding.toString(), status };
 };
 
 export const create = async (communityId: string, actorId: string, input: CreateObligationInput) => {
@@ -31,16 +32,26 @@ export const create = async (communityId: string, actorId: string, input: Create
     include: { user: { select: { status: true } } },
   });
   if (!member || member.user.status !== "ACTIVE") throw new AppError("Obligation recipient must be an active community member.", 400);
-  const result = await db.createObligation({ treasuryId: treasury.id, actorId, memberId: input.memberId, data: input });
-  if (result.kind === "EXISTS") {
-    const existing = result.obligation;
+  let existing;
+  let result;
+  try {
+    result = await db.createObligation({ treasuryId: treasury.id, actorId, memberId: input.memberId, data: input });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+      existing = await db.findObligationByIdempotency(treasury.id, input.idempotencyKey) ??
+        await db.findObligationBySource(treasury.id, input.sourceType, input.sourceId);
+      if (!existing) throw error;
+    } else throw error;
+  }
+  if (result?.kind === "EXISTS") existing = result.obligation;
+  if (existing) {
     const same = existing.memberId === input.memberId && existing.sourceType === input.sourceType && existing.sourceId === input.sourceId &&
       existing.description === input.description && existing.amountMinor === BigInt(input.amountMinor) &&
       (existing.dueAt?.toISOString() ?? null) === (input.dueAt ? new Date(input.dueAt).toISOString() : null);
     if (!same) throw new AppError("Obligation source or idempotency key already exists with different details.", 409);
     return present(existing);
   }
-  return present({ ...result.obligation, allocations: [] });
+  return present({ ...result!.obligation, allocations: [] });
 };
 
 export const cancel = async (communityId: string, actorId: string, obligationId: string, input: CancelObligationInput) => {
@@ -52,7 +63,9 @@ export const cancel = async (communityId: string, actorId: string, obligationId:
   if (result.kind === "ALREADY_CANCELLED") throw new AppError("Obligation is already cancelled.", 409);
   if (result.kind === "SETTLED") throw new AppError("An obligation with receipt allocations cannot be cancelled; use the audited refund or reversal workflow.", 409);
   if (result.kind === "IDEMPOTENCY_CONFLICT") throw new AppError("Idempotency key has already been used.", 409);
-  return result.obligation;
+  const updated = await db.findObligation(treasury.id, obligationId);
+  if (!updated) throw new AppError("Obligation not found.", 404);
+  return present(updated);
 };
 
 export const listForMember = async (communityId: string, userId: string, cursor?: string, limit = 50) => {
