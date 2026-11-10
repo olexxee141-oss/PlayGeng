@@ -88,13 +88,14 @@ This phase is provider-neutral and ledger-first. Do not activate production coll
 
 ## 8. Delivery sequence
 
-### Treasury Foundation (this phase)
-1. Add treasury, chart-of-accounts, obligation, journal, posting and audit schema.
-2. Add balanced, append-only journal posting service with reversal support.
-3. Add obligation creation/cancellation and allocation logic with idempotency.
-4. Add read APIs for treasury summary, ledger history and member obligations.
-5. Add Treasurer authorization and manual-reconciliation controls.
-6. Add PostgreSQL constraints and integration tests for balancing, over-allocation, duplicate source events, duplicate receipts, immutable posted entries, role revocation and concurrent posting.
+### Treasury Foundation (in progress)
+
+1. Add treasury, chart-of-accounts, obligation, journal, posting and audit schema. **Implemented in PR #19.**
+2. Add balanced, append-only journal posting service with reversal support. **Implemented in the current journal-service PR.**
+3. Add obligation creation/cancellation and allocation logic with idempotency. Pending.
+4. Add read APIs for treasury summary, ledger history and member obligations. Treasury summary and posted journal history are implemented; member obligation reads are pending.
+5. Add Treasurer authorization and manual-reconciliation controls. Treasurer-only initialization/posting/reversal and ADMIN/TREASURER read access are implemented; manual reconciliation remains pending.
+6. Add PostgreSQL constraints and integration tests for balancing, over-allocation, duplicate source events, duplicate receipts, immutable posted entries, role revocation and concurrent posting. Journal balancing, immutability and basic idempotency integration coverage are implemented; obligation/receipt/concurrency coverage remains pending.
 7. Document operational reconciliation and migration behavior.
 
 ### Payment Integration (separate phase)
@@ -121,3 +122,18 @@ Connect match participation fees and competition registration fees to obligation
 - Manual reconciliation is restricted, evidenced, audited and idempotent.
 - Removing a Treasurer or changing their role immediately revokes subsequent treasury write access.
 - Tests prove the invariants under concurrency, not only happy-path service mocks.
+
+
+## 10. Journal service implementation checkpoint — November 10, 2026
+
+The first service/API layer is being delivered separately from the schema migration.
+
+- Treasury initialization seeds stable accounts: CASH, RECEIVABLES, CONTRIBUTION_INCOME, MATCH_INCOME, REGISTRATION_INCOME, EXPENSE, REFUNDS and OPENING_EQUITY.
+- Only the currently elected TREASURER can initialize the treasury, post journals or reverse them. ADMIN and TREASURER can read the treasury summary and posted journal history. The CREATOR role is not a financial override.
+- Posting requires at least two lines, both debit and credit sides, positive integer minor-unit amounts and exact equality of totals.
+- A journal header and its postings are persisted in one serializable transaction. The journal is changed from DRAFT to POSTED only after its postings are inserted; deferred PostgreSQL constraints verify the final balanced state at commit.
+- Idempotency keys are scoped to a treasury. A repeated key returns the original transaction only when its meaningful content matches; key reuse with different content is rejected.
+- Reversal creates a new transaction with opposite postings, a link to the original and an audited reason. A second reversal is rejected.
+- Balances are derived from posted ledger postings using each account's normal debit/credit side. No mutable balance column is used.
+
+API: `/api/v1/communities/:communityId/treasury`. The current service is an internal ledger capability only. It does not accept provider callbacks, create receipts, settle obligations or move money externally.

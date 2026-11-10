@@ -1871,10 +1871,27 @@ The architecture and invariants are documented in [docs/architecture/COMMUNITY_T
 
 ### Treasury delivery order
 
-1. Treasury and chart-of-accounts schema.
-2. Append-only balanced journal posting and reversal service.
+1. Treasury and chart-of-accounts schema. (PR #19)
+2. Append-only balanced journal posting and reversal service. (current PR)
 3. Idempotent obligations, receipts and allocation rules.
 4. Treasury summary, ledger and member-obligation read APIs.
 5. Treasurer permissions, manual reconciliation and audit trail.
 6. PostgreSQL integrity constraints and concurrency-focused integration tests.
 7. Payment-provider and funds-custody integration as a separate phase.
+
+
+### Treasury journal API foundation
+
+The treasury API is mounted at `/api/v1/communities/:communityId/treasury` and currently provides:
+
+- `POST /`: initialize a treasury using an ISO-4217 currency code and seed the standard chart of accounts.
+- `GET /`: retrieve treasury accounts and calculated balances.
+- `POST /journal`: post a balanced journal transaction using integer minor-unit strings and an idempotency key.
+- `GET /journal`: list posted journal transactions.
+- `POST /journal/:transactionId/reverse`: create a linked reversing transaction with a mandatory reason.
+
+Authorization is intentionally narrower than the general community permission helper: only the currently elected TREASURER can initialize, post or reverse. ADMIN and TREASURER can inspect treasury summaries and journal history. CREATOR does not receive an implicit financial override.
+
+The database transaction writes the draft header and postings, then changes the journal to POSTED in one serializable transaction. Deferred PostgreSQL constraints verify that posted journals have at least two postings and equal debit/credit totals. Idempotency retries return the original transaction only when the supplied transaction details match. Reversals write opposite postings; original posted records remain immutable.
+
+This API is an internal ledger foundation, not a payment confirmation or cash custody integration. Only verified receipts/manual reconciliation in a later phase may justify posting real receipts. The current journal endpoint must not be exposed as a general public payment endpoint.

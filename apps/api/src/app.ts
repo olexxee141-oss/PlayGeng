@@ -8,6 +8,7 @@ import { matchRoutes } from "./modules/matches/matches.routes.js";
 import { teamRoutes } from "./modules/teams/teams.routes.js";
 import { competitionRoutes } from "./modules/competitions/competitions.routes.js";
 import { governanceRoutes } from "./modules/governance/governance.routes.js";
+import { treasuryRoutes } from "./modules/treasury/treasury.routes.js";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { errorMiddleware } from "./shared/middlewares/error.middleware.js";
@@ -43,6 +44,7 @@ export const createApp = () => {
   app.use("/api/v1/communities/:communityId/matches", matchRoutes);
   app.use("/api/v1/communities/:communityId/competitions", competitionRoutes);
   app.use("/api/v1/communities/:communityId/elections", governanceRoutes);
+  app.use("/api/v1/communities/:communityId/treasury", treasuryRoutes);
   app.use("/api/v1/communities/:communityId", teamRoutes);
 
   app.get("/health", (_req, res) => {
