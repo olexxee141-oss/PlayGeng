@@ -609,7 +609,7 @@ model JournalTransaction {
   sourceId String? @db.VarChar(128)
   idempotencyKey String @db.VarChar(160)
   createdById String
-  reversalOfId String? @unique
+  reversalOfId String?
   createdAt DateTime @default(now())
   postedAt DateTime?
   treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
@@ -619,6 +619,7 @@ model JournalTransaction {
   reversals JournalTransaction? @relation("JournalReversals")
   @@unique([treasuryId, idempotencyKey])
   @@unique([id, treasuryId])
+  @@unique([reversalOfId, treasuryId])
   @@index([treasuryId, status, postedAt])
   @@index([treasuryId, createdAt])
   @@index([sourceType, sourceId])
