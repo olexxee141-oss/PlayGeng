@@ -50,13 +50,13 @@ CREATE TABLE "journal_transactions" (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "postedAt" TIMESTAMP(3),
   CONSTRAINT "journal_transactions_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "journal_transactions_id_treasuryId_key" UNIQUE ("id", "treasuryId"),
   CONSTRAINT "journal_transactions_treasuryId_fkey" FOREIGN KEY ("treasuryId") REFERENCES "treasuries"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "journal_transactions_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "journal_transactions_reversalOfId_treasuryId_fkey" FOREIGN KEY ("reversalOfId", "treasuryId") REFERENCES "journal_transactions"("id", "treasuryId") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "journal_transactions_postedAt_check" CHECK (("status" = 'DRAFT' AND "postedAt" IS NULL) OR ("status" = 'POSTED' AND "postedAt" IS NOT NULL))
 );
 CREATE UNIQUE INDEX "journal_transactions_treasuryId_idempotencyKey_key" ON "journal_transactions"("treasuryId", "idempotencyKey");
-CREATE UNIQUE INDEX "journal_transactions_id_treasuryId_key" ON "journal_transactions"("id", "treasuryId");
 CREATE UNIQUE INDEX "journal_transactions_reversalOfId_key" ON "journal_transactions"("reversalOfId");
 CREATE INDEX "journal_transactions_treasuryId_status_postedAt_idx" ON "journal_transactions"("treasuryId", "status", "postedAt");
 CREATE INDEX "journal_transactions_treasuryId_createdAt_idx" ON "journal_transactions"("treasuryId", "createdAt");
