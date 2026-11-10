@@ -75,7 +75,9 @@ export const removeMember = async (communityId: string, actorId: string, memberI
   const target = await db.findMembership(communityId, memberId);
   if (!target) throw new AppError("Community member not found.", 404);
   if (target.userId === actor.community.ownerId) throw new AppError("The community creator cannot be removed.", 400);
-  if (actor.role === "ADMIN" && target.role !== "MEMBER") throw new AppError("Admins cannot remove privileged members.", 403);
+  if (target.role !== "MEMBER") {
+    throw new AppError("Elected role holders must leave office through the governance removal process before membership can be removed.", 409);
+  }
   await db.removeMember(communityId, memberId);
 };
 
