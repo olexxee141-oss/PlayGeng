@@ -1648,3 +1648,171 @@ PlayGeng begins by solving a small, concrete problem:
 The long-term objective is broader:
 
 > **Build the operating system for sports communities, competitions, and shared sports activity.**
+
+
+---
+
+# Product Decision Record — Community Governance and Treasury
+
+**Recorded: November 10, 2026**
+
+This section captures product direction agreed during planning. It is intended to prevent these requirements from being lost when implementation resumes. It does not claim that the features are already implemented.
+
+## 1. Community matches are the core recurring activity
+
+PlayGeng's existing Match domain represents the regular games held by a sports community (for example, a weekly football session). These community matches are distinct from tournament fixtures.
+
+Do not replace or conflate the two concepts:
+
+- **Community Match:** a recurring or one-off game organized by a community, with its own participants, attendance, fees, teams and result.
+- **Tournament Fixture:** a scheduled contest generated or managed inside a structured competition, involving that competition's registered entries.
+
+Tournament scheduling must build on the existing generic competition and participant foundations. It must not redefine ordinary community matches as tournament fixtures.
+
+## 2. Community governance and role elections
+
+A community must not operate as the personal property of its creator. The creator is a distinct, protected origin role; all other community roles are intended to be assigned through a community voting process.
+
+The voting requirement applies to every non-creator role, including the roles currently defined as:
+
+- ADMIN
+- TREASURER
+- ORGANIZER
+
+It must also apply to additional non-creator roles introduced later, rather than silently making new privileged roles appointable without a vote.
+
+Membership itself is not an elected office. A person first becomes an eligible community member; elections then determine who occupies a community role.
+
+### Governance capabilities to design
+
+The governance domain must support:
+
+- Role nominations and candidate eligibility.
+- Elections scoped to a specific community and role.
+- A defined voting window and election status.
+- One valid ballot per eligible voter per election.
+- Vote validation and duplicate-vote prevention.
+- Tallying and recording election outcomes.
+- Assigning the elected role only after a valid outcome.
+- Election history and an auditable record of nominations, ballots, results and role changes.
+- Vacancies, resignation, removal and replacement elections.
+- Revoking role-specific permissions when a person's role ends.
+
+Governance must be enforced by the backend. Hiding UI controls is not authorization.
+
+### Governance rules still requiring an explicit product decision
+
+Do not invent these rules during implementation. Confirm and document them before building the election workflow:
+
+- Whether the creator has voting rights as a community member.
+- Whether the creator has any emergency or override powers, and their exact limits.
+- Voter eligibility (for example, membership tenure or account standing).
+- Candidate eligibility for each role.
+- Whether an election requires a minimum participation quorum.
+- Whether a role is won by a simple majority, plurality, or another defined threshold.
+- Tie handling, failed elections, uncontested candidates and repeat elections.
+- Term length, re-election limits and when a role can be recalled.
+- Whether communities can configure election rules or must follow one platform-wide policy.
+
+The creator's exemption from role elections must not be interpreted as permission to bypass the governance system. Any exceptional powers must be explicit, narrow, authorized and auditable.
+
+## 3. Community-owned treasury
+
+Community funds are held for the community, not owned personally by the community creator or by whichever member currently has the Treasurer role.
+
+The product must provide a **Community Treasury** with clear financial ownership, transparent records and controlled operations.
+
+The treasury must account for:
+
+- Member contributions and contribution campaigns.
+- Match fees and match-related collections.
+- Tournament registration collections.
+- Other community income.
+- Expenses and refunds.
+- Payouts and withdrawals.
+- Amounts due, paid, unpaid and overdue.
+- Pending, processing, completed, failed, cancelled and refunded payment states.
+- Transaction references, supporting metadata and audit history.
+
+The system must distinguish at least three concepts:
+
+1. **Obligation:** what a member or participant is required to pay, including amount, due date and current paid/unpaid/overdue state.
+2. **Payment:** the payment attempt and its provider-confirmed outcome.
+3. **Ledger entry:** the accounting record created from a verified financial event.
+
+A person being marked as paid must be backed by a verified payment or an explicitly authorized, audited manual reconciliation. Creating an obligation must not itself increase the treasury balance.
+
+### Treasury controls
+
+- The ledger is the accounting source of truth; balances are derived, never manually edited.
+- Completed entries are immutable. Corrections use reversals or adjustments with reasons and audit records.
+- Payment webhooks and provider references must be verified and idempotent.
+- Financial actions require explicit permissions and must be attributable to an actor.
+- Role changes must immediately affect treasury permissions.
+- Withdrawals and payouts need authorization rules separate from the ability to record an expense.
+- Members should be able to inspect the financial information the community policy makes visible, including their own obligations and payment status.
+- Financial reporting must reconcile obligations, verified payments, ledger entries and externally held funds.
+
+### Critical custody distinction
+
+An in-app ledger is not a bank account and does not prove that PlayGeng or a community physically holds the money.
+
+Before implementing collection, storage or withdrawal flows, decide how funds are actually held and controlled. Evaluate the supported payment-provider and banking arrangements, including who legally owns or controls the receiving account, how community-level segregation works, who can authorize withdrawals, how refunds/disputes are handled, and the applicable Nigerian regulatory and provider requirements.
+
+Do not describe funds as being held by a community merely because the application displays a positive ledger balance. The custody model must be validated with the relevant payment provider and qualified legal/compliance advice before production money movement.
+
+## 4. Domain boundaries
+
+Keep these concerns separate even when they share community membership and authorization:
+
+| Domain | Responsibility |
+|---|---|
+| Membership | Joining, invitations, member status and eligibility |
+| Governance | Nominations, elections, ballots, outcomes and role assignments |
+| Community Matches | Regular community games, participants, attendance, teams and results |
+| Treasury | Obligations, collections, payments, expenses, payouts and ledger |
+| Payments | Provider integration, verification, webhooks, refunds and reconciliation |
+| Competitions | Tournament lifecycle, registrations, entries, fixtures and progression |
+
+Do not place election logic inside the community CRUD module or financial ledger logic inside payment-provider adapters. Services may coordinate across domains, but each domain must own its rules and persistence boundaries.
+
+## 5. Revised implementation priority
+
+The existing competition and participant foundation (Phase 7) is already merged. The deterministic scheduling work recorded under Phase 8 remains a valid technical track, but the next product priorities must not be inferred from the older roadmap diagram alone.
+
+The agreed priority is:
+
+1. Finish and verify the deterministic scheduling contract already in progress, without expanding into advanced tournament formats or speculative fixture features.
+2. Audit the current schema and community authorization implementation before adding governance or finance models.
+3. Define and implement Community Governance, including elections for every non-creator community role.
+4. Define the Community Treasury, obligations, paid/unpaid tracking, auditable ledger and financial permissions.
+5. Decide and validate the real-world funds custody and payment-provider model before enabling production collections or withdrawals.
+6. Integrate payment flows with verified obligations and ledger events.
+7. Return to tournament commercial workflows (registration fees, payment status, refunds and reconciliation), then continue fixture persistence, results, standings and progression in dependency order.
+
+This priority supersedes the older roadmap's placement of finance after tournament fixtures and statistics. Existing merged competition work is retained; it is not a reason to postpone governance and treasury foundations.
+
+## 6. Required repository audit before implementation
+
+Before designing migrations or endpoints, inspect the actual implementation and report what already exists.
+
+Audit at minimum:
+
+- Prisma models and enums for communities, memberships, roles and permissions.
+- Community creation, invitation, membership removal and role assignment services.
+- Existing authorization middleware and every community-scoped permission check.
+- Match participation and match-fee handling.
+- Competition registration, entry, invitation and payment-related fields.
+- Existing payment, contribution, expense, transaction, audit-log and webhook models/modules.
+- Database constraints, transaction boundaries and integration tests relevant to concurrency and financial consistency.
+
+The audit output must identify existing behavior, missing behavior, unsafe assumptions, schema changes required and migration dependencies. Do not duplicate existing concepts or start migrations based only on this README.
+
+## 7. Implementation constraints
+
+- Preserve the modular backend convention: `db`, `service`, `controller`, `routes` and `validator`.
+- Keep business rules in services and persistence in the database layer.
+- Use database transactions and appropriate constraints for elections, role assignment, capacity, payments and ledger posting.
+- Test authorization at service/API boundaries, not only in the frontend.
+- Add auditability for governance and financial actions from the first implementation.
+- Update this README and the relevant architecture documents when decisions are finalized or implementation status changes.
