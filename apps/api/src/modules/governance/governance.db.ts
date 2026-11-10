@@ -245,3 +245,16 @@ export const countVotesByCandidate = (electionId: string) =>
     where: { electionId },
     _count: { _all: true },
   });
+
+
+export const listDueElections = (now: Date) =>
+  prisma.communityElection.findMany({
+    where: {
+      OR: [
+        { status: "NOMINATIONS_OPEN", nominationsCloseAt: { lte: now } },
+        { status: "NOMINATIONS_CLOSED", votingOpensAt: { lte: now } },
+        { status: "VOTING_OPEN", votingClosesAt: { lte: now } },
+      ],
+    },
+    select: { id: true },
+  });
