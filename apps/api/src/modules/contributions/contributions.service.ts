@@ -43,7 +43,7 @@ export const createCampaign = async (communityId: string, actorId: string, input
 export const listCampaigns = async (communityId: string, userId: string) => {
   const access = await requireMember(communityId, userId);
   const campaigns = await db.listCampaigns(communityId);
-  return campaigns.map((campaign) => ({ ...presentCampaign(campaign), currency: undefined, canAdminister: access.role === "ADMIN" }));
+  return campaigns.map((campaign) => ({ ...presentCampaign(campaign), canAdminister: access.role === "ADMIN" }));
 };
 
 export const getCampaign = async (communityId: string, userId: string, campaignId: string) => {
@@ -154,7 +154,7 @@ export const generateMonthlyDrafts = async (now = new Date()) => {
     try { periodKey = localMonthKey(now, timezone); }
     catch { continue; }
     const boundary = monthStartUtc(periodKey, timezone);
-    if (campaign.createdAt >= boundary || campaign.events[0]?.createdAt && campaign.events[0].createdAt >= boundary) continue;
+    const eventsBeforeBoundary = campaign.events.filter((event) => event.createdAt < boundary);\n    const lastEventBeforeBoundary = eventsBeforeBoundary.at(-1);\n    const pausedAtBoundary = lastEventBeforeBoundary?.type === "PAUSED";\n    const pausedDuringPeriod = campaign.events.some((event) => event.type === "PAUSED" && event.createdAt >= boundary);\n    if (campaign.createdAt >= boundary || pausedAtBoundary || pausedDuringPeriod) continue;
     if (!campaign.community.treasury) continue;
     const result = await db.createScheduledDraft({
       campaignId: campaign.id,
