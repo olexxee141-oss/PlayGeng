@@ -1,4 +1,5 @@
 import { prisma, type Prisma } from "@playgeng/database";
+import { createObligationInTransaction } from "../treasury/obligations.db.js";
 
 export const findAccess = (communityId: string, userId: string) =>
   prisma.communityMember.findUnique({
@@ -132,4 +133,103 @@ export const createScheduledDraft = async (input: {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") return null;
     throw error;
   }
+};
+
+
+export const issueAssessmentInTransaction = async (tx: Prisma.TransactionClient, input: {
+  communityId: string;
+  assessmentId: string;
+  actorId: string;
+}) => {
+  // This row lock is the membership issuance boundary. Community membership
+  // add/remove writes take the same lock before mutating community_members.
+  const lockedCommunity = await tx.$queryRaw<Array<{ id: string }>>`
+    UPDATE "communities" SET "updatedAt" = "updatedAt"
+    WHERE "id" = ${input.communityId} AND "status" = 'ACTIVE'
+    RETURNING "id"
+  `;
+  if (lockedCommunity.length !== 1) return { kind: "NOT_FOUND" as const };
+
+  const [actorMembership, treasury] = await Promise.all([
+    tx.communityMember.findUnique({
+      where: { communityId_userId: { communityId: input.communityId, userId: input.actorId } },
+      include: { user: { select: { status: true } } },
+    }),
+    tx.treasury.findUnique({ where: { communityId: input.communityId }, select: { id: true, currency: true } }),
+  ]);
+  if (!actorMembership || actorMembership.user.status !== "ACTIVE" || actorMembership.role !== "TREASURER") {
+    return { kind: "FORBIDDEN" as const };
+  }
+  if (!treasury) return { kind: "TREASURY_MISSING" as const };
+
+  const lockedAssessment = await tx.$queryRaw<Array<{ id: string }>>`
+    UPDATE "contribution_assessments" SET "updatedAt" = "updatedAt"
+    WHERE "id" = ${input.assessmentId} AND "communityId" = ${input.communityId}
+    RETURNING "id"
+  `;
+  if (lockedAssessment.length !== 1) return { kind: "ASSESSMENT_NOT_FOUND" as const };
+
+  const assessment = await tx.contributionAssessment.findFirst({
+    where: { id: input.assessmentId, communityId: input.communityId },
+    include: { members: { orderBy: { memberId: "asc" } } },
+  });
+  if (!assessment) return { kind: "ASSESSMENT_NOT_FOUND" as const };
+  if (assessment.status === "ISSUED") return { kind: "ISSUED" as const, assessment };
+  if (assessment.status !== "DRAFT") return { kind: "INVALID_STATE" as const };
+  if (!assessment.dueAt) return { kind: "DUE_DATE_REQUIRED" as const };
+  if (assessment.currency !== treasury.currency) return { kind: "CURRENCY_MISMATCH" as const };
+  if (assessment.members.length > 0) throw new Error("Draft assessment already contains immutable member snapshots.");
+
+  const snapshotAt = new Date();
+  const members = await tx.communityMember.findMany({
+    where: { communityId: input.communityId, user: { status: "ACTIVE" } },
+    include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+    orderBy: { userId: "asc" },
+  });
+
+  const snapshots = await Promise.all(members.map((member) =>
+    tx.contributionAssessmentMember.create({
+      data: {
+        assessmentId: assessment.id,
+        memberId: member.userId,
+        memberRole: member.role,
+        memberJoinedAt: member.joinedAt,
+        memberFirstName: member.user.firstName,
+        memberLastName: member.user.lastName,
+        memberEmail: member.user.email,
+        snapshotAt,
+      },
+    })
+  ));
+
+  for (const snapshot of snapshots) {
+    const result = await createObligationInTransaction(tx, {
+      treasuryId: treasury.id,
+      actorId: input.actorId,
+      memberId: snapshot.memberId,
+      data: {
+        sourceType: "CONTRIBUTION",
+        sourceId: snapshot.id,
+        idempotencyKey: `contribution:${assessment.id}:${snapshot.memberId}`,
+        description: assessment.description,
+        amountMinor: assessment.amountMinor.toString(),
+        dueAt: assessment.dueAt.toISOString(),
+      },
+    });
+    if (result.kind !== "CREATED") {
+      throw new Error("Contribution assessment issuance encountered an unexpected existing obligation.");
+    }
+    await tx.contributionAssessmentMember.update({
+      where: { id: snapshot.id },
+      data: { obligationId: result.obligation.id },
+    });
+  }
+
+  const issuedAt = new Date();
+  const issued = await tx.contributionAssessment.update({
+    where: { id: assessment.id },
+    data: { status: "ISSUED", issuedById: input.actorId, issuedAt },
+    include: { members: { orderBy: { memberId: "asc" } } },
+  });
+  return { kind: "CREATED" as const, assessment: issued };
 };
