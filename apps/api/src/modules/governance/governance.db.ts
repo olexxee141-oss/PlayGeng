@@ -165,7 +165,7 @@ export const syncElection = (electionId: string, now: Date) =>
     const outcome = resolveElectionOutcome(
       current.eligibleVoterCount,
       current.quorumPercent,
-      new Map(voteGroups.map((group) => [group.candidateId, group._count._all])),
+      new Map<string, number>(voteGroups.map((group) => [group.candidateId, group._count._all] as const)),
     );
     const { votesCast, failureReason: resultFailureReason } = outcome;
     const winnerNomination = outcome.winnerCandidateId
