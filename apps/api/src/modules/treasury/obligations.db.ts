@@ -77,7 +77,19 @@ export const cancelObligation = (input: { treasuryId: string; obligationId: stri
       include: { allocations: true },
     });
     if (!obligation) return { kind: "NOT_FOUND" as const };
-    if (obligation.status === "CANCELLED") return { kind: "ALREADY_CANCELLED" as const };
+    if (obligation.status === "CANCELLED") {
+      const priorReversal = await tx.journalTransaction.findFirst({
+        where: { treasuryId: input.treasuryId, reversalOfId: { not: null }, idempotencyKey: input.idempotencyKey },
+      });
+      if (priorReversal?.reversalOfId === (await tx.journalTransaction.findFirst({
+        where: { treasuryId: input.treasuryId, sourceType: "OBLIGATION", sourceId: obligation.id, status: "POSTED" },
+        select: { id: true },
+      }))?.id) {
+        if (priorReversal.description !== `Obligation cancellation: ${input.reason}`) return { kind: "IDEMPOTENCY_CONFLICT" as const };
+        return { kind: "CANCELLED" as const, obligation };
+      }
+      return { kind: "ALREADY_CANCELLED" as const };
+    }
     if (obligation.allocations.length > 0) return { kind: "SETTLED" as const };
 
     const original = await tx.journalTransaction.findFirst({
