@@ -8,12 +8,44 @@ datasource db {
 }
 
 
-enum TreasuryAccountType { ASSET LIABILITY EQUITY INCOME EXPENSE }
-enum JournalTransactionType { OPENING_BALANCE OBLIGATION_ISSUED PAYMENT_RECEIVED CONTRIBUTION_RECEIVED EXPENSE_PAID REFUND ADJUSTMENT REVERSAL }
-enum JournalTransactionStatus { DRAFT POSTED }
-enum LedgerPostingSide { DEBIT CREDIT }
-enum ObligationSourceType { CONTRIBUTION MATCH_FEE COMPETITION_FEE OTHER }
-enum ObligationStatus { OPEN PARTIALLY_PAID PAID OVERDUE CANCELLED }
+enum TreasuryAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+enum JournalTransactionType {
+  OPENING_BALANCE
+  OBLIGATION_ISSUED
+  PAYMENT_RECEIVED
+  CONTRIBUTION_RECEIVED
+  EXPENSE_PAID
+  REFUND
+  ADJUSTMENT
+  REVERSAL
+}
+enum JournalTransactionStatus {
+  DRAFT
+  POSTED
+}
+enum LedgerPostingSide {
+  DEBIT
+  CREDIT
+}
+enum ObligationSourceType {
+  CONTRIBUTION
+  MATCH_FEE
+  COMPETITION_FEE
+  OTHER
+}
+enum ObligationStatus {
+  OPEN
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
 
 enum UserStatus {
   ACTIVE
