@@ -1930,3 +1930,8 @@ Endpoints under `/api/v1/communities/:communityId/treasury/obligations`:
 - `POST /:obligationId/cancel` cancel an unsettled obligation with an audited reversal.
 
 Receipt verification, allocations and cash receipt posting are deliberately not included in this checkpoint. The next service must make receipt creation, allocation and DR CASH / CR RECEIVABLES posting atomic; it must reject unallocated excess receipts rather than silently creating a negative receivable.
+
+
+### Journal workflow guardrails added with obligation services
+
+The generic journal endpoint is now restricted to documented opening balances and non-cash adjustments. An opening balance must debit CASH and credit OPENING_EQUITY and include a source reference; it is audited. Generic adjustments cannot touch CASH, RECEIVABLES or operational income accounts. Obligation-issued journals cannot be reversed through the generic reversal endpoint; they must use the obligation cancellation workflow. This prevents a manual journal request from bypassing receipt verification or leaving an obligation open after its receivable has been reversed.
