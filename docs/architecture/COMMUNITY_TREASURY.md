@@ -152,3 +152,30 @@ The next schema layer separates money received from amounts owed and the applica
 - The schema deliberately does not store a mutable paid amount or balance. Outstanding amounts must be derived from allocations and the obligation's original amount.
 
 This is a schema-only foundation. It does not yet expose receipt or allocation APIs, post receipt journals, or connect match/competition workflows. The next implementation must atomically create a verified receipt, post its balanced journal entry (debit CASH, credit RECEIVABLES), allocate it, and update the obligation's derived status within a serializable transaction. A receipt must never be posted from client-submitted payment status alone.
+
+
+## Obligation service implementation checkpoint — November 10, 2026
+
+The first obligation service layer is implemented on branch `feat/treasury-obligation-services` (pending CI/review):
+
+- Treasurer-only obligation issuance against an active community member.
+- Stable source identity and treasury-scoped idempotency; repeated requests must match the original obligation details.
+- Obligation issuance and its journal entry are written in one serializable transaction: debit RECEIVABLES and credit the source-appropriate income account. Creating a due amount does not increase CASH.
+- Cancellation is permitted only before any receipt allocation exists. It writes an immutable reversing journal entry, records the cancellation reason and actor, and marks the obligation cancelled in the same transaction.
+- Members can read only their own obligations. ADMIN/TREASURER can inspect the community obligation list; only TREASURER can create or cancel obligations.
+- Amounts are integer minor-unit strings. Outstanding and allocated amounts are calculated from allocation rows; overdue is derived from due date at read time.
+
+Endpoints under `/api/v1/communities/:communityId/treasury/obligations`:
+
+- `POST /` create an obligation.
+- `GET /` list all obligations for ADMIN/TREASURER.
+- `GET /mine` list the authenticated member's obligations.
+- `GET /:obligationId` retrieve an obligation subject to ownership/finance-role checks.
+- `POST /:obligationId/cancel` cancel an unsettled obligation with an audited reversal.
+
+Receipt verification, allocations and cash receipt posting are deliberately not included in this checkpoint. The next service must make receipt creation, allocation and DR CASH / CR RECEIVABLES posting atomic; it must reject unallocated excess receipts rather than silently creating a negative receivable.
+
+
+### Journal workflow guardrails added with obligation services
+
+The generic journal endpoint is now restricted to documented opening balances and non-cash adjustments. An opening balance must debit CASH and credit OPENING_EQUITY and include a source reference; it is audited. Generic adjustments cannot touch CASH, RECEIVABLES or operational income accounts. Obligation-issued journals cannot be reversed through the generic reversal endpoint; they must use the obligation cancellation workflow. This prevents a manual journal request from bypassing receipt verification or leaving an obligation open after its receivable has been reversed.

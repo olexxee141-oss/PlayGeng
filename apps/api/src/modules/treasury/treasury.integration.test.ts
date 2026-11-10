@@ -35,12 +35,14 @@ test("treasury journal posts balanced entries once and reverses without mutating
     await assert.rejects(initializeTreasury(community.id, treasurer.id, { currency: "NGN" }), (error: unknown) => error instanceof AppError && error.statusCode === 409);
 
     const journalInput = {
-      type: "CONTRIBUTION_RECEIVED" as const,
-      description: "Verified test contribution",
+      type: "OPENING_BALANCE" as const,
+      description: "Opening balance from verified bank statement",
+      sourceType: "BANK_STATEMENT",
+      sourceId: `bank-statement-${suffix}`,
       idempotencyKey: `contribution-${suffix}`,
       postings: [
         { accountCode: "CASH", side: "DEBIT" as const, amountMinor: "250000" },
-        { accountCode: "CONTRIBUTION_INCOME", side: "CREDIT" as const, amountMinor: "250000" },
+        { accountCode: "OPENING_EQUITY", side: "CREDIT" as const, amountMinor: "250000" },
       ],
     };
     const posted = await postJournalTransaction(community.id, treasurer.id, journalInput);
@@ -50,13 +52,13 @@ test("treasury journal posts balanced entries once and reverses without mutating
     assert.equal(retry.id, posted.id);
 
     await assert.rejects(
-      postJournalTransaction(community.id, treasurer.id, { ...journalInput, description: "Different contribution" }),
+      postJournalTransaction(community.id, treasurer.id, { ...journalInput, description: "Different opening balance" }),
       (error: unknown) => error instanceof AppError && error.statusCode === 409,
     );
     await assert.rejects(
       postJournalTransaction(community.id, treasurer.id, { ...journalInput, idempotencyKey: `unbalanced-${suffix}`, postings: [
         { accountCode: "CASH", side: "DEBIT", amountMinor: "250000" },
-        { accountCode: "CONTRIBUTION_INCOME", side: "CREDIT", amountMinor: "249999" },
+        { accountCode: "OPENING_EQUITY", side: "CREDIT", amountMinor: "249999" },
       ] }),
       (error: unknown) => error instanceof AppError && error.statusCode === 400,
     );
@@ -79,7 +81,7 @@ test("treasury journal posts balanced entries once and reverses without mutating
     await assert.rejects(
       prisma.journalTransaction.update({ where: { id: posted.id }, data: { description: "tampered" } }),
     );
-    assert.equal((await prisma.journalTransaction.findUniqueOrThrow({ where: { id: posted.id } })).description, "Verified test contribution");
+    assert.equal((await prisma.journalTransaction.findUniqueOrThrow({ where: { id: posted.id } })).description, "Opening balance from verified bank statement");
   } finally {
     // This test uses a disposable CI database. Treasury and audit history are intentionally non-deletable.
     await prisma.$disconnect();

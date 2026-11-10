@@ -147,7 +147,7 @@ export const registerEntry = async (communityId: string, competitionId: string, 
 
   const status = competition.registrationMode === "OPEN" ? "APPROVED" : "PENDING";
   try {
-    return await db.withSerializableTransaction(async (tx) => {
+    return await db.withCompetitionRegistrationTransaction(competitionId, communityId, async (tx) => {
       const current = await tx.competition.findFirst({ where: { id: competitionId, communityId } });
       if (!current || current.status !== "REGISTRATION_OPEN") throw new AppError("This competition is not accepting registrations.", 409);
       const count = await tx.competitionEntry.count({ where: { competitionId, status: { in: ["PENDING", "APPROVED"] } } });
