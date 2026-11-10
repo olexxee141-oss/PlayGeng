@@ -115,7 +115,9 @@ Acceptance criteria:
 
 ### PR B — Atomic assessment issuance through Treasury
 
-**Proposed branch:** `feat/community-contribution-issuance`  
+**Branch:** `feat/community-contribution-issuance`
+
+**Implementation decision:** issuance uses one retrying `SERIALIZABLE` Treasury transaction. It locks the community row first; membership add/remove writes take the same community-row lock. The snapshot query therefore observes membership deterministically before or after a concurrent membership mutation. The assessment row is then locked, every snapshot and linked obligation is created through the transaction-aware Treasury primitive, and `ISSUED` is written last. Any failure rolls back the entire transaction. Repeating issuance after commit returns the same issued assessment without creating duplicates.  
 **Depends on:** PR A
 
 This is the financial-critical workstream. Before issuing any assessment, inspect and explicitly address membership write paths and transaction isolation.
