@@ -72,7 +72,15 @@ export const findObligationByIdempotency = (treasuryId: string, idempotencyKey: 
 
 export const cancelObligation = (input: { treasuryId: string; obligationId: string; actorId: string; reason: string; idempotencyKey: string }) =>
   withTreasuryTransaction(async (tx) => {
-    // Share the same row-version lock as receipt allocation. A waiting\n    // SERIALIZABLE transaction must retry and observe committed allocations.\n    const locked = await tx.$queryRaw<Array<{ id: string }>>`\n      UPDATE "obligations" SET "updatedAt" = "updatedAt"\n      WHERE "id" = ${input.obligationId} AND "treasuryId" = ${input.treasuryId}\n      RETURNING "id"\n    `;\n    if (locked.length !== 1) return { kind: "NOT_FOUND" as const };\n    const obligation = await tx.obligation.findFirst({\n      where: { id: input.obligationId, treasuryId: input.treasuryId },
+    // Share the same row-version lock as receipt allocation. A waiting
+    // SERIALIZABLE transaction must retry and observe committed allocations.
+    const locked = await tx.$queryRaw<Array<{ id: string }>>`
+      UPDATE "obligations" SET "updatedAt" = "updatedAt"
+      WHERE "id" = ${input.obligationId} AND "treasuryId" = ${input.treasuryId}
+      RETURNING "id"
+    `;
+    if (locked.length !== 1) return { kind: "NOT_FOUND" as const };
+    const obligation = await tx.obligation.findFirst({\n      where: { id: input.obligationId, treasuryId: input.treasuryId },
       include: { allocations: true },
     });
     if (!obligation) return { kind: "NOT_FOUND" as const };
