@@ -1,6 +1,6 @@
 # Community-Only Obligations — Product and Architecture Contract
 
-**Status:** Scope and membership-liability policy approved; remaining assessment rules are open.  
+**Status:** Scope, membership-liability and campaign-creation policies approved; remaining assessment rules are open.  
 **Date:** November 10, 2026  
 **Current implementation phase:** Community-only obligations. Match and competition commercial integrations are excluded.
 
@@ -63,26 +63,26 @@ The assessment and obligation creation boundary must be atomic where they share 
 
 ## 5. Authorization and financial controls
 
-The existing Treasury authorization contract remains in force:
-- Only the currently elected TREASURER may issue/cancel Treasury obligations under the current service policy.
+The following authority boundaries apply:
+- **ADMIN** is the only community role authorized to create and configure community contribution campaigns/assessments.
+- Creating or configuring a campaign does not itself issue a financial obligation or grant Treasury write access.
+- Only the currently elected **TREASURER** may issue/cancel Treasury obligations under the current service policy.
 - ADMIN/TREASURER read access and member-own-obligation visibility remain as currently implemented.
 - Community owner/creator identity and generic community-management permissions do not imply Treasury write authority.
-- Campaign creation/approval permissions must be specified separately; they must not silently grant authority to issue or cancel financial obligations.
-- Exemptions, waivers, corrections and cancellations require explicit authorization, actor attribution, reason and audit history.
+- Exemptions, waivers, corrections and cancellations require explicit authorization, actor attribution, reason and audit history. Their detailed role policy remains to be finalized; campaign-creation permission alone does not grant this authority.
 - A settled obligation must not be cancelled as if no money had been received. A separate refund/reversal workflow is required.
 
 ## 6. Decisions deliberately not assumed
 
-The membership-liability rule is approved. These rules remain undecided and must not be invented:
-1. Who may create a campaign, and whether campaign creation requires a community vote or officer approval.
-2. Which frequencies are supported initially (one-off, monthly or other recurring intervals).
-3. Whether an assessment amount is fixed or can vary by member.
-4. The exemption request, approval, duration and review process; the authorization and audit requirements themselves are mandatory.
-5. Due dates, grace periods, reminders and overdue treatment.
-6. Whether members joining mid-cycle can be included in a later catch-up assessment.
-7. Whether a campaign can be paused, ended or cancelled, and what happens to already-issued obligations.
-8. Who can authorize waivers or adjustments, including when the Treasurer is the affected member.
-9. How removal from a community affects outstanding obligations beyond the approved rule that removal does not silently erase them.
+The following rules remain undecided and must not be invented:
+1. Which frequencies are supported initially (one-off, monthly or other recurring intervals).
+2. Whether an assessment amount is fixed or can vary by member.
+3. The exemption request, approval, duration and review process; the authorization and audit requirements themselves are mandatory.
+4. Due dates, grace periods, reminders and overdue treatment.
+5. Whether members joining mid-cycle can be included in a later catch-up assessment.
+6. Whether a campaign can be paused, ended or cancelled, and what happens to already-issued obligations.
+7. Who can authorize waivers or adjustments, including when the Treasurer is the affected member.
+8. How removal from a community affects outstanding obligations beyond the approved rule that removal does not silently erase them.
 
 These are product policy decisions, not implementation details. The data model must not hardcode assumptions that foreclose them.
 
@@ -99,6 +99,8 @@ These are product policy decisions, not implementation details. The data model m
 
 ## 8. Acceptance criteria
 
+- Only ADMIN can create/configure contribution campaigns.
+- Campaign creation/configuration does not bypass Treasurer-only Treasury write authorization.
 - The issued assessment retains the exact snapshot of all active members at issuance.
 - Members joining after issuance are not added to that assessment.
 - Members leaving after issuance do not disappear from the snapshot or have obligations silently cancelled.
