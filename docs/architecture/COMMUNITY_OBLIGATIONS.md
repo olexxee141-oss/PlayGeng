@@ -1,6 +1,6 @@
 # Community-Only Obligations — Product and Architecture Contract
 
-**Status:** Scope, membership-liability, campaign-creation and equal-assessment-amount policies approved; remaining assessment rules are open.  
+**Status:** Scope, membership-liability, campaign-creation, equal-assessment-amount and initial-frequency policies approved; remaining assessment rules are open.  
 **Date:** November 10, 2026  
 **Current implementation phase:** Community-only obligations. Match and competition commercial integrations are excluded.
 
@@ -8,7 +8,11 @@
 
 This phase implements obligations that a community assesses independently of a match, competition, tournament, or other event.
 
-Examples include monthly or periodic community contributions, one-off assessments for equipment, venue deposits, maintenance, emergency needs or other shared purposes, and membership dues if a community explicitly adopts them.
+Supported initial assessment types:
+- **One-off assessments** for equipment, venue deposits, maintenance, emergency needs or other shared purposes.
+- **Monthly recurring contributions**, with each monthly occurrence treated as a separate assessment.
+
+Weekly, quarterly and custom recurrence intervals are deferred until the basic issuance and accounting workflows are stable. Membership dues may be represented as a one-off or monthly assessment if a community explicitly adopts them; a separate dues lifecycle is not part of this phase.
 
 Explicitly out of scope:
 - Match participation fees and match cancellation liability.
@@ -66,6 +70,8 @@ Distinguish:
 - The fixed amount and currency for that occurrence.
 - The Treasury obligation issued for each assessed member.
 
+One-off campaigns produce one assessment occurrence. Monthly campaigns may produce one distinct occurrence per month. Each occurrence has its own immutable snapshot and fixed amount/currency. The system must prevent duplicate occurrences for the same campaign and period.
+
 Campaign edits after issuance must not change that assessment's amount, currency, due date, purpose or membership snapshot. Corrections use an explicit adjustment/cancellation workflow with actor, reason, timestamp and audit evidence.
 
 Issuance must be idempotent. Use a stable assessment ID as source identity and a deterministic key for each member obligation. A retry must return or complete the same issuance, not create another assessment or debt.
@@ -86,13 +92,12 @@ The following authority boundaries apply:
 ## 7. Decisions deliberately not assumed
 
 The following rules remain undecided and must not be invented:
-1. Which frequencies are supported initially (one-off, monthly or other recurring intervals).
-2. The exemption request, approval, duration and review process; the authorization and audit requirements themselves are mandatory.
-3. Due dates, grace periods, reminders and overdue treatment.
-4. Whether members joining mid-cycle can be included in a later catch-up assessment.
-5. Whether a campaign can be paused, ended or cancelled, and what happens to already-issued obligations.
-6. Who can authorize waivers or adjustments, including when the Treasurer is the affected member.
-7. How removal from a community affects outstanding obligations beyond the approved rule that removal does not silently erase them.
+1. The exemption request, approval, duration and review process; the authorization and audit requirements themselves are mandatory.
+2. Due dates, grace periods, reminders and overdue treatment.
+3. Whether members joining mid-cycle can be included in a later catch-up assessment.
+4. Whether a campaign can be paused, ended or cancelled, and what happens to already-issued obligations.
+5. Who can authorize waivers or adjustments, including when the Treasurer is the affected member.
+6. How removal from a community affects outstanding obligations beyond the approved rule that removal does not silently erase them.
 
 These are product policy decisions, not implementation details. The data model must not hardcode assumptions that foreclose them.
 
@@ -117,6 +122,7 @@ These are product policy decisions, not implementation details. The data model m
 - Members joining after issuance are not added to that assessment.
 - Members leaving after issuance do not disappear from the snapshot or have obligations silently cancelled.
 - Later campaign edits or assessments do not mutate a prior assessment.
+- One-off campaigns create a single occurrence; monthly campaigns create distinct monthly occurrences without duplicates.
 - Each snapshotted member receives at most one obligation per assessment.
 - Exemptions and cancellations occur only through authorized, attributable, reasoned and audited actions.
 - Retrying issuance produces no duplicate assessment, obligation or journal effect.
