@@ -201,3 +201,61 @@ Receipt API:
 - `GET /receipts/:receiptId` retrieve a receipt subject to ownership/finance-role checks.
 
 The evidence reference is a reconciliation pointer, not a file upload or proof that the platform controls the receiving account. Treasurers must independently inspect bank/provider records before verification. Production provider integration and custody remain separate decisions.
+
+
+## 13. Commercial workflow audit — November 10, 2026
+
+**Status:** Initial code audit documented. Match and competition services are not yet integrated with Treasury; contribution campaign workflows are not yet implemented.
+
+### Code inspected
+
+- `apps/api/src/modules/matches/matches.service.ts`, `matches.db.ts`, `matches.validator.ts` and controller/routes.
+- `apps/api/src/modules/competitions/competitions.service.ts`, `competitions.db.ts`, validators, controllers/routes and invitation service.
+- `apps/api/src/modules/communities/communities.service.ts` and its database layer.
+- `apps/api/src/shared/authorization/community-permissions.ts` and `community-role-policy.ts`.
+- `packages/database/prisma/schema.prisma`.
+
+### Findings
+
+**Contribution campaigns**
+- No contribution campaign, assessment, schedule, or contribution-specific API module/model is present in the inspected implementation.
+- The README's monthly contribution example is product intent, not implemented behavior.
+- Treasury's `ObligationSourceType.CONTRIBUTION` is a source classification only; it does not represent campaign membership, recurrence, exemptions or assessment lifecycle.
+
+**Community matches**
+- A join creates a CONFIRMED participant unless capacity is full, in which case it creates WAITLISTED.
+- A participant can leave while the match is SCHEDULED. A confirmed participant leaving promotes the earliest waitlisted participant.
+- Attendance is recorded as ATTENDED or NO_SHOW for a confirmed participant. NO_SHOW also promotes the earliest waitlisted participant.
+- Match cancellation changes the Match status only; participant statuses are not transitioned and no cancellation event is persisted for financial coordination.
+- The Match and MatchParticipant models have no fee, obligation, payment, receipt or refund fields/relations.
+- No Treasury obligation is created by joining, confirming, waitlist promotion or attendance.
+
+**Competitions**
+- Competition entries support TEAM and PLAYER participants. OPEN mode auto-approves an entry; APPROVAL_REQUIRED creates a pending entry; INVITE_ONLY creates an approved entry when its invitation is accepted.
+- Registration capacity counts PENDING and APPROVED entries and is serialized by locking the competition row.
+- Pending and approved entries can be withdrawn before the competition enters IN_PROGRESS, COMPLETED or CANCELLED.
+- Competition cancellation changes the competition status but does not itself change active entry statuses or terminate pending invitations.
+- No registration fee, obligation link, paid/unpaid state, payment deadline, refund state or payment gate exists on Competition or CompetitionEntry.
+- The current model does not specify who owes a team entry fee (team, captain or individual players).
+
+**Authorization boundary**
+- The generic community permission helper treats `Community.ownerId` as having all generic community permissions, regardless of the stored membership role. This supports operational community management but must not be reused as a Treasury authorization shortcut.
+- Treasury write operations use Treasurer-specific authorization. Match/competition manager permissions must not imply permission to issue, settle, reverse or refund financial records.
+
+### Required commercial policy decisions
+
+Before implementation, define:
+1. Contribution campaign recurrence, assessment population, exemptions, due dates, joining/leaving mid-cycle and cancellation.
+2. Match fee liability trigger: confirmation, attendance, or a defined cutoff. Define waitlist promotion, participant cancellation, NO_SHOW, match cancellation and rescheduling consequences.
+3. Competition fee unit: team or individual. Define the payer for a team entry, obligation trigger, deadline, approval/payment order, unpaid capacity reservation, withdrawal/rejection/cancellation and refund rules.
+4. Whether removing a member leaves their existing obligations collectible, waivable or cancellable, and who may authorize each outcome.
+
+### Integration constraints
+
+- Create obligations only from durable, confirmed business events, not tentative registration or invitation states unless the agreed policy explicitly says otherwise.
+- Use stable source IDs and deterministic idempotency keys. Repeated lifecycle events must not create duplicate obligations.
+- Treasury remains the source of truth for amounts due, allocations and paid status. Do not add local paid flags to MatchParticipant or CompetitionEntry.
+- Obligation cancellation is not a refund. The existing cancellation service only supports obligations with no receipt allocations; settled money requires a separately designed refund/reversal workflow.
+- Keep each domain's lifecycle rules in its own service. Cross-domain coordination must be transactional or use a reliable event/outbox pattern with idempotent consumers.
+
+This audit is a factual checkpoint, not approval of any unresolved fee or refund policy. The next implementation proposal must be bounded by the decisions above.
