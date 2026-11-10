@@ -97,13 +97,13 @@ export const createManualReceipt = (input: {
   await tx.journalTransaction.update({ where: { id: journal.id }, data: { status: "POSTED", postedAt: new Date() } });
 
   await tx.obligationAllocation.createMany({
-    data: allocations.map((allocation) => ({
+    data: allocations.map((allocation, index) => ({
       treasuryId: input.treasuryId,
       memberId: input.data.memberId,
       receiptId: receipt.id,
       obligationId: allocation.obligationId,
       amountMinor: BigInt(allocation.amountMinor),
-      idempotencyKey: `rcpt:${input.data.idempotencyKey}:${allocation.obligationId}`,
+      idempotencyKey: `rcpt:${input.data.idempotencyKey}:${index}`,
       createdById: input.actorId,
     })),
   });
