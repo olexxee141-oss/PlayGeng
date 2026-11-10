@@ -15,7 +15,12 @@ const requireTreasurer = async (communityId: string, userId: string) => {
   if (membership.role !== "TREASURER") throw new AppError("Only the elected Treasurer can manage obligations.", 403);
 };
 
-const present = (obligation: { amountMinor: bigint; dueAt: Date | null; status: string; allocations: { amountMinor: bigint }[] }) => {
+const present = <T extends {
+  amountMinor: bigint;
+  dueAt: Date | null;
+  status: string;
+  allocations: { amountMinor: bigint }[];
+}>(obligation: T) => {
   const { allocations, amountMinor, ...details } = obligation;
   const allocated = allocations.reduce((sum, allocation) => sum + allocation.amountMinor, 0n);
   const outstanding = amountMinor - allocated;
