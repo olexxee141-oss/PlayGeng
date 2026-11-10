@@ -16,10 +16,10 @@ const requireTreasurer = async (communityId: string, userId: string) => {
 };
 
 const present = (obligation: { amountMinor: bigint; dueAt: Date | null; status: string; allocations: { amountMinor: bigint }[] }) => {
-  const allocated = obligation.allocations.reduce((sum, allocation) => sum + allocation.amountMinor, 0n);
-  const outstanding = obligation.amountMinor - allocated;
+  const { allocations, amountMinor, ...details } = obligation;
+  const allocated = allocations.reduce((sum, allocation) => sum + allocation.amountMinor, 0n);
+  const outstanding = amountMinor - allocated;
   const status = obligation.status === "CANCELLED" ? "CANCELLED" : outstanding === 0n ? "PAID" : allocated > 0n ? "PARTIALLY_PAID" : obligation.dueAt && obligation.dueAt < new Date() ? "OVERDUE" : "OPEN";
-  const { allocations: _allocations, amountMinor, ...details } = obligation;
   return { ...details, amountMinor: amountMinor.toString(), allocatedMinor: allocated.toString(), outstandingMinor: outstanding.toString(), status };
 };
 
