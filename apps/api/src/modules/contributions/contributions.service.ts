@@ -214,7 +214,7 @@ const presentContributionSnapshot = (row: any) => {
     },
     amountMinor: amount.toString(),
     allocatedMinor: allocated.toString(),
-    outstandingMinor: (amount - allocated).toString(),
+    outstandingMinor: (status === "CANCELLED" ? 0n : amount - allocated).toString(),
     financialStatus: status,
   };
 };
@@ -250,7 +250,7 @@ export const getAssessmentReport = async (communityId: string, userId: string, a
     const paid = member.obligation.allocations.reduce((sum: bigint, item: { amountMinor: bigint }) => sum + item.amountMinor, 0n);
     assessed += amount;
     collected += paid;
-    outstanding += amount - paid;
+    outstanding += status === "CANCELLED" ? 0n : amount - paid;
     const status = contributionFinancialStatus(member);
     if (status === "PAID") counts.paid += 1;
     else if (status === "PARTIALLY_PAID") counts.partiallyPaid += 1;
@@ -308,7 +308,7 @@ export const listAssessmentReportMembers = async (communityId: string, userId: s
       snapshotAt: row.snapshotAt,
       amountMinor: row.obligation ? amount.toString() : null,
       allocatedMinor: allocated.toString(),
-      outstandingMinor: row.obligation ? (amount - allocated).toString() : null,
+      outstandingMinor: row.obligation ? (status === "CANCELLED" ? "0" : (amount - allocated).toString()) : null,
       financialStatus: status,
     };
   });
