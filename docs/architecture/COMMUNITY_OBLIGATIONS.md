@@ -1,6 +1,6 @@
 # Community-Only Obligations — Product and Architecture Contract
 
-**Status:** Scope, membership-liability, campaign-creation, equal-assessment-amount and initial-frequency policies approved; remaining assessment rules are open.  
+**Status:** Scope, membership-liability, campaign-creation, equal-assessment-amount, initial-frequency and due-date/overdue policies approved; remaining assessment rules are open.  
 **Date:** November 10, 2026  
 **Current implementation phase:** Community-only obligations. Match and competition commercial integrations are excluded.
 
@@ -89,21 +89,29 @@ The following authority boundaries apply:
 - Exemptions, waivers, corrections and cancellations require explicit authorization, actor attribution, reason and audit history. Their detailed role policy remains to be finalized; campaign-creation permission alone does not grant this authority.
 - A settled obligation must not be cancelled as if no money had been received. A separate refund/reversal workflow is required.
 
-## 7. Decisions deliberately not assumed
+## 7. Approved due-date and overdue policy
+
+- Every assessment must have an explicit due date before it can be issued.
+- The due date is frozen on the assessment occurrence at issuance. Editing the campaign's due date affects only future, unissued occurrences; it must never rewrite existing Treasury obligations.
+- An obligation is overdue once its due date has passed and its outstanding balance is greater than zero. Overdue status is derived from the due date and Treasury allocations; do not store a separate contribution paid/overdue flag.
+- There is no grace period in the initial release.
+- Automated payment reminders and reminder schedules are deferred to the notifications phase.
+- An obligation that is fully settled is not overdue, regardless of its historical due date.
+
+## 8. Decisions deliberately not assumed
 
 The following rules remain undecided and must not be invented:
 1. The exemption request, approval, duration and review process; the authorization and audit requirements themselves are mandatory.
-2. Due dates, grace periods, reminders and overdue treatment.
-3. Whether members joining mid-cycle can be included in a later catch-up assessment.
-4. Whether a campaign can be paused, ended or cancelled, and what happens to already-issued obligations.
-5. Who can authorize waivers or adjustments, including when the Treasurer is the affected member.
-6. How removal from a community affects outstanding obligations beyond the approved rule that removal does not silently erase them.
+2. Whether members joining mid-cycle can be included in a later catch-up assessment.
+3. Whether a campaign can be paused, ended or cancelled, and what happens to already-issued obligations.
+4. Who can authorize waivers or adjustments, including when the Treasurer is the affected member.
+5. How removal from a community affects outstanding obligations beyond the approved rule that removal does not silently erase them.
 
 These are product policy decisions, not implementation details. The data model must not hardcode assumptions that foreclose them.
 
-## 8. Implementation sequence
+## 9. Implementation sequence
 
-1. Finalize the unresolved assessment policies in Section 7.
+1. Finalize the remaining unresolved assessment policies in Section 8.
 2. Audit the current membership model and Treasury obligation source fields to define stable foreign keys and source identity.
 3. Design campaign, assessment occurrence and immutable eligibility snapshot schema.
 4. Implement the contribution module using the repository convention: `db`, `service`, `controller`, `routes` and `validator`.
@@ -112,7 +120,7 @@ These are product policy decisions, not implementation details. The data model m
 7. Add integration tests for snapshot correctness, equal amount enforcement, membership changes after issuance, retries, partial-failure recovery, authorization, duplicate prevention and audited corrections.
 8. Only after community-only obligations are complete should match obligations be designed and integrated. Competition obligations remain deferred.
 
-## 9. Acceptance criteria
+## 10. Acceptance criteria
 
 - Only ADMIN can create/configure contribution campaigns.
 - Campaign creation/configuration does not bypass Treasurer-only Treasury write authorization.
@@ -123,6 +131,8 @@ These are product policy decisions, not implementation details. The data model m
 - Members leaving after issuance do not disappear from the snapshot or have obligations silently cancelled.
 - Later campaign edits or assessments do not mutate a prior assessment.
 - One-off campaigns create a single occurrence; monthly campaigns create distinct monthly occurrences without duplicates.
+- Every assessment has a due date before issuance; due dates are immutable after issuance.
+- An obligation with a passed due date and positive outstanding balance is overdue; no grace period applies in the initial release.
 - Each snapshotted member receives at most one obligation per assessment.
 - Exemptions and cancellations occur only through authorized, attributable, reasoned and audited actions.
 - Retrying issuance produces no duplicate assessment, obligation or journal effect.
