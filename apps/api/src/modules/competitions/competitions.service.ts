@@ -205,7 +205,7 @@ export const reviewEntry = async (communityId: string, competitionId: string, en
 };
 
 export const withdrawEntry = async (communityId: string, competitionId: string, entryId: string, actorId: string) => {
-  const actorMembership = await requireMembership(communityId, actorId);
+  await requireMembership(communityId, actorId);
   await requireActiveCommunity(communityId);
   const competition = await requireCompetition(communityId, competitionId);
   if (["IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(competition.status)) throw new AppError("Entries cannot be withdrawn after the competition starts.", 409);
@@ -214,7 +214,8 @@ export const withdrawEntry = async (communityId: string, competitionId: string, 
   if (entry.participantType === "PLAYER" && entry.playerUserId !== actorId) throw new AppError("You can only withdraw your own player entry.", 403);
   if (entry.participantType === "TEAM") {
     const teamMember = entry.teamId ? await db.findTeamMembership(entry.teamId, actorId) : null;
-    if (teamMember?.role !== "CAPTAIN" && !managerRoles.has(actorMembership.role)) throw new AppError("Only the team captain or a community manager can withdraw this entry.", 403);
+    const isCommunityManager = await hasCommunityPermission(communityId, actorId, "MANAGE_COMPETITIONS");
+    if (teamMember?.role !== "CAPTAIN" && !isCommunityManager) throw new AppError("Only the team captain or a community manager can withdraw this entry.", 403);
   }
   return db.withSerializableTransaction(async (tx) => {
     const currentCompetition = await tx.competition.findFirst({ where: { id: competitionId, communityId } });
