@@ -51,7 +51,7 @@ export const findUserByEmail = (email: string) =>
 const lockMembershipBoundary = async (tx: Prisma.TransactionClient, communityId: string) => {
   const rows = await tx.$queryRaw<Array<{ id: string }>>`
     UPDATE "communities" SET "updatedAt" = "updatedAt"
-    WHERE "id" = ${communityId}
+    WHERE "id" = ${communityId} AND "status" = 'ACTIVE'
     RETURNING "id"
   `;
   if (rows.length !== 1) throw new Error("Community membership boundary could not be locked.");
@@ -95,5 +95,13 @@ export const updateMemberRole = (communityId: string, userId: string, role: Comm
 export const removeMember = (communityId: string, userId: string) =>
   withMembershipBoundaryTransaction(async (tx) => {
     await lockMembershipBoundary(tx, communityId);
-    return tx.communityMember.delete({ where: { communityId_userId: { communityId, userId } } });
+    const target = await tx.communityMember.findUnique({
+      where: { communityId_userId: { communityId, userId } },
+      select: { role: true },
+    });
+    if (!target) return { kind: "NOT_FOUND" as const };
+    if (target.role === "CREATOR") return { kind: "CREATOR" as const };
+    if (target.role !== "MEMBER") return { kind: "OFFICE_HOLDER" as const };
+    await tx.communityMember.delete({ where: { communityId_userId: { communityId, userId } } });
+    return { kind: "REMOVED" as const };
   });
