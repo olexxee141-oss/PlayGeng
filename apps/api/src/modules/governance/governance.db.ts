@@ -218,20 +218,68 @@ export const syncElection = (electionId: string, now: Date) =>
     });
   });
 
-export const nominate = (electionId: string, userId: string) =>
-  prisma.electionNomination.create({ data: { electionId, userId } });
+export const nominate = (communityId: string, electionId: string, userId: string, now: Date) =>
+  withSerializableTransaction(async (tx) => {
+    const election = await tx.communityElection.findFirst({ where: { id: electionId, communityId } });
+    if (!election) return { kind: "NOT_FOUND" as const };
+    if (election.status !== "NOMINATIONS_OPEN" || now >= election.nominationsCloseAt) return { kind: "CLOSED" as const };
+    const membership = await tx.communityMember.findUnique({
+      where: { communityId_userId: { communityId, userId } },
+      include: { user: { select: { status: true } } },
+    });
+    if (!membership || membership.user.status !== "ACTIVE") return { kind: "NOT_MEMBER" as const };
+    if (membership.role === "CREATOR") return { kind: "CREATOR" as const };
+    if (membership.role !== "MEMBER" && membership.role !== election.role) return { kind: "OTHER_OFFICE" as const };
+    const eligible = await tx.electionEligibleVoter.findUnique({ where: { electionId_userId: { electionId, userId } } });
+    if (!eligible) return { kind: "NOT_IN_ELECTORATE" as const };
+    const nomination = await tx.electionNomination.create({ data: { electionId, userId } });
+    return { kind: "CREATED" as const, nomination };
+  });
 
 export const findNomination = (electionId: string, userId: string) =>
   prisma.electionNomination.findUnique({ where: { electionId_userId: { electionId, userId } } });
 
-export const withdrawNomination = (nominationId: string, now: Date) =>
-  prisma.electionNomination.update({ where: { id: nominationId }, data: { withdrawnAt: now } });
+export const withdrawNomination = (communityId: string, electionId: string, userId: string, now: Date) =>
+  withSerializableTransaction(async (tx) => {
+    const election = await tx.communityElection.findFirst({ where: { id: electionId, communityId } });
+    if (!election) return { kind: "NOT_FOUND" as const };
+    if (election.status !== "NOMINATIONS_OPEN" || now >= election.nominationsCloseAt) return { kind: "CLOSED" as const };
+    const nomination = await tx.electionNomination.findUnique({ where: { electionId_userId: { electionId, userId } } });
+    if (!nomination || nomination.withdrawnAt) return { kind: "NOMINATION_NOT_FOUND" as const };
+    const updated = await tx.electionNomination.update({ where: { id: nomination.id }, data: { withdrawnAt: now } });
+    return { kind: "WITHDRAWN" as const, nomination: updated };
+  });
 
 export const isEligibleVoter = (electionId: string, userId: string) =>
   prisma.electionEligibleVoter.findUnique({ where: { electionId_userId: { electionId, userId } } });
 
-export const castBallot = (electionId: string, voterId: string, candidateId: string) =>
-  prisma.electionBallot.create({ data: { electionId, voterId, candidateId } });
+export const castBallot = (communityId: string, electionId: string, voterId: string, candidateId: string, now: Date) =>
+  withSerializableTransaction(async (tx) => {
+    const election = await tx.communityElection.findFirst({ where: { id: electionId, communityId } });
+    if (!election) return { kind: "NOT_FOUND" as const };
+    if (election.status !== "VOTING_OPEN" || now < election.votingOpensAt || now >= election.votingClosesAt) return { kind: "CLOSED" as const };
+    const eligible = await tx.electionEligibleVoter.findUnique({ where: { electionId_userId: { electionId, userId: voterId } } });
+    if (!eligible) return { kind: "NOT_ELIGIBLE" as const };
+    const voter = await tx.communityMember.findUnique({
+      where: { communityId_userId: { communityId, userId: voterId } },
+      include: { user: { select: { status: true } } },
+    });
+    if (!voter || voter.user.status !== "ACTIVE") return { kind: "NOT_MEMBER" as const };
+    const candidate = await tx.electionNomination.findFirst({
+      where: { id: candidateId, electionId, withdrawnAt: null },
+      include: { user: { select: { status: true } } },
+    });
+    if (!candidate || candidate.user.status !== "ACTIVE") return { kind: "INVALID_CANDIDATE" as const };
+    const candidateMembership = await tx.communityMember.findUnique({
+      where: { communityId_userId: { communityId, userId: candidate.userId } },
+    });
+    if (!candidateMembership || candidateMembership.role === "CREATOR" ||
+      (["ADMIN", "TREASURER", "ORGANIZER"].includes(candidateMembership.role) && candidateMembership.role !== election.role)) {
+      return { kind: "CANDIDATE_INELIGIBLE" as const };
+    }
+    const ballot = await tx.electionBallot.create({ data: { electionId, voterId, candidateId } });
+    return { kind: "CAST" as const, ballot };
+  });
 
 export const findActiveNomination = (electionId: string, candidateId: string) =>
   prisma.electionNomination.findFirst({
