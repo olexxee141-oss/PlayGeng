@@ -1935,3 +1935,18 @@ Receipt verification, allocations and cash receipt posting are deliberately not 
 ### Journal workflow guardrails added with obligation services
 
 The generic journal endpoint is now restricted to documented opening balances and non-cash adjustments. An opening balance must debit CASH and credit OPENING_EQUITY and include a source reference; it is audited. Generic adjustments cannot touch CASH, RECEIVABLES or operational income accounts. Obligation-issued journals cannot be reversed through the generic reversal endpoint; they must use the obligation cancellation workflow. This prevents a manual journal request from bypassing receipt verification or leaving an obligation open after its receivable has been reversed.
+
+
+## Treasury implementation checkpoint — manual receipts
+
+The obligation issuance/cancellation services and the first manual receipt workflow are implemented.
+
+- Only the currently elected Treasurer can verify a manual receipt.
+- A verified receipt must include an independently reconciled external reference and evidence reference.
+- One receipt may be allocated across multiple obligations for the same member, but allocation amounts must add up exactly to the receipt amount.
+- Allocations cannot exceed the remaining balance of an obligation. Concurrent receipt allocations and obligation cancellation are serialized.
+- Receipt creation, allocations, DR CASH / CR RECEIVABLES journal posting and the audit event are atomic and idempotent.
+- Members can see only their own obligations and receipts; ADMIN/TREASURER can inspect community finance records.
+- This is manual reconciliation only. It does not integrate a payment provider, accept unverified member claims, move funds, or prove custody of community money.
+
+See [Community Treasury Architecture](docs/architecture/COMMUNITY_TREASURY.md) for the implementation contract and API details.
