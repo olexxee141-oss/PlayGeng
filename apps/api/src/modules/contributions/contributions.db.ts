@@ -86,7 +86,7 @@ export const updateDraftAssessment = (communityId: string, assessmentId: string,
 export const listAutomaticCampaigns = () =>
   prisma.contributionCampaign.findMany({
     where: { status: "ACTIVE", frequency: "MONTHLY", assessmentGenerationMode: "AUTOMATIC", community: { status: "ACTIVE" } },
-    include: { community: { select: { timezone: true, treasury: { select: { currency: true } } } }, events: { where: { type: "PAUSED" }, orderBy: { createdAt: "desc" }, take: 1 } },
+    include: { community: { select: { timezone: true, treasury: { select: { currency: true } } } }, events: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] } },
   });
 
 export const createScheduledDraft = async (input: {
