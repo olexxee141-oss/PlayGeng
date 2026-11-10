@@ -21,6 +21,7 @@ The product starts with football, inspired by the real-world problem of groups o
 - [Tournament Architecture](#tournament-architecture)
 - [System Architecture](#system-architecture)
 - [Implementation Phases](#implementation-phases)
+- [Community Contributions Implementation Plan](docs/implementation/COMMUNITY_CONTRIBUTIONS_README.md)
 - [MVP Scope](#mvp-scope)
 - [Data Model](#data-model)
 - [API Architecture](#api-architecture)
