@@ -65,6 +65,7 @@ export const settleVerifiedEvent = (input: { providerId: string; externalEventId
     if (!event) return { kind: "EVENT_NOT_FOUND" as const };
     if (!event.collection) return { kind: "UNMATCHED_EVENT" as const, event };
     if (event.status === "REJECTED") return { kind: "EVENT_REJECTED" as const, event };
+    if (event.status !== "VALIDATED") return { kind: "EVENT_NOT_VALIDATED" as const, event };
 
     const collection = event.collection;
     const existing = await tx.financialSettlement.findUnique({ where: { providerEventId: event.id }, include: { treasuryReceipt: true } });
@@ -124,20 +125,10 @@ export const settleVerifiedEvent = (input: { providerId: string; externalEventId
       where: { treasuryId_idempotencyKey: { treasuryId: collection.treasuryId, idempotencyKey: receiptKey } },
     });
     if (priorReceipt) {
-      const settlement = await tx.financialSettlement.create({
-        data: {
-          collectionId: collection.id,
-          providerEventId: event.id,
-          treasuryReceiptId: priorReceipt.id,
-          status: "SETTLED",
-          amountMinor: collection.amountMinor,
-          currency: collection.currency,
-          idempotencyKey: `settlement:${event.id}`,
-          settledAt: new Date(),
-        },
-      });
-      await tx.providerEvent.update({ where: { id: event.id }, data: { status: "PROCESSED", validatedAt: new Date(), processedAt: new Date() } });
-      return { kind: "RECOVERED" as const, settlement };
+      // The receipt and settlement are committed in one serializable transaction.
+      // A receipt without its settlement therefore indicates legacy/manual corruption,
+      // not a recoverable partial commit. Never silently bless it as settled.
+      return { kind: "RECEIPT_EXISTS_WITHOUT_SETTLEMENT" as const, receiptId: priorReceipt.id };
     }
 
     const accounts = collection.treasury.accounts.filter((account) => account.isActive);
