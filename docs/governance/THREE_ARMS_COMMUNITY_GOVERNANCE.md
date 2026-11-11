@@ -1,6 +1,6 @@
 # PlayGeng Community Constitution — Three Arms of Governance
 
-**Status:** Approved product direction. The Community Assembly decides every individual exemption and waiver request by member vote. Case-vote thresholds are ratified; notice, duration, and conflict procedures below are proposed for ratification.
+**Status:** Approved product direction. The Community Assembly decides every individual exemption and waiver request by member vote. Case-vote thresholds and the notice, duration, and conflict procedures below are ratified.
 
 ## 1. Foundational principle
 
@@ -126,7 +126,7 @@ Do not implement the Judiciary as a simple extra ADMIN/TREASURER role. It is a s
 Recommended sequence:
 
 1. Ratify the Review Council's size, term, eligibility, election/recall, quorum, and constitutional-review jurisdiction.
-2. Implement the ratified thresholds and, after ratification, the case procedure: at least 48 hours' notice before opening; a 72-hour voting window; frozen non-recused electorate; at least 50% participation quorum; more than 50% approval among valid votes cast; abstentions excluded; requester excluded from voting; direct material conflicts disclosed and recused; tie or failed quorum means not approved.
+2. Implement the ratified case procedure: at least 48 hours' notice before opening; a 72-hour voting window; frozen non-recused electorate; at least 50% participation quorum; more than 50% approval among valid votes cast; abstentions excluded; requester excluded from voting; direct material conflicts disclosed and recused; tie or failed quorum means not approved.
 3. Extend governance elections to support independent Judiciary seats without granting Executive permissions.
 4. Implement private exemption/waiver requests and direct Assembly case votes using the existing voting foundation.
 5. Implement Judiciary review of constitutional and procedural challenges, without transferring merits decisions away from the Assembly.
@@ -143,7 +143,7 @@ Recommended sequence:
 - A tie or failed quorum means the request is not approved.
 - The requester may present evidence and answer questions but cannot vote on their own relief.
 
-### Proposed case-vote procedure — pending ratification
+### Ratified case-vote procedure
 - **Notice:** publish the case notice at least 48 hours before voting opens.
 - **Voting window:** keep the ballot open for 72 hours; close it automatically at the published deadline.
 - **Electorate:** include active members eligible when the vote opens, excluding members whose direct, material personal or financial conflict has been established before the electorate is frozen. Later joiners are excluded.
@@ -161,4 +161,4 @@ Recommended sequence:
 - Appeal/challenge period, scope, and whether a successful challenge remits the matter for a fresh Assembly vote.
 - Whether urgent temporary relief is permitted and who can authorize it.
 
-The Assembly's authority to decide every exemption/waiver request and the case-vote thresholds are settled. The notice period, voting window, conflict determination and recusal process in this section are proposals, not yet ratified. Do not hard-code them until approved.
+The Assembly's authority to decide every exemption/waiver request and the case-vote thresholds are settled. The notice period, voting window, conflict determination, recusal process, and privacy safeguards in this section are ratified policy and must be implemented as written. Any future change requires an explicit Assembly-approved policy amendment.
