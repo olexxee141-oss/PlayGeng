@@ -63,7 +63,11 @@ Repository status was checked against GitHub on November 11, 2026.
 
 ### 3.1 Community identity and governance
 
-Implemented through PRs #16 and #17.
+Implemented through PRs #16 and #17. The three-arm constitutional direction is now documented in [Three Arms of Community Governance](../governance/THREE_ARMS_COMMUNITY_GOVERNANCE.md).
+
+**New approved direction (November 11):** community members collectively form the highest authority (Community Assembly); elected ADMIN/TREASURER/ORGANIZER officers form the Executive; and an independent, separately elected Review Council forms the Judiciary. The Review Council is intended to adjudicate individual contribution exemptions/waivers and related disputes, with final appeals to the Assembly. The creator retains one ordinary member vote and no special appointment or override power.
+
+This is a governance direction, not yet implemented. Case-vote thresholds are ratified: the electorate is frozen when voting opens; quorum requires at least 50% of that electorate to cast a valid vote; approval requires more than 50% of valid votes cast; abstentions do not count as votes cast; a tie or failed quorum means not approved. Notice period, voting window, conflict/recusal rules, and Review Council size (three proposed), term, eligibility, election/recall mechanics, quorum, and constitutional-review procedure remain open. Do not add a generic "JUDGE" privilege to Executive authorization or implement waiver decisions until these rules are ratified.
 
 - The community creator is an immutable identity tied to `Community.ownerId`; creator identity is not an elected office.
 - ADMIN, TREASURER, and ORGANIZER are elected offices.
@@ -130,7 +134,7 @@ Current contribution delivery:
 | Campaign administration and monthly draft scheduler | Merged (#30) |
 | Atomic snapshot + obligation issuance | Merged (#31) |
 | Member history and assessment reporting | Merged (#32) |
-| Exemption/waiver authorization policy | Not finalized |
+| Exemption/waiver authorization policy | Three-arm direction documented; Assembly case-vote thresholds ratified; notice, voting window, recusal rules, and Review Council constitutional-review parameters pending |
 | Refund workflow for settled obligations | Not implemented |
 
 ### 3.4 Current match and competition behavior
@@ -198,7 +202,7 @@ A database subledger does not itself segregate funds legally, protect community 
 2. Add database-level immutability guards for issued assessments, issued member snapshots, and campaign lifecycle events; verify direct mutation attempts fail.
 3. Expand failure-injection and concurrency coverage for issuance, scheduler retries, membership changes, and duplicate requests.
 4. Maintain the [contribution issuance operations and recovery runbook](../operations/COMMUNITY_CONTRIBUTION_ISSUANCE_RUNBOOK.md), including uncertain-response recovery, integrity checks, and reconciliation guidance.
-5. Resolve exemption/waiver/correction authority, including the case where the Treasurer is the affected member, and define how removal affects outstanding obligations without erasing them.
+5. Implement Assembly case votes for exemption/waiver requests under the ratified thresholds; define notice, voting window, conflict/recusal handling (including when the Treasurer is the affected member), Judiciary procedural review, and audited Treasury adjustments without erasing original obligations.
 6. Add a distinct refund/reversal workflow before any settled receipt can be returned. Obligation cancellation is not a refund.
 
 ### B. Treasury operational hardening
@@ -276,7 +280,7 @@ This is the reconciled order. It intentionally avoids building payment collectio
 | Order | Work | Exit condition |
 |---|---|---|
 | 1 | Finish contribution hardening (PR D) | Database immutability, rollback/concurrency tests, migration validation, and recovery runbook pass |
-| 2 | Resolve contribution exemption/waiver/correction authority and refund boundary | Authorized actors, affected-Treasurer handling, audit requirements, and refund/reversal lifecycle documented |
+| 2 | Ratify and implement the three-arm governance and exemption/waiver workflow | Direct Assembly votes on each case, Judiciary constitutional/procedural review, recusal safeguards, and audited Treasury adjustment lifecycle are implemented and tested |
 | 3 | Finalize custody and provider feasibility | Written provider approval and Nigerian compliance review for the intended pooled model |
 | 4 | Specify and build Financial Service foundation | Authenticated service boundary, provider adapter, ledger, attribution, audit, reconciliation |
 | 5 | Implement provider collection and verified receipt flow | Idempotent provider events reconcile to one community and one ledger receipt |
