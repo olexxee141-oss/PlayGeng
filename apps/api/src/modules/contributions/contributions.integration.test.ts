@@ -218,6 +218,29 @@ test("issued assessments and their member snapshots are immutable at the databas
       prisma.contributionAssessmentMember.delete({ where: { id: snapshot.id } }),
     );
 
+    const lateUser = await prisma.user.create({
+      data: {
+        email: "contribution-after-issue-" + suffix + "@playgeng.test",
+        firstName: "Late",
+        lastName: "Snapshot",
+        passwordHash: "integration-test-hash",
+      },
+    });
+    await assert.rejects(
+      prisma.contributionAssessmentMember.create({
+        data: {
+          assessmentId: assessment.id,
+          memberId: lateUser.id,
+          memberRole: "MEMBER",
+          memberJoinedAt: new Date(),
+          memberFirstName: lateUser.firstName,
+          memberLastName: lateUser.lastName,
+          memberEmail: lateUser.email,
+          snapshotAt: new Date(),
+        },
+      }),
+    );
+
     const persisted = await prisma.contributionAssessment.findUniqueOrThrow({
       where: { id: assessment.id },
       include: { members: true },
