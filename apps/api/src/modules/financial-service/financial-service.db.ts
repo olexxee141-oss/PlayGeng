@@ -102,7 +102,7 @@ export const settleVerifiedEvent = (input: { providerId: string; externalEventId
           amountMinor: collection.amountMinor,
           currency: collection.currency,
           idempotencyKey: `settlement:${event.id}`,
-          failureReason: record.reason ?? undefined,
+          failureReason: record.reason,
         },
       });
       await tx.providerEvent.update({ where: { id: event.id }, data: { status: "PROCESSED", validatedAt: new Date(), processedAt: new Date() } });
