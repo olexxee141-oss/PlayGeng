@@ -22,6 +22,7 @@ The product starts with football, inspired by the real-world problem of groups o
 - [System Architecture](#system-architecture)
 - [Implementation Phases](#implementation-phases)
 - [Community Contributions Implementation Plan](docs/implementation/COMMUNITY_CONTRIBUTIONS_README.md)
+- [Reconciled Implementation Status and Remaining Work](docs/implementation/IMPLEMENTATION_STATUS_AND_NEXT_STEPS.md)
 - [MVP Scope](#mvp-scope)
 - [Data Model](#data-model)
 - [API Architecture](#api-architecture)
@@ -2025,3 +2026,14 @@ Do not guess these rules in code. Finalize them in the product/architecture cont
 5. Add provider payment attempts/webhooks only after these commercial event flows and the separate custody decision are ready.
 
 **Phase 1 audit constraint:** this checkpoint records observed behavior and implementation gaps only. It does not authorize new fee rules, payment-provider integration, custody, or withdrawal functionality.
+
+
+---
+
+# Current implementation status — November 11, 2026
+
+The consolidated, repository-verified status of completed work, open pull requests, approved product decisions, unresolved policies, and the recommended implementation sequence is maintained in:
+
+[Reconciled Implementation Status and Remaining Work](docs/implementation/IMPLEMENTATION_STATUS_AND_NEXT_STEPS.md).
+
+That document supersedes older phase summaries and historical audit statements where later merged PRs have changed the implementation status. In particular, contribution campaign administration and reporting are implemented; atomic assessment issuance remains in open PR #31.
