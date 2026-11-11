@@ -293,7 +293,7 @@ The read-only reporting layer is implemented alongside the now-merged atomic iss
 - An ISSUED assessment with a missing obligation link is surfaced through `counts.integrityErrors` and `totals.complete: false`; it is not silently counted as unpaid.
 - Amounts are serialized as integer minor-unit strings. Reporting pagination is bounded to 1–100 rows (default 25).
 
-This reporting layer does not repair or validate PR B. Until atomic issuance is merged, member history may be empty and draft assessments will have no issued member rows. PR C must still pass its own migration, typecheck, test, and build checks before merge.
+This reporting layer depends on the atomic issuance workflow now merged in PR #31. Issued assessments populate the immutable member snapshots and linked Treasury obligations consumed by these reports. Reporting and issuance are both on main.
 
 
 ## 9. PR D — Database immutability and operational recovery
