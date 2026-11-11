@@ -111,7 +111,7 @@ An exemption/waiver is a decision of the Community Assembly, not a discretionary
 - Elections and votes use electorate snapshots, one member/one vote, quorum, documented thresholds, and immutable results.
 - Privileged actions are authorized against the actor's current elected office at execution time.
 - All Assembly decisions, constitutional review, and financial execution are separately attributed.
-- Each exemption/waiver case vote uses one vote per eligible member, a fixed electorate snapshot, published notice, quorum, a defined approval threshold, and a recorded outcome.
+- Each exemption/waiver case vote uses one vote per eligible member, a fixed electorate snapshot, published notice, at least 50% participation for quorum, approval by more than 50% of valid votes cast, and a recorded outcome. Abstentions do not count as votes cast.
 - A case requester or directly affected person must not be allowed to manipulate the electorate or vote where a published conflict rule requires recusal; recusal must be explicit and auditable.
 - A decision-maker cannot execute the financial adjustment they approved where separation is required; the Treasury executor applies the final decision without changing its merits.
 - A conflict or recusal must never silently reduce the required quorum. If the Judiciary cannot reach a valid quorum, the case is reassigned or escalated under a published rule.
@@ -125,7 +125,7 @@ Do not implement the Judiciary as a simple extra ADMIN/TREASURER role. It is a s
 Recommended sequence:
 
 1. Ratify the Review Council's size, term, eligibility, election/recall, quorum, and constitutional-review jurisdiction.
-2. Define case-vote notice, electorate snapshot, quorum, approval threshold, voting window, recusal rules, and tie/failed-quorum outcome for Assembly exemption/waiver votes.
+2. Implement the ratified case-vote rules: frozen eligible electorate, at least 50% participation quorum, more than 50% approval among valid votes cast, abstentions excluded from votes cast, and rejection on tie or failed quorum. Define the remaining notice period, voting window, and recusal mechanics.
 3. Extend governance elections to support independent Judiciary seats without granting Executive permissions.
 4. Implement private exemption/waiver requests and direct Assembly case votes using the existing voting foundation.
 5. Implement Judiciary review of constitutional and procedural challenges, without transferring merits decisions away from the Assembly.
@@ -142,8 +142,10 @@ Recommended sequence:
 - Appeal period, Assembly quorum, and appeal voting threshold.
 - Whether urgent temporary relief is permitted and who can authorize it.
 - Case-vote notice period and voting window for individual exemption/waiver requests.
-- Case-vote quorum and approval threshold; tie and failed-quorum outcome.
+- **Case-vote quorum:** at least 50% of the frozen eligible electorate must cast a valid vote.
+- **Approval threshold:** more than 50% of valid votes cast must support the request; abstentions do not count as votes cast.
+- **Tie or failed quorum:** the request is not approved. A new request may be submitted if circumstances or evidence materially change.
 - Whether the requester and directly affected officeholders may vote, and which conflicts require recusal.
 - Review Council size (three proposed), term, eligibility, quorum, and constitutional-review jurisdiction.
 
-The Assembly's authority to decide every exemption/waiver request is settled. Do not hard-code the still-open voting thresholds, recusal rules, or Judiciary constitutional-review parameters until they are ratified.
+The Assembly's authority to decide every exemption/waiver request and the case-vote thresholds are settled. The 50% quorum is measured against the frozen eligible electorate; approval requires more than 50% of valid votes cast. Abstentions are excluded from votes cast. A tie or failed quorum means the request is not approved. Do not hard-code the remaining open notice, voting-window, recusal, or Judiciary constitutional-review parameters until they are ratified.
