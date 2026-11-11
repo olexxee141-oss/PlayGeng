@@ -1,6 +1,6 @@
 # PlayGeng Community Constitution — Three Arms of Governance
 
-**Status:** Approved product direction; detailed constitutional parameters remain subject to explicit community policy decisions.
+**Status:** Approved product direction. The Community Assembly decides every individual exemption and waiver request by member vote. Remaining procedural parameters are listed in Section 8.
 
 ## 1. Foundational principle
 
@@ -28,7 +28,8 @@ The Community Assembly is the highest community authority. Its authority is exer
 - Elect and remove officeholders through the documented election/recall process.
 - Establish the structure, jurisdiction, and operating rules of the Judiciary.
 - Approve major community decisions reserved to the Assembly by the constitution.
-- Hear final appeals from Judiciary decisions.
+- Decide every individual contribution exemption and waiver request by direct vote of the eligible Assembly.
+- Hear appeals and constitutional disputes concerning decisions of the other arms.
 - Amend the constitution prospectively.
 
 ### Limits
@@ -50,21 +51,21 @@ These offices remain separately elected under the existing election framework. T
 
 ### Limits
 - The Executive cannot create or change constitutional policy unilaterally.
-- An officer cannot adjudicate their own exemption, waiver, complaint, or dispute.
+- An officer cannot decide their own exemption, waiver, complaint, or dispute. The affected member may participate in the Assembly vote only if the conflict-of-interest policy expressly permits it; otherwise the member is recused from that case vote.
 - The TREASURER cannot approve their own financial relief or use Treasury access to decide whether relief should be granted.
-- The ADMIN cannot override a Judiciary decision or independently grant an exemption merely because they administer a campaign.
+- The ADMIN cannot independently grant an exemption merely because they administer a campaign or override an Assembly decision.
 - The Executive implements final decisions and records the resulting Treasury adjustments; it does not alter the original assessment or journal history.
 
 ## 4. Judiciary: independent Review Council
 
-The Judiciary adjudicates individual cases under the rules adopted by the Assembly.
+The Judiciary is an independent constitutional-review and dispute-resolution arm. It does not decide the merits of ordinary contribution exemption or waiver requests; those decisions belong to the Community Assembly through a direct vote. The Judiciary interprets the constitution, reviews procedural fairness and jurisdictional disputes, and handles complaints or appeals assigned to it by Assembly-approved rules.
 
 ### Initial jurisdiction
-- Contribution exemptions and waivers.
-- Requests to reduce or forgive an issued obligation.
-- Disputes about whether an exemption rule was correctly applied.
-- Complaints involving an Executive officer's use of authority.
-- Appeals from an initial administrative decision where the policy permits one.
+- Constitutional interpretation and disputes about the meaning or application of Assembly-approved rules.
+- Complaints alleging that an Executive officer exceeded authority or failed to implement an Assembly decision.
+- Challenges alleging procedural defects, conflicts of interest, or denial of a fair Assembly vote.
+- Appeals and disputes assigned to the Judiciary by the constitution.
+- Review of whether an Assembly decision was reached under valid notice, electorate, quorum, voting, and conflict rules. The Judiciary does not substitute its policy preference for the Assembly's decision.
 - Conflicts of interest involving an officer or adjudicator.
 
 ### Independence
@@ -79,8 +80,8 @@ The Judiciary adjudicates individual cases under the rules adopted by the Assemb
 - Decisions must identify the rule applied, the outcome, the reason, the reviewers who participated, any recusals, and the decision timestamp.
 - A decision must be recorded as an append-only case event.
 - The person affected must receive a private notice of the outcome.
-- The Judiciary may grant or deny relief only within the authority and limits established by Assembly policy.
-- Final appeals go to the Community Assembly under a defined appeal window, eligibility snapshot, quorum, and voting threshold.
+- The Judiciary cannot grant or deny the merits of an ordinary contribution exemption or waiver request; the Assembly decides those requests.
+- The Judiciary may invalidate or remit a decision only for a constitutional or procedural defect, within its defined jurisdiction. It cannot replace the Assembly's substantive decision with its own preferred outcome.
 - The Judiciary cannot execute transfers, issue receipts, edit ledger balances, or rewrite original obligations.
 
 ### Council size and terms
@@ -88,15 +89,15 @@ The Review Council should have an odd number of members to reduce deadlock. Thre
 
 ## 5. Exemptions and waivers: required workflow
 
-An exemption/waiver is an adjudicated decision, not a discretionary Treasury edit.
+An exemption/waiver is a decision of the Community Assembly, not a discretionary Executive action or a Judiciary merits decision.
 
 1. A member submits a private request against a specific campaign assessment or obligation, with a reason and any permitted supporting evidence.
 2. The system checks that the requester is entitled to submit the request and records the request without changing the obligation.
-3. The Judiciary receives the case. Conflicted reviewers are excluded and replacements are assigned under the approved rules.
-4. The Judiciary records a reasoned decision: approved, partially approved, or denied.
-5. The affected member may appeal to the Assembly within the configured appeal window.
+3. The request is placed before the Community Assembly for a direct vote. The case electorate is snapshotted at the opening of the vote; later joiners do not vote in that case.
+4. The Assembly records a reasoned outcome: approved, partially approved, or denied, with the applicable rule, vote totals, quorum result, recusals, and decision timestamp.
+5. A member may challenge the constitutionality or procedure of the vote before the Judiciary within the configured challenge period. The Judiciary reviews process and jurisdiction, not the merits of the hardship request.
 6. Once the decision is final, an authorized Executive/Treasury workflow applies the financial effect.
-7. The system records the original obligation, decision, amount relieved, actor executing the decision, journal adjustment/reversal, and audit events. The original issued snapshot and obligation remain traceable.
+7. The system records the original obligation, Assembly decision, amount relieved, actor executing the decision, journal adjustment/reversal, and audit events. The original issued snapshot and obligation remain traceable.
 
 ### Important accounting distinctions
 - **Pre-issuance exemption:** the eligible member is excluded from a future assessment only under a policy and authorization already in force. The issuance snapshot must explain the exclusion without fabricating an obligation.
@@ -109,7 +110,9 @@ An exemption/waiver is an adjudicated decision, not a discretionary Treasury edi
 - No arm may unilaterally appoint, remove, or control all members of another arm.
 - Elections and votes use electorate snapshots, one member/one vote, quorum, documented thresholds, and immutable results.
 - Privileged actions are authorized against the actor's current elected office at execution time.
-- All adjudication and financial execution are separately attributed.
+- All Assembly decisions, constitutional review, and financial execution are separately attributed.
+- Each exemption/waiver case vote uses one vote per eligible member, a fixed electorate snapshot, published notice, quorum, a defined approval threshold, and a recorded outcome.
+- A case requester or directly affected person must not be allowed to manipulate the electorate or vote where a published conflict rule requires recusal; recusal must be explicit and auditable.
 - A decision-maker cannot execute the financial adjustment they approved where separation is required; the Treasury executor applies the final decision without changing its merits.
 - A conflict or recusal must never silently reduce the required quorum. If the Judiciary cannot reach a valid quorum, the case is reassigned or escalated under a published rule.
 - The creator, ADMIN, TREASURER, and ORGANIZER receive no undocumented override.
@@ -121,13 +124,13 @@ Do not implement the Judiciary as a simple extra ADMIN/TREASURER role. It is a s
 
 Recommended sequence:
 
-1. Ratify council size, term, eligibility, election/recall, quorum, decision threshold, and appeal rules.
-2. Extend governance elections to support independent Judiciary seats without granting Executive permissions.
-3. Implement Review Council membership and case assignment with conflict/recusal handling.
-4. Implement private exemption/waiver requests and append-only adjudication events.
-5. Implement Assembly appeals using the existing election/voting foundation, with a case-specific electorate snapshot.
-6. Implement Treasury adjustment entries that apply final decisions without mutating issued obligations or posted journals.
-7. Add integration tests for conflicts, officer cases, recusals, failed quorum, appeals, idempotency, and ledger balance.
+1. Ratify the Review Council's size, term, eligibility, election/recall, quorum, and constitutional-review jurisdiction.
+2. Define case-vote notice, electorate snapshot, quorum, approval threshold, voting window, recusal rules, and tie/failed-quorum outcome for Assembly exemption/waiver votes.
+3. Extend governance elections to support independent Judiciary seats without granting Executive permissions.
+4. Implement private exemption/waiver requests and direct Assembly case votes using the existing voting foundation.
+5. Implement Judiciary review of constitutional and procedural challenges, without transferring merits decisions away from the Assembly.
+6. Implement Treasury adjustment entries that apply final Assembly decisions without mutating issued obligations or posted journals.
+7. Add integration tests for conflicts, officer cases, recusals, failed quorum, procedural challenges, idempotency, and ledger balance.
 
 ## 8. Decisions still required before code
 
@@ -138,6 +141,9 @@ Recommended sequence:
 - Recusal/replacement mechanics and what happens when quorum cannot be formed.
 - Appeal period, Assembly quorum, and appeal voting threshold.
 - Whether urgent temporary relief is permitted and who can authorize it.
-- Whether the Judiciary may grant full/partial waivers or only recommend relief to the Assembly.
+- Case-vote notice period and voting window for individual exemption/waiver requests.
+- Case-vote quorum and approval threshold; tie and failed-quorum outcome.
+- Whether the requester and directly affected officeholders may vote, and which conflicts require recusal.
+- Review Council size (three proposed), term, eligibility, quorum, and constitutional-review jurisdiction.
 
-Until these parameters are ratified, do not hard-code assumptions into the election schema or financial adjustment services.
+The Assembly's authority to decide every exemption/waiver request is settled. Do not hard-code the still-open voting thresholds, recusal rules, or Judiciary constitutional-review parameters until they are ratified.
