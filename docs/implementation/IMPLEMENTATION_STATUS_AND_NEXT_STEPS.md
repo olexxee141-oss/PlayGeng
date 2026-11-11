@@ -65,9 +65,9 @@ Repository status was checked against GitHub on November 11, 2026.
 
 Implemented through PRs #16 and #17. The three-arm constitutional direction is now documented in [Three Arms of Community Governance](../governance/THREE_ARMS_COMMUNITY_GOVERNANCE.md).
 
-**New approved direction (November 11):** community members collectively form the highest authority (Community Assembly); elected ADMIN/TREASURER/ORGANIZER officers form the Executive; and an independent, separately elected Review Council forms the Judiciary. The Review Council is intended to adjudicate individual contribution exemptions/waivers and related disputes, with final appeals to the Assembly. The creator retains one ordinary member vote and no special appointment or override power.
+**Approved direction (November 11):** community members collectively form the highest authority (Community Assembly); elected ADMIN/TREASURER/ORGANIZER officers form the Executive; and an independent, separately elected Review Council forms the Judiciary. The Assembly directly decides every individual contribution exemption/waiver request. The Judiciary handles constitutional interpretation, Executive complaints, and procedural challenges; it does not decide the merits of relief requests. The creator retains one ordinary member vote and no special appointment or override power.
 
-This is a governance direction, not yet implemented. Case-vote thresholds are ratified: the electorate is frozen when voting opens; quorum requires at least 50% of that electorate to cast a valid vote; approval requires more than 50% of valid votes cast; abstentions do not count as votes cast; a tie or failed quorum means not approved. Notice period, voting window, conflict/recusal rules, and Review Council size (three proposed), term, eligibility, election/recall mechanics, quorum, and constitutional-review procedure remain open. Do not add a generic "JUDGE" privilege to Executive authorization or implement waiver decisions until these rules are ratified.
+This is a governance direction, not yet implemented. Case-vote thresholds are ratified: the electorate is frozen when voting opens; quorum requires at least 50% of the frozen eligible electorate to cast a valid YES/NO vote; approval requires more than 50% of valid YES/NO votes cast; abstentions do not count as votes cast; a tie or failed quorum means not approved. The requester may present their case but cannot vote on their own relief. A proposed procedure (not yet ratified) sets 48 hours' notice, a 72-hour voting window, exclusion of direct material conflicts, and a fixed electorate after recusal determinations. Review Council size (three proposed), term, eligibility, election/recall mechanics, quorum, and constitutional-review procedure remain open. Do not add a generic "JUDGE" privilege to Executive authorization or implement waiver decisions until the remaining procedure is ratified.
 
 - The community creator is an immutable identity tied to `Community.ownerId`; creator identity is not an elected office.
 - ADMIN, TREASURER, and ORGANIZER are elected offices.
@@ -134,7 +134,7 @@ Current contribution delivery:
 | Campaign administration and monthly draft scheduler | Merged (#30) |
 | Atomic snapshot + obligation issuance | Merged (#31) |
 | Member history and assessment reporting | Merged (#32) |
-| Exemption/waiver authorization policy | Three-arm direction documented; Assembly case-vote thresholds ratified; notice, voting window, recusal rules, and Review Council constitutional-review parameters pending |
+| Exemption/waiver authorization policy | Three-arm direction and Assembly authority documented; vote thresholds ratified; 48-hour notice / 72-hour window and conflict rules proposed but not ratified; Judiciary parameters pending |
 | Refund workflow for settled obligations | Not implemented |
 
 ### 3.4 Current match and competition behavior
@@ -202,7 +202,7 @@ A database subledger does not itself segregate funds legally, protect community 
 2. Add database-level immutability guards for issued assessments, issued member snapshots, and campaign lifecycle events; verify direct mutation attempts fail.
 3. Expand failure-injection and concurrency coverage for issuance, scheduler retries, membership changes, and duplicate requests.
 4. Maintain the [contribution issuance operations and recovery runbook](../operations/COMMUNITY_CONTRIBUTION_ISSUANCE_RUNBOOK.md), including uncertain-response recovery, integrity checks, and reconciliation guidance.
-5. Implement Assembly case votes for exemption/waiver requests under the ratified thresholds; define notice, voting window, conflict/recusal handling (including when the Treasurer is the affected member), Judiciary procedural review, and audited Treasury adjustments without erasing original obligations.
+5. Ratify and implement Assembly case-vote procedure: 48-hour notice, 72-hour voting window, requester exclusion, direct-conflict recusal, fixed non-recused electorate, Judiciary review of disputed conflicts/procedural challenges, and audited Treasury adjustments without erasing original obligations.
 6. Add a distinct refund/reversal workflow before any settled receipt can be returned. Obligation cancellation is not a refund.
 
 ### B. Treasury operational hardening
