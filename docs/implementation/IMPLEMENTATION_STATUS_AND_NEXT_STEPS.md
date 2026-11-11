@@ -134,7 +134,7 @@ Current contribution delivery:
 | Campaign administration and monthly draft scheduler | Merged (#30) |
 | Atomic snapshot + obligation issuance | Merged (#31) |
 | Member history and assessment reporting | Merged (#32) |
-| Exemption/waiver authorization policy | Three-arm direction documented; Assembly case-voting rules and Review Council constitutional-review parameters pending |
+| Exemption/waiver authorization policy | Three-arm direction documented; Assembly case-vote thresholds ratified; notice, voting window, recusal rules, and Review Council constitutional-review parameters pending |
 | Refund workflow for settled obligations | Not implemented |
 
 ### 3.4 Current match and competition behavior
