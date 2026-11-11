@@ -286,3 +286,31 @@ test("campaign lifecycle events are append-only at the database boundary", async
     await prisma.$disconnect();
   }
 });
+
+
+test("database rejects direct issuance without a complete snapshot and obligation set", async () => {
+  const suffix = randomUUID();
+  try {
+    const fixture = await setup(suffix);
+    const assessment = await createDraft(fixture.community.id, fixture.admin.id, fixture.campaign.id, "2027-04");
+
+    await assert.rejects(
+      prisma.contributionAssessment.update({
+        where: { id: assessment.id },
+        data: {
+          status: "ISSUED",
+          issuedById: fixture.treasurer.id,
+          issuedAt: new Date(),
+        },
+      }),
+    );
+
+    const persisted = await prisma.contributionAssessment.findUniqueOrThrow({
+      where: { id: assessment.id },
+    });
+    assert.equal(persisted.status, "DRAFT");
+    assert.equal(await prisma.contributionAssessmentMember.count({ where: { assessmentId: assessment.id } }), 0);
+  } finally {
+    await prisma.$disconnect();
+  }
+});
