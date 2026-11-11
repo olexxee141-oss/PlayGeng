@@ -283,7 +283,7 @@ Do not begin match obligations, competition fees, payment-provider integration, 
 
 **Branch:** `feat/community-contribution-reporting`
 
-The read-only reporting layer is implemented independently of the still-unmerged atomic issuance work:
+The read-only reporting layer is implemented alongside the now-merged atomic issuance workflow:
 
 - `GET /api/v1/communities/:communityId/contributions/mine` returns only the authenticated user's immutable contribution snapshot rows and linked Treasury allocation totals. It does not require current community membership, so an active user retains access to their own historical records after leaving.
 - `GET /api/v1/communities/:communityId/contributions/assessments/:assessmentId/report` returns assessment metadata, snapshot count, assessed/collected/outstanding minor-unit totals, and derived status counts. Only elected ADMIN and TREASURER roles can access it.
@@ -293,4 +293,23 @@ The read-only reporting layer is implemented independently of the still-unmerged
 - An ISSUED assessment with a missing obligation link is surfaced through `counts.integrityErrors` and `totals.complete: false`; it is not silently counted as unpaid.
 - Amounts are serialized as integer minor-unit strings. Reporting pagination is bounded to 1–100 rows (default 25).
 
-This reporting layer does not repair or validate PR B. Until atomic issuance is merged, member history may be empty and draft assessments will have no issued member rows. PR C must still pass its own migration, typecheck, test, and build checks before merge.
+This reporting layer depends on the atomic issuance workflow now merged in PR #31. Issued assessments populate the immutable member snapshots and linked Treasury obligations consumed by these reports. Reporting and issuance are both on main.
+
+
+## 9. PR D — Database immutability and operational recovery
+
+**Implementation branch:** `test/community-contributions-hardening`
+
+The hardening work adds PostgreSQL enforcement for financial history:
+
+- Campaign lifecycle events reject UPDATE and DELETE.
+- Issued assessments reject all actual UPDATEs and DELETEs; a no-op update is allowed for the existing idempotent retry lock.
+- The DRAFT-to-ISSUED database guard requires at least one snapshot, every active community member to be represented, and every snapshot to link to a matching open contribution obligation in the correct community Treasury.
+- The DRAFT-to-ISSUED transition is allowed only when campaign/community identity, period, description, amount, currency, due date, and creator remain unchanged.
+- Assessment member snapshots may be inserted and linked while the assessment is DRAFT. Once issued, INSERT, UPDATE, moving a snapshot, and DELETE are rejected.
+- Integration tests exercise these database guards through Prisma, not only through service-layer validation.
+- The operational recovery procedure is documented in [Community Contribution Issuance — Operations and Recovery](../operations/COMMUNITY_CONTRIBUTION_ISSUANCE_RUNBOOK.md).
+
+The existing indexes cover the current campaign, assessment, snapshot, and event access patterns. Do not add speculative indexes; review query plans against production-like data first.
+
+These guards intentionally make issued community contribution history durable. Any future exemption, correction, or refund must be represented by a separately authorized and audited workflow; it must not mutate or erase the original assessment snapshot.

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { prisma } from "@playgeng/database";
 import * as communityDb from "../communities/communities.db.js";
-import { createAssessment, createCampaign, getAssessmentReport, issueAssessment, listMyContributionHistory } from "./contributions.service.js";
+import { createAssessment, createCampaign, getAssessmentReport, issueAssessment, listMyContributionHistory, transitionCampaign } from "./contributions.service.js";
 import { getTreasury, initializeTreasury } from "../treasury/treasury.service.js";
 
 const setup = async (suffix: string) => {
@@ -182,6 +182,134 @@ test("a membership removal racing issuance preserves the obligation only if the 
     const obligationCount = await prisma.obligation.count({ where: { memberId: fixture.member.id, sourceType: "CONTRIBUTION" } });
     assert.equal(obligationCount, snapshot ? 1 : 0);
     if (snapshot) assert.ok(snapshot.obligation);
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+
+test("issued assessments and their member snapshots are immutable at the database boundary", async () => {
+  const suffix = randomUUID();
+  try {
+    const fixture = await setup(suffix);
+    const assessment = await createDraft(fixture.community.id, fixture.admin.id, fixture.campaign.id, "2027-03");
+    await issueAssessment(fixture.community.id, fixture.treasurer.id, assessment.id);
+
+    const snapshot = await prisma.contributionAssessmentMember.findFirstOrThrow({
+      where: { assessmentId: assessment.id },
+    });
+
+    await assert.rejects(
+      prisma.contributionAssessment.update({
+        where: { id: assessment.id },
+        data: { description: "Silently altered assessment" },
+      }),
+    );
+    await assert.rejects(
+      prisma.contributionAssessment.delete({ where: { id: assessment.id } }),
+    );
+    await assert.rejects(
+      prisma.contributionAssessmentMember.update({
+        where: { id: snapshot.id },
+        data: { memberEmail: "changed@example.test" },
+      }),
+    );
+    await assert.rejects(
+      prisma.contributionAssessmentMember.delete({ where: { id: snapshot.id } }),
+    );
+
+    const lateUser = await prisma.user.create({
+      data: {
+        email: "contribution-after-issue-" + suffix + "@playgeng.test",
+        firstName: "Late",
+        lastName: "Snapshot",
+        passwordHash: "integration-test-hash",
+      },
+    });
+    await assert.rejects(
+      prisma.contributionAssessmentMember.create({
+        data: {
+          assessmentId: assessment.id,
+          memberId: lateUser.id,
+          memberRole: "MEMBER",
+          memberJoinedAt: new Date(),
+          memberFirstName: lateUser.firstName,
+          memberLastName: lateUser.lastName,
+          memberEmail: lateUser.email,
+          snapshotAt: new Date(),
+        },
+      }),
+    );
+
+    const persisted = await prisma.contributionAssessment.findUniqueOrThrow({
+      where: { id: assessment.id },
+      include: { members: true },
+    });
+    assert.equal(persisted.status, "ISSUED");
+    assert.equal(persisted.description, "Monthly community contribution");
+    assert.equal(persisted.members.length, 4);
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+test("campaign lifecycle events are append-only at the database boundary", async () => {
+  const suffix = randomUUID();
+  try {
+    const fixture = await setup(suffix);
+    await transitionCampaign(
+      fixture.community.id,
+      fixture.admin.id,
+      fixture.campaign.id,
+      "PAUSED",
+      "Pause while the community reviews the assessment schedule",
+    );
+    const event = await prisma.contributionCampaignEvent.findFirstOrThrow({
+      where: { campaignId: fixture.campaign.id, type: "PAUSED" },
+    });
+
+    await assert.rejects(
+      prisma.contributionCampaignEvent.update({
+        where: { id: event.id },
+        data: { reason: "Changed after the fact" },
+      }),
+    );
+    await assert.rejects(
+      prisma.contributionCampaignEvent.delete({ where: { id: event.id } }),
+    );
+
+    const persisted = await prisma.contributionCampaignEvent.findUniqueOrThrow({
+      where: { id: event.id },
+    });
+    assert.equal(persisted.reason, "Pause while the community reviews the assessment schedule");
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+
+test("database rejects direct issuance without a complete snapshot and obligation set", async () => {
+  const suffix = randomUUID();
+  try {
+    const fixture = await setup(suffix);
+    const assessment = await createDraft(fixture.community.id, fixture.admin.id, fixture.campaign.id, "2027-04");
+
+    await assert.rejects(
+      prisma.contributionAssessment.update({
+        where: { id: assessment.id },
+        data: {
+          status: "ISSUED",
+          issuedById: fixture.treasurer.id,
+          issuedAt: new Date(),
+        },
+      }),
+    );
+
+    const persisted = await prisma.contributionAssessment.findUniqueOrThrow({
+      where: { id: assessment.id },
+    });
+    assert.equal(persisted.status, "DRAFT");
+    assert.equal(await prisma.contributionAssessmentMember.count({ where: { assessmentId: assessment.id } }), 0);
   } finally {
     await prisma.$disconnect();
   }
