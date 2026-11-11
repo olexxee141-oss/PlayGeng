@@ -115,7 +115,7 @@ An exemption/waiver is a decision of the Community Assembly, not a discretionary
 - The requester may submit evidence and respond to questions but cannot vote on their own relief. Other members with a direct, material personal or financial interest must disclose and recuse; ordinary membership in the community is not by itself a conflict.
 - Recusals and their reasons are recorded privately. The eligible electorate and quorum denominator are frozen only after conflict declarations and any required recusal determinations are completed.
 - A decision-maker cannot execute the financial adjustment they approved where separation is required; the Treasury executor applies the final decision without changing its merits.
-- A conflict or recusal must never silently reduce the required quorum. If the Judiciary cannot reach a valid quorum, the case is reassigned or escalated under a published rule.
+- Assembly recusals may change the eligible electorate only before the electorate snapshot is frozen; the 50% quorum is then calculated against that fixed denominator and cannot be lowered after voting opens. Judiciary recusals must not silently lower its required quorum; if the Review Council cannot reach a valid quorum, the matter is reassigned or escalated under a published rule.
 - The creator, ADMIN, TREASURER, and ORGANIZER receive no undocumented override.
 - All arms remain subject to the constitution and applicable law.
 
