@@ -19,7 +19,7 @@ PlayGeng has moved beyond the initial product and community foundations. The rep
 - Community contribution campaign administration and monthly draft generation.
 - Member contribution history and assessment reporting.
 
-The immediate implementation checkpoint is **PR #31: atomic contribution assessment issuance through Treasury**. It is open, and the latest observed CI run for head `3431e4efa85ce7e241b8c136f7f5d4b3fdf20a77` completed successfully. It has not been merged.
+**PR #31: atomic contribution assessment issuance through Treasury is merged** at `bde0b87a3fff6148fad9675d0e500d1254e4d1c6`. Its CI passed on the merged head.
 
 The financial system is **not production payment/custody infrastructure yet**. Current receipt verification is manual. No payment-provider collection, provider webhook settlement, pooled custody arrangement, provider transfer execution, or withdrawal workflow is implemented.
 
@@ -48,12 +48,12 @@ Repository status was checked against GitHub on November 11, 2026.
 | #29 | Monthly assessment AUTOMATIC/MANUAL generation policy | Merged |
 | #30 | Campaign administration and monthly draft scheduler | Merged |
 | #32 | Member visibility and assessment reporting | Merged |
-| #31 | Atomic assessment issuance through Treasury | **Open; latest observed CI successful** |
+| #31 | Atomic assessment issuance through Treasury | Merged (`bde0b87`) |
 | #14 | Fixture persistence and generation | **Open; recorded CI run failed; separate older workstream** |
 
 ### Important PR dependencies and caveats
 
-- PR #31 must be reviewed and merged before treating contribution issuance as complete. CI passing is necessary, not a substitute for reviewing the transaction and membership-locking guarantees.
+- PR #31 is merged. Its issuance transaction, shared membership-boundary locking, retry handling, and integration tests are now part of `main`.
 - PR #32 is already merged, but its reporting layer does not implement or replace atomic issuance. Its own roadmap checkpoint explicitly notes that history can remain empty and draft assessments have no member obligations until PR B (#31) is merged.
 - PR #14 is not a dependency for the financial work. It is an older open fixture-persistence PR with a failed recorded CI run. Rebase/audit it and inspect its current checks before deciding whether to continue, replace, or close it. Do not merge it based on its age or previous work.
 
@@ -98,7 +98,7 @@ Implemented through PRs #19–24.
 
 ### 3.3 Community-only contributions
 
-Implemented in part through PRs #27–32, with issuance in open PR #31.
+Implemented through PRs #27–32, including atomic issuance in merged PR #31.
 
 Approved rules:
 
@@ -128,7 +128,7 @@ Current contribution delivery:
 | Implementation roadmap and test contract | Merged (#28) |
 | Monthly generation mode policy | Merged (#29) |
 | Campaign administration and monthly draft scheduler | Merged (#30) |
-| Atomic snapshot + obligation issuance | Open PR #31; CI passing on observed head |
+| Atomic snapshot + obligation issuance | Merged (#31) |
 | Member history and assessment reporting | Merged (#32) |
 | Exemption/waiver authorization policy | Not finalized |
 | Refund workflow for settled obligations | Not implemented |
@@ -194,14 +194,12 @@ A database subledger does not itself segregate funds legally, protect community 
 
 ### A. Immediate: finish community contributions
 
-1. Review PR #31's transaction and locking design, especially the shared community-row lock across issuance and membership add/remove/role changes.
-2. Verify that every membership write path uses the same serialization boundary and that tests cover concurrent join/leave versus issuance.
-3. Verify atomic rollback across snapshots, obligations, journal postings, audit events, and final ISSUED status.
-4. Verify retry behavior and integrity checks for an already-issued assessment.
-5. Review PR #31's latest CI and merge only after code review confirms the invariants.
-6. Run the full contribution workflow from campaign creation through draft generation, due-date assignment, issuance, member history, and reporting.
-7. Resolve the remaining contribution policy: who may approve exemptions/waivers/corrections, what happens when the Treasurer is the affected member, and how removal from a community affects outstanding obligations beyond the rule that they are not silently erased.
-8. Add a distinct refund/reversal workflow before any settled receipt can be returned. Obligation cancellation is not a refund.
+1. Run the full contribution workflow from campaign creation through draft generation, due-date assignment, issuance, member history, and reporting.
+2. Add database-level immutability guards for issued assessments, issued member snapshots, and campaign lifecycle events; verify direct mutation attempts fail.
+3. Expand failure-injection and concurrency coverage for issuance, scheduler retries, membership changes, and duplicate requests.
+4. Complete the contribution operational runbook, including uncertain-response recovery, integrity checks, and reconciliation guidance.
+5. Resolve exemption/waiver/correction authority, including the case where the Treasurer is the affected member, and define how removal affects outstanding obligations without erasing them.
+6. Add a distinct refund/reversal workflow before any settled receipt can be returned. Obligation cancellation is not a refund.
 
 ### B. Treasury operational hardening
 
@@ -277,8 +275,8 @@ This is the reconciled order. It intentionally avoids building payment collectio
 
 | Order | Work | Exit condition |
 |---|---|---|
-| 1 | Review and merge contribution issuance PR #31 | CI passes on current head; atomicity and concurrency invariants reviewed |
-| 2 | Finish contribution policy and workflow hardening | Exemption/waiver authority, audit, reporting, and refund boundary documented |
+| 1 | Finish contribution hardening (PR D) | Database immutability, rollback/concurrency tests, migration validation, and recovery runbook pass |
+| 2 | Resolve contribution exemption/waiver/correction authority and refund boundary | Authorized actors, affected-Treasurer handling, audit requirements, and refund/reversal lifecycle documented |
 | 3 | Finalize custody and provider feasibility | Written provider approval and Nigerian compliance review for the intended pooled model |
 | 4 | Specify and build Financial Service foundation | Authenticated service boundary, provider adapter, ledger, attribution, audit, reconciliation |
 | 5 | Implement provider collection and verified receipt flow | Idempotent provider events reconcile to one community and one ledger receipt |
@@ -310,7 +308,7 @@ If provider approval or compliance review rejects pooled custody, stop before li
 
 ## 8. Current next action
 
-**The next code action should be a focused review of PR #31, not another feature PR.** Its CI is currently successful on the observed head, but the atomic issuance and membership-locking implementation must be reviewed before merge.
+**PR #31 is merged. The next code action is PR D: Community Contributions hardening and operational readiness.** Add database-level immutability for issued assessment history, complete failure/concurrency coverage, validate migrations and generated Prisma compatibility, and document operational recovery.
 
-After that, close the remaining contribution-policy gaps and obtain a real answer on pooled custody/provider permission. Only then should we implement the separate Financial Service's live collection and withdrawal paths.
+After hardening, close the remaining contribution-policy gaps and obtain written provider permission plus Nigerian compliance review for the proposed pooled custody model. Only then should we implement live collection and withdrawal paths in the separate Financial Service.
 
