@@ -92,7 +92,7 @@ BEGIN
           o."memberId" IS DISTINCT FROM s."memberId" OR
           o."sourceType" <> 'CONTRIBUTION' OR
           o."sourceId" <> s."id" OR
-          o."idempotencyKey" <> 'contribution:' || NEW."id" || ':' || s."memberId" OR
+          o."idempotencyKey" <> ('contribution:' || NEW."id" || ':' || s."memberId") OR
           o."amountMinor" IS DISTINCT FROM NEW."amountMinor" OR
           o."dueAt" IS DISTINCT FROM NEW."dueAt" OR
           o."status" <> 'OPEN' OR
