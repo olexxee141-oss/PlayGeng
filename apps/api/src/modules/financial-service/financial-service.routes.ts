@@ -12,4 +12,5 @@ financialServiceRoutes.post("/collections", validate(createCollectionSchema), as
 
 // Temporary authenticated ingestion boundary. A provider-specific adapter will replace this
 // with signature-validated webhook handling before any live provider is enabled.
-financialServiceRoutes.post("/provider-events", validate(ingestProviderEventSchema), asyncHandler(controller.ingestProviderEvent));
+// Provider-event ingestion is intentionally not exposed through this member-authenticated router.
+// A provider-specific webhook adapter must validate authenticity before calling the service.
