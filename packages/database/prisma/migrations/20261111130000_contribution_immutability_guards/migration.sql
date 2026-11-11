@@ -30,8 +30,13 @@ BEGIN
   END IF;
 
   IF OLD."status" = 'ISSUED' THEN
-    RAISE EXCEPTION 'Issued contribution assessments are immutable.'
-      USING ERRCODE = '55000';
+    -- Issuance retries lock the assessment with a no-op UPDATE. Permit that
+    -- exact no-op while rejecting every actual mutation.
+    IF NEW IS DISTINCT FROM OLD THEN
+      RAISE EXCEPTION 'Issued contribution assessments are immutable.'
+        USING ERRCODE = '55000';
+    END IF;
+    RETURN NEW;
   END IF;
 
   -- The one permitted financial transition is DRAFT -> ISSUED. Issuance metadata
@@ -48,6 +53,56 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Assessment terms cannot change during issuance.'
       USING ERRCODE = '55000';
+  END IF;
+
+  IF NEW."status" = 'ISSUED' THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM "contribution_assessment_members" s
+      WHERE s."assessmentId" = NEW."id"
+    ) THEN
+      RAISE EXCEPTION 'An assessment cannot be issued without member snapshots.'
+        USING ERRCODE = '55000';
+    END IF;
+
+    IF EXISTS (
+      SELECT 1
+      FROM "community_members" cm
+      JOIN "users" u ON u."id" = cm."userId" AND u."status" = 'ACTIVE'
+      WHERE cm."communityId" = NEW."communityId"
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "contribution_assessment_members" s
+          WHERE s."assessmentId" = NEW."id" AND s."memberId" = cm."userId"
+        )
+    ) THEN
+      RAISE EXCEPTION 'An issued assessment must snapshot every active community member.'
+        USING ERRCODE = '55000';
+    END IF;
+
+    IF EXISTS (
+      SELECT 1
+      FROM "contribution_assessment_members" s
+      LEFT JOIN "obligations" o ON o."id" = s."obligationId"
+      LEFT JOIN "treasuries" t ON t."id" = o."treasuryId"
+      WHERE s."assessmentId" = NEW."id"
+        AND (
+          s."obligationId" IS NULL OR
+          o."id" IS NULL OR
+          o."memberId" IS DISTINCT FROM s."memberId" OR
+          o."sourceType" <> 'CONTRIBUTION' OR
+          o."sourceId" <> s."id" OR
+          o."idempotencyKey" <> 'contribution:' || NEW."id" || ':' || s."memberId" OR
+          o."amountMinor" IS DISTINCT FROM NEW."amountMinor" OR
+          o."dueAt" IS DISTINCT FROM NEW."dueAt" OR
+          o."status" <> 'OPEN' OR
+          t."communityId" IS DISTINCT FROM NEW."communityId" OR
+          t."currency" IS DISTINCT FROM NEW."currency"
+        )
+    ) THEN
+      RAISE EXCEPTION 'An issued assessment must have one valid Treasury obligation per snapshot.'
+        USING ERRCODE = '55000';
+    END IF;
   END IF;
 
   RETURN NEW;
