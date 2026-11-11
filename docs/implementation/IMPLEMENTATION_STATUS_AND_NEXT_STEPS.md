@@ -67,7 +67,7 @@ Implemented through PRs #16 and #17. The three-arm constitutional direction is n
 
 **New approved direction (November 11):** community members collectively form the highest authority (Community Assembly); elected ADMIN/TREASURER/ORGANIZER officers form the Executive; and an independent, separately elected Review Council forms the Judiciary. The Review Council is intended to adjudicate individual contribution exemptions/waivers and related disputes, with final appeals to the Assembly. The creator retains one ordinary member vote and no special appointment or override power.
 
-This is a governance direction, not yet implemented. Council size (three proposed), term, eligibility, election/recall mechanics, quorum, decision thresholds, recusal/replacement, appeal window, and urgent relief rules remain open. Do not add a generic "JUDGE" privilege to Executive authorization or implement waiver decisions until these rules are ratified.
+This is a governance direction, not yet implemented. Assembly case-vote notice, voting window, electorate, quorum, approval threshold, tie/failed-quorum outcome, and conflict/recusal rules remain open, as do Review Council size (three proposed), term, eligibility, election/recall mechanics, quorum, and constitutional-review procedure. Do not add a generic "JUDGE" privilege to Executive authorization or implement waiver decisions until these rules are ratified.
 
 - The community creator is an immutable identity tied to `Community.ownerId`; creator identity is not an elected office.
 - ADMIN, TREASURER, and ORGANIZER are elected offices.
