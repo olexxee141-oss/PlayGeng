@@ -54,7 +54,7 @@ Repository status was checked against GitHub on November 11, 2026.
 ### Important PR dependencies and caveats
 
 - PR #31 is merged. Its issuance transaction, shared membership-boundary locking, retry handling, and integration tests are now part of `main`.
-- PR #32 is already merged, but its reporting layer does not implement or replace atomic issuance. Its own roadmap checkpoint explicitly notes that history can remain empty and draft assessments have no member obligations until PR B (#31) is merged.
+- PR #32's reporting layer and PR #31's issuance workflow are both merged. Reporting now reads the immutable snapshots and Treasury allocations created by issuance.
 - PR #14 is not a dependency for the financial work. It is an older open fixture-persistence PR with a failed recorded CI run. Rebase/audit it and inspect its current checks before deciding whether to continue, replace, or close it. Do not merge it based on its age or previous work.
 
 ---
@@ -197,7 +197,7 @@ A database subledger does not itself segregate funds legally, protect community 
 1. Run the full contribution workflow from campaign creation through draft generation, due-date assignment, issuance, member history, and reporting.
 2. Add database-level immutability guards for issued assessments, issued member snapshots, and campaign lifecycle events; verify direct mutation attempts fail.
 3. Expand failure-injection and concurrency coverage for issuance, scheduler retries, membership changes, and duplicate requests.
-4. Complete the contribution operational runbook, including uncertain-response recovery, integrity checks, and reconciliation guidance.
+4. Maintain the [contribution issuance operations and recovery runbook](../operations/COMMUNITY_CONTRIBUTION_ISSUANCE_RUNBOOK.md), including uncertain-response recovery, integrity checks, and reconciliation guidance.
 5. Resolve exemption/waiver/correction authority, including the case where the Treasurer is the affected member, and define how removal affects outstanding obligations without erasing them.
 6. Add a distinct refund/reversal workflow before any settled receipt can be returned. Obligation cancellation is not a refund.
 
