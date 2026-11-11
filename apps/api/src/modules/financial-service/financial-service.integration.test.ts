@@ -11,15 +11,20 @@ test("provider settlement requires validated evidence and posts Treasury effects
     const user = await prisma.user.create({
       data: { email: `financial-${suffix}@playgeng.test`, firstName: "Financial", lastName: "Test", passwordHash: "integration-test-hash" },
     });
+    const treasurer = await prisma.user.create({
+      data: { email: `financial-treasurer-${suffix}@playgeng.test`, firstName: "Financial", lastName: "Treasurer", passwordHash: "integration-test-hash" },
+    });
     const community = await prisma.community.create({
       data: {
         name: `Financial ${suffix.slice(0, 8)}`, slug: `financial-${suffix.slice(0, 8)}`, ownerId: user.id,
-        members: { create: { userId: user.id, role: "CREATOR" } },
+        members: { create: [
+          { userId: user.id, role: "CREATOR" },
+          { userId: treasurer.id, role: "TREASURER" },
+        ] },
         sports: { create: { sport: "FOOTBALL", isPrimary: true } },
       },
     });
-    const treasuryResult = await initializeTreasury(community.id, user.id, { currency: "NGN" });
-    const treasury = treasuryResult.treasury;
+    const treasury = await initializeTreasury(community.id, treasurer.id, { currency: "NGN" });
     const provider = await prisma.financialProvider.create({ data: { code: `TEST_${suffix.slice(0, 8)}`, displayName: "Integration Test Provider" } });
     const collection = await prisma.financialCollection.create({
       data: {
