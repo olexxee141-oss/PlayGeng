@@ -134,7 +134,7 @@ Current contribution delivery:
 | Campaign administration and monthly draft scheduler | Merged (#30) |
 | Atomic snapshot + obligation issuance | Merged (#31) |
 | Member history and assessment reporting | Merged (#32) |
-| Exemption/waiver authorization policy | Three-arm direction documented; Review Council parameters and adjudication rules pending |
+| Exemption/waiver authorization policy | Three-arm direction documented; Assembly case-voting rules and Review Council constitutional-review parameters pending |
 | Refund workflow for settled obligations | Not implemented |
 
 ### 3.4 Current match and competition behavior
@@ -280,7 +280,7 @@ This is the reconciled order. It intentionally avoids building payment collectio
 | Order | Work | Exit condition |
 |---|---|---|
 | 1 | Finish contribution hardening (PR D) | Database immutability, rollback/concurrency tests, migration validation, and recovery runbook pass |
-| 2 | Ratify and implement the three-arm governance and exemption/waiver workflow | Independent Judiciary, recusal, Assembly appeals, and audited Treasury adjustment lifecycle are implemented and tested |
+| 2 | Ratify and implement the three-arm governance and exemption/waiver workflow | Direct Assembly votes on each case, Judiciary constitutional/procedural review, recusal safeguards, and audited Treasury adjustment lifecycle are implemented and tested |
 | 3 | Finalize custody and provider feasibility | Written provider approval and Nigerian compliance review for the intended pooled model |
 | 4 | Specify and build Financial Service foundation | Authenticated service boundary, provider adapter, ledger, attribution, audit, reconciliation |
 | 5 | Implement provider collection and verified receipt flow | Idempotent provider events reconcile to one community and one ledger receipt |
