@@ -42,6 +42,9 @@ BEGIN
   -- The one permitted financial transition is DRAFT -> ISSUED. Issuance metadata
   -- may be set, but the assessment terms and ownership must remain unchanged.
   IF NEW."status" = 'ISSUED' AND (
+    OLD."status" <> 'DRAFT' OR
+    NEW."issuedById" IS NULL OR
+    NEW."issuedAt" IS NULL OR
     NEW."campaignId" IS DISTINCT FROM OLD."campaignId" OR
     NEW."communityId" IS DISTINCT FROM OLD."communityId" OR
     NEW."periodKey" IS DISTINCT FROM OLD."periodKey" OR
