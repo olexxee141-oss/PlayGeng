@@ -303,7 +303,8 @@ This reporting layer depends on the atomic issuance workflow now merged in PR #3
 The hardening work adds PostgreSQL enforcement for financial history:
 
 - Campaign lifecycle events reject UPDATE and DELETE.
-- Issued assessments reject UPDATE and DELETE.
+- Issued assessments reject all actual UPDATEs and DELETEs; a no-op update is allowed for the existing idempotent retry lock.
+- The DRAFT-to-ISSUED database guard requires at least one snapshot, every active community member to be represented, and every snapshot to link to a matching open contribution obligation in the correct community Treasury.
 - The DRAFT-to-ISSUED transition is allowed only when campaign/community identity, period, description, amount, currency, due date, and creator remain unchanged.
 - Assessment member snapshots may be inserted and linked while the assessment is DRAFT. Once issued, INSERT, UPDATE, moving a snapshot, and DELETE are rejected.
 - Integration tests exercise these database guards through Prisma, not only through service-layer validation.
