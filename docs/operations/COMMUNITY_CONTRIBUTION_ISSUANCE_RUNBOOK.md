@@ -26,7 +26,8 @@ The issuance transaction is atomic. There is no supported partially issued/resum
 - Campaign lifecycle events are append-only; updates and deletes are rejected by PostgreSQL triggers.
 - An issued assessment cannot be updated or deleted.
 - Member snapshots can be created and linked while the assessment is a draft. Once the assessment is issued, inserts, updates, moves, and deletes are rejected.
-- The transition from `DRAFT` to `ISSUED` is allowed only when assessment terms remain unchanged. Issuance metadata may be set by the issuing transaction.
+- The transition from `DRAFT` to `ISSUED` is allowed only when assessment terms remain unchanged, every active community member is snapshotted, and every snapshot links to a matching open Treasury obligation with the expected community, currency, amount, due date, source, and idempotency key. Issuance metadata may be set by the issuing transaction.
+- A no-op assessment row update remains allowed because the issuance retry path uses it to acquire the assessment lock; any actual change to an issued row is rejected.
 - Do not bypass these guards with manual SQL. Corrections to financial history require a separately authorized, audited correction/reversal workflow.
 
 ## Reconciliation and incident handling
