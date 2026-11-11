@@ -79,6 +79,42 @@ enum ContributionCampaignEventType {
 
 enum ReceiptSource {
   MANUAL_RECONCILIATION
+  PROVIDER_SETTLEMENT
+}
+
+enum FinancialProviderStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum FinancialCollectionStatus {
+  CREATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum ProviderEventStatus {
+  RECEIVED
+  VALIDATED
+  REJECTED
+  PROCESSED
+  FAILED
+}
+
+enum FinancialSettlementStatus {
+  PENDING
+  SETTLED
+  FAILED
+  RECONCILIATION_REQUIRED
+}
+
+enum FinancialReconciliationStatus {
+  OPEN
+  MATCHED
+  DISCREPANCY
+  RESOLVED
 }
 
 enum UserStatus {
@@ -237,6 +273,8 @@ model User {
   verifiedReceipts PaymentReceipt[] @relation("ReceiptVerifier")
   memberReceipts PaymentReceipt[] @relation("ReceiptMember")
   createdAllocations ObligationAllocation[] @relation("AllocationActor")
+  financialCollections FinancialCollection[] @relation("FinancialCollectionMember")
+  createdFinancialCollections FinancialCollection[] @relation("FinancialCollectionCreator")
 
   @@index([status])
   @@map("users")
@@ -626,6 +664,7 @@ model Treasury {
   auditEvents FinancialAuditEvent[]
   receipts PaymentReceipt[]
   allocations ObligationAllocation[]
+  financialCollections FinancialCollection[]
   @@map("treasuries")
 }
 
@@ -714,6 +753,7 @@ model Obligation {
   @@index([treasuryId, status, dueAt])
   @@index([memberId, status])
   allocations ObligationAllocation[]
+  financialCollections FinancialCollection[]
   contributionSnapshot ContributionAssessmentMember?
   @@map("obligations")
 }
@@ -736,6 +776,7 @@ model PaymentReceipt {
   member User @relation("ReceiptMember", fields: [memberId], references: [id], onDelete: Restrict)
   verifiedBy User @relation("ReceiptVerifier", fields: [verifiedById], references: [id], onDelete: Restrict)
   allocations ObligationAllocation[]
+  providerSettlement FinancialSettlement?
   @@unique([treasuryId, externalReference])
   @@unique([treasuryId, idempotencyKey])
   @@unique([id, treasuryId, memberId])
@@ -782,6 +823,129 @@ model FinancialAuditEvent {
   @@map("financial_audit_events")
 }
 
+
+
+
+model FinancialProvider {
+  id          String                  @id @default(cuid())
+  code        String                  @unique @db.VarChar(64)
+  displayName String                  @db.VarChar(120)
+  status      FinancialProviderStatus @default(ACTIVE)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  collections FinancialCollection[]
+  events      ProviderEvent[]
+
+  @@index([status])
+  @@map("financial_providers")
+}
+
+model FinancialCollection {
+  id                   String                    @id @default(cuid())
+  providerId           String
+  treasuryId           String
+  memberId             String
+  obligationId         String?
+  amountMinor          BigInt
+  currency             String                    @db.Char(3)
+  status               FinancialCollectionStatus @default(CREATED)
+  idempotencyKey       String                    @db.VarChar(160)
+  externalReference    String?                   @db.VarChar(160)
+  providerCollectionId String?                   @db.VarChar(160)
+  createdById          String
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  provider     FinancialProvider @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  treasury     Treasury          @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  member       User              @relation("FinancialCollectionMember", fields: [memberId], references: [id], onDelete: Restrict)
+  obligation   Obligation?       @relation(fields: [obligationId], references: [id], onDelete: Restrict)
+  createdBy    User              @relation("FinancialCollectionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  events       ProviderEvent[]
+  settlement   FinancialSettlement?
+  reconciliations FinancialReconciliationRecord[]
+
+  @@unique([treasuryId, idempotencyKey])
+  @@unique([providerId, externalReference])
+  @@unique([providerId, providerCollectionId])
+  @@index([treasuryId, memberId, status, createdAt])
+  @@index([obligationId])
+  @@index([providerId, status, createdAt])
+  @@map("financial_collections")
+}
+
+model ProviderEvent {
+  id              String              @id @default(cuid())
+  providerId      String
+  collectionId    String?
+  externalEventId String              @db.VarChar(160)
+  eventType       String              @db.VarChar(120)
+  status          ProviderEventStatus @default(RECEIVED)
+  payload         Json
+  receivedAt      DateTime            @default(now())
+  validatedAt     DateTime?
+  processedAt     DateTime?
+  failureReason   String?             @db.VarChar(500)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  provider   FinancialProvider  @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  collection FinancialCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  settlement FinancialSettlement?
+
+  @@unique([providerId, externalEventId])
+  @@index([providerId, status, receivedAt])
+  @@index([collectionId, receivedAt])
+  @@map("provider_events")
+}
+
+model FinancialSettlement {
+  id                String                   @id @default(cuid())
+  collectionId      String                   @unique
+  providerEventId   String                   @unique
+  treasuryReceiptId String?                  @unique
+  status            FinancialSettlementStatus @default(PENDING)
+  amountMinor       BigInt
+  currency          String                   @db.Char(3)
+  idempotencyKey    String                   @db.VarChar(160)
+  failureReason     String?                  @db.VarChar(500)
+  settledAt         DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  collection     FinancialCollection @relation(fields: [collectionId], references: [id], onDelete: Restrict)
+  providerEvent  ProviderEvent       @relation(fields: [providerEventId], references: [id], onDelete: Restrict)
+  treasuryReceipt PaymentReceipt?    @relation(fields: [treasuryReceiptId], references: [id], onDelete: Restrict)
+  reconciliations FinancialReconciliationRecord[]
+
+  @@unique([idempotencyKey])
+  @@index([status, createdAt])
+  @@map("financial_settlements")
+}
+
+model FinancialReconciliationRecord {
+  id                  String                        @id @default(cuid())
+  collectionId        String
+  settlementId        String?
+  status              FinancialReconciliationStatus @default(OPEN)
+  expectedAmountMinor BigInt
+  observedAmountMinor BigInt?
+  currency            String                        @db.Char(3)
+  reason              String?                       @db.VarChar(500)
+  metadata            Json?
+  createdAt           DateTime                      @default(now())
+  resolvedAt          DateTime?
+  updatedAt           DateTime                      @updatedAt
+
+  collection FinancialCollection @relation(fields: [collectionId], references: [id], onDelete: Restrict)
+  settlement FinancialSettlement? @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([collectionId, createdAt])
+  @@index([settlementId])
+  @@map("financial_reconciliation_records")
+}
 
 model ContributionCampaign {
   id                   String                    @id @default(cuid())
