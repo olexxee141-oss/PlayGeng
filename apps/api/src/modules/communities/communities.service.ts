@@ -58,7 +58,10 @@ export const addMember = async (communityId: string, actorId: string, input: Add
   const existing = await db.findMembership(communityId, user.id);
   if (existing) throw new AppError("This user is already a community member.", 409);
 
-  return db.addMember(communityId, user.id, "MEMBER");
+  const result = await db.addMember(communityId, actorId, user.id, "MEMBER");
+  if (result.kind === "COMMUNITY_NOT_ACTIVE") throw new AppError("Community not found.", 404);
+  if (result.kind === "FORBIDDEN") throw new AppError("You do not have permission to add community members.", 403);
+  return result.member;
 };
 
 export const updateMemberRole = async (communityId: string, actorId: string, memberId: string, role: CommunityMemberRole) => {
@@ -80,7 +83,14 @@ export const removeMember = async (communityId: string, actorId: string, memberI
   if (target.role !== "MEMBER") {
     throw new AppError("Elected role holders must leave office through the governance removal process before membership can be removed.", 409);
   }
-  await db.removeMember(communityId, memberId);
+  const result = await db.removeMember(communityId, actorId, memberId);
+  if (result.kind === "COMMUNITY_NOT_ACTIVE") throw new AppError("Community not found.", 404);
+  if (result.kind === "FORBIDDEN") throw new AppError("You do not have permission to remove community members.", 403);
+  if (result.kind === "NOT_FOUND") throw new AppError("Community member not found.", 404);
+  if (result.kind === "CREATOR") throw new AppError("The community creator cannot be removed.", 400);
+  if (result.kind === "OFFICE_HOLDER") {
+    throw new AppError("Elected role holders must leave office through the governance removal process before membership can be removed.", 409);
+  }
 };
 
 const requirePrivilegedMembership = async (communityId: string, userId: string) =>

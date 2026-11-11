@@ -115,7 +115,9 @@ Acceptance criteria:
 
 ### PR B — Atomic assessment issuance through Treasury
 
-**Proposed branch:** `feat/community-contribution-issuance`  
+**Branch:** `feat/community-contribution-issuance`
+
+**Implementation contract:** issuance, membership joins/leaves, and elected-role assignment serialize on the community row. Membership and governance transactions retry serialization conflicts. The assessment row is then locked; each snapshot receives one linked Treasury obligation through the transaction-aware Treasury primitive; `ISSUED` is the final write. Retried issuance verifies every snapshot-to-obligation link and immutable financial term before returning success. Any mismatch is an integrity failure, not a successful retry.  
 **Depends on:** PR A
 
 This is the financial-critical workstream. Before issuing any assessment, inspect and explicitly address membership write paths and transaction isolation.

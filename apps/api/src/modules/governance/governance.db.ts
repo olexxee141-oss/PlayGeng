@@ -4,11 +4,11 @@ import { resolveElectionOutcome } from "./governance.policy.js";
 const isSerializationConflict = (error: unknown): boolean => {
   if (typeof error !== "object" || error === null) return false;
   if ("code" in error && error.code === "P2034") return true;
-  if ("cause" in error) {
-    const cause = error.cause;
-    if (typeof cause === "object" && cause !== null && "originalCode" in cause && cause.originalCode === "40001") return true;
-    return isSerializationConflict(cause);
-  }
+  if ("meta" in error && typeof error.meta === "object" && error.meta !== null &&
+    "code" in error.meta && String(error.meta.code) === "40001") return true;
+  if ("message" in error && typeof error.message === "string" &&
+    /could not serialize access|serialization failure|code:\s*\x6040001\x60/i.test(error.message)) return true;
+  if ("cause" in error) return isSerializationConflict(error.cause);
   return false;
 };
 
@@ -114,6 +114,17 @@ export const listElections = (communityId: string) =>
 
 export const syncElection = (electionId: string, now: Date) =>
   withSerializableTransaction(async (tx) => {
+    // Share the community membership boundary lock with contribution issuance,
+    // joins, leaves, and role mutations.
+    const communityLock = await tx.$queryRaw<Array<{ id: string }>>`
+      UPDATE "communities" SET "updatedAt" = "updatedAt"
+      WHERE "id" = (
+        SELECT "communityId" FROM "community_elections" WHERE "id" = ${electionId}
+      )
+      RETURNING "id"
+    `;
+    if (communityLock.length !== 1) return null;
+
     const election = await tx.communityElection.findUnique({
       where: { id: electionId },
       include: {
