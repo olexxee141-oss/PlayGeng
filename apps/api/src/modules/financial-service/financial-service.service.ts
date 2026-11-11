@@ -110,3 +110,26 @@ export const listMyCollections = async (communityId: string, userId: string) => 
   if (!treasury) throw new AppError("Community treasury has not been initialized.", 404);
   return (await db.listCollections(treasury.id, userId)).map(presentCollection);
 };
+
+
+/**
+ * Internal adapter boundary. A provider webhook must validate authenticity before
+ * calling this function. It is intentionally not exposed through member routes.
+ */
+export const settleVerifiedProviderEvent = async (input: {
+  providerCode: string;
+  externalEventId: string;
+  systemActorId: string;
+}) => {
+  const provider = await db.findProviderByCode(input.providerCode);
+  if (!provider) throw new AppError("Requested financial provider is not configured.", 404);
+
+  const result = await db.settleVerifiedEvent({
+    providerId: provider.id,
+    externalEventId: input.externalEventId,
+    systemActorId: input.systemActorId,
+  });
+
+  if (result.kind === "EVENT_NOT_FOUND") throw new AppError("Provider event not found.", 404);
+  return result;
+};
