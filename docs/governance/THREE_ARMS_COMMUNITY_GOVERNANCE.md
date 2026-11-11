@@ -84,8 +84,16 @@ The Judiciary is an independent constitutional-review and dispute-resolution arm
 - The Judiciary may invalidate or remit a decision only for a constitutional or procedural defect, within its defined jurisdiction. It cannot replace the Assembly's substantive decision with its own preferred outcome.
 - The Judiciary cannot execute transfers, issue receipts, edit ledger balances, or rewrite original obligations.
 
-### Council size and terms
-The Review Council should have an odd number of members to reduce deadlock. Three members is the proposed initial size, but the exact number, term length, replacement procedure, and decision threshold must be ratified before implementation.
+### Council composition and terms — ratified November 11, 2026
+- Three elected Review Council members and two ranked elected alternates, elected directly by the Community Assembly.
+- Alternates substitute for recused, unavailable, or removed members and have no case-decision authority unless substituted.
+- Council members and alternates cannot simultaneously hold Executive office. The creator and Executive have no appointment, removal, or veto power over Council membership.
+- Candidates must be active members in good standing and disclose material conflicts and relevant disciplinary restrictions.
+- Terms are 12 months, with a maximum of two consecutive full terms.
+- Vacancies are filled by the highest-ranked eligible alternate who accepts and remains conflict-free; otherwise, a by-election is held.
+- The Assembly may recall a Council member under established notice, frozen-electorate, quorum, and majority safeguards.
+- Case quorum is two of three assigned conflict-free reviewers. A binding decision requires at least two affirmative votes; if only two are eligible, both must agree.
+- The full ratified charter, including jurisdiction, remedies, seven-day challenge period, appeals, interim relief, and transitional rules, is maintained in [Community Review Council Charter](PROPOSED_REVIEW_COUNCIL_CHARTER.md).
 
 ## 5. Exemptions and waivers: required workflow
 
@@ -125,7 +133,7 @@ Do not implement the Judiciary as a simple extra ADMIN/TREASURER role. It is a s
 
 Recommended sequence:
 
-1. Ratify the Review Council's size, term, eligibility, election/recall, quorum, and constitutional-review jurisdiction.
+1. **Completed:** the Review Council charter was ratified on November 11, 2026; implement its election, membership, case assignment, recusal, decision, appeal, interim-relief, and audit rules.
 2. Implement the ratified case procedure: at least 48 hours' notice before opening; a 72-hour voting window; frozen non-recused electorate; at least 50% participation quorum; more than 50% approval among valid votes cast; abstentions excluded; requester excluded from voting; direct material conflicts disclosed and recused; tie or failed quorum means not approved.
 3. Extend governance elections to support independent Judiciary seats without granting Executive permissions.
 4. Implement private exemption/waiver requests and direct Assembly case votes using the existing voting foundation.
@@ -133,7 +141,7 @@ Recommended sequence:
 6. Implement Treasury adjustment entries that apply final Assembly decisions without mutating issued obligations or posted journals.
 7. Add integration tests for conflicts, officer cases, recusals, failed quorum, procedural challenges, idempotency, and ledger balance.
 
-## 8. Decisions still required before code
+## 8. Ratified governance rules and implementation requirements
 
 ### Ratified case-vote rules
 - The electorate is frozen when voting opens, after applicable recusal determinations.
@@ -153,12 +161,13 @@ Recommended sequence:
 - **Disputed conflicts:** do not let the requester, subject, or a conflicted officer decide the dispute. Pause the vote until an independent, conflict-free authority can determine eligibility under the ratified procedure.
 - **Privacy:** publish the request summary and relevant decision grounds needed for a fair vote, but restrict medical, financial, identity, and other sensitive evidence to authorized reviewers. Members should vote on the relief request, not receive unnecessary private documents.
 
-### Judiciary parameters still required
-- Review Council size (three proposed), term length, and staggered or simultaneous elections.
-- Eligibility and disqualification rules for Judiciary candidates.
-- Quorum and decision threshold for Judiciary case decisions.
-- Recusal/replacement mechanics and what happens when Judiciary quorum cannot be formed.
-- Appeal/challenge period, scope, and whether a successful challenge remits the matter for a fresh Assembly vote.
-- Whether urgent temporary relief is permitted and who can authorize it.
+### Ratified Review Council charter
+- Three elected Council members and two ranked elected alternates; independent Assembly election; no concurrent Executive office.
+- Active-member-in-good-standing eligibility, required disclosures, 12-month terms, and a two-consecutive-full-term limit.
+- Alternate substitution, by-election fallback, and Assembly recall under established voting safeguards.
+- Two-of-three conflict-free panel quorum and at least two affirmative votes for a binding decision; unanimity if only two are eligible.
+- Jurisdiction over constitutional interpretation, Executive complaints, procedural challenges, and disputed recusals; no merits decision on individual contribution relief.
+- Limited remedies, seven-calendar-day challenge period, defined appeal boundaries, narrow time-limited interim relief, and pending-case transitional rule.
+- The full operative detail is in [Community Review Council Charter](PROPOSED_REVIEW_COUNCIL_CHARTER.md).
 
-The Assembly's authority to decide every exemption/waiver request and the case-vote thresholds are settled. The notice period, voting window, conflict determination, recusal process, and privacy safeguards in this section are ratified policy and must be implemented as written. Any future change requires an explicit Assembly-approved policy amendment.
+The Assembly's authority to decide every exemption/waiver request, the case-vote thresholds and procedure, and the Review Council charter are ratified policy and must be implemented as written. Any future change requires an explicit Assembly-approved policy amendment.
