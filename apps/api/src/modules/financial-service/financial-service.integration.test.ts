@@ -18,7 +18,8 @@ test("provider settlement requires validated evidence and posts Treasury effects
         sports: { create: { sport: "FOOTBALL", isPrimary: true } },
       },
     });
-    const treasury = await initializeTreasury(community.id, user.id, { currency: "NGN" });
+    const treasuryResult = await initializeTreasury(community.id, user.id, { currency: "NGN" });
+    const treasury = treasuryResult.treasury;
     const provider = await prisma.financialProvider.create({ data: { code: `TEST_${suffix.slice(0, 8)}`, displayName: "Integration Test Provider" } });
     const collection = await prisma.financialCollection.create({
       data: {
