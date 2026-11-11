@@ -67,7 +67,7 @@ Implemented through PRs #16 and #17. The three-arm constitutional direction is n
 
 **Approved direction (November 11):** community members collectively form the highest authority (Community Assembly); elected ADMIN/TREASURER/ORGANIZER officers form the Executive; and an independent, separately elected Review Council forms the Judiciary. The Assembly directly decides every individual contribution exemption/waiver request. The Judiciary handles constitutional interpretation, Executive complaints, and procedural challenges; it does not decide the merits of relief requests. The creator retains one ordinary member vote and no special appointment or override power.
 
-This is a governance direction, not yet implemented. Case-vote thresholds are ratified: the electorate is frozen when voting opens; quorum requires at least 50% of the frozen eligible electorate to cast a valid YES/NO vote; approval requires more than 50% of valid YES/NO votes cast; abstentions do not count as votes cast; a tie or failed quorum means not approved. The requester may present their case but cannot vote on their own relief. The ratified procedure requires 48 hours' notice, a 72-hour voting window, requester exclusion from voting, disclosure and recusal for direct material conflicts, and a fixed electorate after recusal determinations. Sensitive evidence remains restricted; the Assembly receives only information needed for a fair decision. Review Council size (three proposed), term, eligibility, election/recall mechanics, quorum, and constitutional-review procedure remain open. Do not add a generic "JUDGE" privilege to Executive authorization or implement waiver decisions until the remaining procedure is ratified.
+This is a governance direction, not yet implemented. Case-vote thresholds are ratified: the electorate is frozen when voting opens; quorum requires at least 50% of the frozen eligible electorate to cast a valid YES/NO vote; approval requires more than 50% of valid YES/NO votes cast; abstentions do not count as votes cast; a tie or failed quorum means not approved. The requester may present their case but cannot vote on their own relief. The ratified procedure requires 48 hours' notice, a 72-hour voting window, requester exclusion from voting, disclosure and recusal for direct material conflicts, and a fixed electorate after recusal determinations. Sensitive evidence remains restricted; the Assembly receives only information needed for a fair decision. The Review Council charter was ratified on November 11, 2026: three elected members plus two ranked alternates; 12-month terms and a two-consecutive-term limit; independent Assembly election; no concurrent Executive office; defined vacancy/recall and recusal rules; two-of-three conflict-free quorum and two affirmative votes for binding decisions; constitutional/procedural jurisdiction; seven-day challenge period; limited appeals and urgent relief. Do not add a generic "JUDGE" privilege to Executive authorization.
 
 - The community creator is an immutable identity tied to `Community.ownerId`; creator identity is not an elected office.
 - ADMIN, TREASURER, and ORGANIZER are elected offices.
@@ -134,7 +134,7 @@ Current contribution delivery:
 | Campaign administration and monthly draft scheduler | Merged (#30) |
 | Atomic snapshot + obligation issuance | Merged (#31) |
 | Member history and assessment reporting | Merged (#32) |
-| Exemption/waiver authorization policy | Three-arm direction and Assembly authority documented; vote thresholds ratified; 48-hour notice / 72-hour window, requester exclusion, direct-conflict recusal and privacy safeguards ratified; Judiciary parameters pending |
+| Exemption/waiver authorization policy | Assembly authority and case-vote rules ratified; Review Council charter ratified November 11, 2026; implementation pending |
 | Refund workflow for settled obligations | Not implemented |
 
 ### 3.4 Current match and competition behavior
@@ -280,7 +280,7 @@ This is the reconciled order. It intentionally avoids building payment collectio
 | Order | Work | Exit condition |
 |---|---|---|
 | 1 | Finish contribution hardening (PR D) | Database immutability, rollback/concurrency tests, migration validation, and recovery runbook pass |
-| 2 | Ratify and implement the three-arm governance and exemption/waiver workflow | Direct Assembly votes on each case, Judiciary constitutional/procedural review, recusal safeguards, and audited Treasury adjustment lifecycle are implemented and tested |
+| 2 | Implement the ratified three-arm governance and exemption/waiver workflow | Independent Review Council elections, direct Assembly case votes, procedural review, recusal safeguards, and audited Treasury adjustment lifecycle are implemented and tested |
 | 3 | Finalize custody and provider feasibility | Written provider approval and Nigerian compliance review for the intended pooled model |
 | 4 | Specify and build Financial Service foundation | Authenticated service boundary, provider adapter, ledger, attribution, audit, reconciliation |
 | 5 | Implement provider collection and verified receipt flow | Idempotent provider events reconcile to one community and one ledger receipt |
