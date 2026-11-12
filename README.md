@@ -22,6 +22,7 @@ The product starts with football, inspired by the real-world problem of groups o
 - [System Architecture](#system-architecture)
 - [Implementation Phases](#implementation-phases)
 - [Community Contributions Implementation Plan](docs/implementation/COMMUNITY_CONTRIBUTIONS_README.md)
+- [Community Governance Implementation Plan](docs/implementation/COMMUNITY_GOVERNANCE_IMPLEMENTATION_README.md)
 - [Reconciled Implementation Status and Remaining Work](docs/implementation/IMPLEMENTATION_STATUS_AND_NEXT_STEPS.md)
 - [MVP Scope](#mvp-scope)
 - [Data Model](#data-model)
@@ -1571,7 +1572,7 @@ FINANCE, PAYMENTS, NOTIFICATIONS & EXPANSION
 
 # Current Status
 
-**Current delivery status (November 2026)**
+**Current delivery status (November 12, 2026)**
 
 - Phase 1 — Foundation: merged.
 - Phase 2 — Authentication: merged.
@@ -1580,7 +1581,7 @@ FINANCE, PAYMENTS, NOTIFICATIONS & EXPANSION
 - Phase 5 — Community sports, teams and rosters: merged.
 - Phase 6 — Sport capability and result contracts: merged (PR #8).
 - Phase 7 — Competition and participant foundation: merged (PR #10 and PR #11).
-- Phase 8 — Scheduling, fixtures and results: in progress (deterministic schedulers merged in PR #13; schedule persistence and generation API in progress).
+- Phase 8 — Scheduling and fixture persistence: merged (PR #13 deterministic schedulers; PR #14 persisted schedules, fixtures, seeding and idempotent generation). Result workflows remain outstanding.
 
 ### What was established in Phase 6
 
@@ -1637,11 +1638,11 @@ Required tests cover cross-community access, invalid participant type/sport comb
 
 ### Phase 8 — Scheduling, Fixtures and Results
 
-Phase 8 now has pure deterministic schedulers (PR #13) and is adding competition-scoped schedule/fixture persistence. Round-robin uses the circle method; knockout uses standard seed placement and produces only the first round with explicit byes. Both consume generic CompetitionEntry IDs. The schedule API stores algorithm version and participant order, inserts fixtures and moves the competition to IN_PROGRESS atomically, resolves pending invitations, and returns the existing schedule on repeated generation. Pending registrations must be resolved before generation; explicit seeds can be assigned after registration closes and before schedule creation. The contract is documented in docs/architecture/DETERMINISTIC_SCHEDULING.md. Result approval, knockout advancement and standings remain separate work. Do not copy newDelyx's player-centric fixture schema or randomized shuffle implementation.
+Phase 8 has pure deterministic schedulers (PR #13) and persisted competition-scoped schedules/fixtures (PR #14). Round-robin uses the circle method; knockout uses standard seed placement and produces only the first round with explicit byes. Both consume generic CompetitionEntry IDs. The schedule API stores algorithm version and participant order, inserts fixtures and moves the competition to IN_PROGRESS atomically, resolves pending invitations, and returns the existing schedule on repeated generation. Pending registrations must be resolved before generation; explicit seeds can be assigned after registration closes and before schedule creation. The contract is documented in docs/architecture/DETERMINISTIC_SCHEDULING.md. Result submission/approval, disputes, evidence, knockout advancement, standings, venue/time scheduling, and statistics remain separate work. Do not copy newDelyx's player-centric fixture schema or randomized shuffle implementation.
 
 ### Session checkpoint — November 9, 2026
 
-Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is complete: PR #10 merged competition/entry persistence, registration, approval, withdrawal, lifecycle and PostgreSQL integration coverage; PR #11 merged invite-only invitations for individual players and team captains, including expiry, authorization, and capacity-safe acceptance. Email/push invitation delivery is deferred to the notifications phase. Phase 8 is in progress: PR #13 merged deterministic generic round-robin and knockout engines; the next slice adds persisted schedules, fixtures, seeding and idempotent generation. Results, knockout progression and standings remain gated behind this persistence layer. Use the newDelyx audit as design input, not as code to copy.
+Phase 6 is merged and the newDelyx reuse audit is documented in that repository. Phase 7 is complete: PR #10 merged competition/entry persistence, registration, approval, withdrawal, lifecycle and PostgreSQL integration coverage; PR #11 merged invite-only invitations for individual players and team captains, including expiry, authorization, and capacity-safe acceptance. Email/push invitation delivery is deferred to the notifications phase. Phase 8 schedule persistence is now merged in PR #14. The next competition slice is result submission and approval, with disputes/evidence and knockout advancement designed as separate workflows. Standings and statistics follow only after approved result semantics are stable. Use the newDelyx audit as design input, not as code to copy.
 
 ---
 
