@@ -63,13 +63,21 @@ export const settleVerifiedEvent = (input: { providerId: string; externalEventId
       include: { collection: { include: { treasury: { include: { accounts: true } } } } },
     });
     if (!event) return { kind: "EVENT_NOT_FOUND" as const };
+
+    // Idempotency takes precedence over lifecycle state because a successful settlement
+    // marks the event PROCESSED. Retrying the same verified event must return EXISTS,
+    // not EVENT_NOT_VALIDATED.
+    const existing = await tx.financialSettlement.findUnique({
+      where: { providerEventId: event.id },
+      include: { treasuryReceipt: true },
+    });
+    if (existing) return { kind: "EXISTS" as const, settlement: existing };
+
     if (!event.collection) return { kind: "UNMATCHED_EVENT" as const, event };
     if (event.status === "REJECTED") return { kind: "EVENT_REJECTED" as const, event };
     if (event.status !== "VALIDATED") return { kind: "EVENT_NOT_VALIDATED" as const, event };
 
     const collection = event.collection;
-    const existing = await tx.financialSettlement.findUnique({ where: { providerEventId: event.id }, include: { treasuryReceipt: true } });
-    if (existing) return { kind: "EXISTS" as const, settlement: existing };
 
     const payload = event.payload as Record<string, unknown>;
     const amountValue = payload.amountMinor;
