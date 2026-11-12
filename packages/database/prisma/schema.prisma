@@ -221,6 +221,7 @@ model User {
   teamMemberships         TeamMember[]
   createdTeams            Team[]                 @relation("TeamCreator")
   createdCompetitions     Competition[]          @relation("CompetitionCreator")
+  createdCompetitionSchedules CompetitionSchedule[] @relation("CompetitionScheduleCreator")
   reviewedCompetitionEntries CompetitionEntry[]   @relation("CompetitionEntryReviewer")
   competitionEntries        CompetitionEntry[]   @relation("CompetitionPlayer")
   sentCompetitionInvitations CompetitionInvitation[] @relation("CompetitionInvitationSender")
@@ -518,6 +519,59 @@ model CompetitionEntry {
   @@index([competitionId, status, registeredAt])
   @@index([communityId, playerUserId])
   @@map("competition_entries")
+}
+
+
+model CompetitionSchedule {
+  id               String             @id @default(cuid())
+  competitionId    String             @unique
+  createdById      String
+  format           CompetitionFormat
+  algorithmVersion String             @db.VarChar(32)
+  participantCount Int
+  roundCount       Int
+  fixtureCount     Int
+  matchCount       Int
+  byeCount         Int
+  orderedEntryIds  Json
+  generatedAt      DateTime           @default(now())
+  createdAt        DateTime           @default(now())
+
+  competition Competition          @relation(fields: [competitionId, format], references: [id, format], onDelete: Cascade)
+  createdBy   User                 @relation("CompetitionScheduleCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  fixtures    CompetitionFixture[]
+
+  @@unique([competitionId, format])
+  @@unique([id, competitionId])
+  @@map("competition_schedules")
+}
+
+model CompetitionFixture {
+  id                  String                   @id @default(cuid())
+  scheduleId          String
+  competitionId       String
+  roundNumber         Int
+  fixtureNumber       Int
+  participantAEntryId String
+  participantBEntryId String?
+  winnerEntryId       String?
+  byeAdvances         Boolean                  @default(false)
+  status              CompetitionFixtureStatus @default(SCHEDULED)
+  scheduledAt         DateTime?
+  venue               String?                  @db.VarChar(200)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  schedule     CompetitionSchedule @relation(fields: [scheduleId, competitionId], references: [id, competitionId], onDelete: Cascade)
+  competition  Competition         @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  participantA CompetitionEntry    @relation("FixtureParticipantA", fields: [participantAEntryId, competitionId], references: [id, competitionId], onDelete: Cascade)
+  participantB CompetitionEntry?   @relation("FixtureParticipantB", fields: [participantBEntryId, competitionId], references: [id, competitionId], onDelete: Cascade)
+  winner       CompetitionEntry?   @relation("FixtureWinner", fields: [winnerEntryId, competitionId], references: [id, competitionId], onDelete: Cascade)
+
+  @@unique([scheduleId, roundNumber, fixtureNumber])
+  @@index([competitionId, roundNumber, fixtureNumber])
+  @@index([competitionId, status])
+  @@map("competition_fixtures")
 }
 
 
