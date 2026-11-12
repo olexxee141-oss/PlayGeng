@@ -1,8 +1,7 @@
 import { AppError } from "../../shared/errors/app-error.js";
 import * as db from "./matches.db.js";
+import { requireCommunityPermission } from "../../shared/authorization/community-permissions.js";
 import type { AttendanceInput, CreateMatchInput, UpdateMatchInput } from "./matches.validator.js";
-
-const managerRoles = new Set(["OWNER", "ADMIN", "ORGANIZER"]);
 
 const requireMembership = async (communityId: string, userId: string) => {
   const membership = await db.findMembership(communityId, userId);
@@ -11,9 +10,7 @@ const requireMembership = async (communityId: string, userId: string) => {
 };
 
 const requireManager = async (communityId: string, userId: string) => {
-  const membership = await requireMembership(communityId, userId);
-  if (!managerRoles.has(membership.role)) throw new AppError("You do not have permission to manage matches.", 403);
-  return membership;
+  await requireCommunityPermission(communityId, userId, "MANAGE_MATCHES", "You do not have permission to manage matches.");
 };
 
 const requireActiveCommunity = async (communityId: string) => {

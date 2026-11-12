@@ -7,6 +7,80 @@ datasource db {
   provider = "postgresql"
 }
 
+
+enum TreasuryAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+enum JournalTransactionType {
+  OPENING_BALANCE
+  OBLIGATION_ISSUED
+  PAYMENT_RECEIVED
+  CONTRIBUTION_RECEIVED
+  EXPENSE_PAID
+  REFUND
+  ADJUSTMENT
+  REVERSAL
+}
+enum JournalTransactionStatus {
+  DRAFT
+  POSTED
+}
+enum LedgerPostingSide {
+  DEBIT
+  CREDIT
+}
+enum ObligationSourceType {
+  CONTRIBUTION
+  MATCH_FEE
+  COMPETITION_FEE
+  OTHER
+}
+enum ObligationStatus {
+  OPEN
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum ContributionFrequency {
+  ONE_OFF
+  MONTHLY
+}
+
+enum ContributionAssessmentGenerationMode {
+  AUTOMATIC
+  MANUAL
+}
+
+enum ContributionCampaignStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+  CANCELLED
+}
+
+enum ContributionAssessmentStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+
+enum ContributionCampaignEventType {
+  PAUSED
+  RESUMED
+  ENDED
+  CANCELLED
+}
+
+enum ReceiptSource {
+  MANUAL_RECONCILIATION
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -33,11 +107,26 @@ enum MatchParticipantStatus {
 }
 
 enum CommunityMemberRole {
-  OWNER
+  CREATOR
   ADMIN
   TREASURER
   ORGANIZER
   MEMBER
+}
+
+enum ElectionRole {
+  ADMIN
+  TREASURER
+  ORGANIZER
+}
+
+enum ElectionStatus {
+  NOMINATIONS_OPEN
+  NOMINATIONS_CLOSED
+  VOTING_OPEN
+  COMPLETED
+  FAILED
+  CANCELLED
 }
 
 enum Sport {
@@ -137,7 +226,25 @@ model User {
   sentCompetitionInvitations CompetitionInvitation[] @relation("CompetitionInvitationSender")
   receivedCompetitionInvitations CompetitionInvitation[] @relation("CompetitionInvitationRecipient")
   invitedPlayerCompetitionInvitations CompetitionInvitation[] @relation("CompetitionInvitationPlayer")
-  createdCompetitionSchedules CompetitionSchedule[] @relation("CompetitionScheduleCreator")
+  createdCommunityElections CommunityElection[] @relation("ElectionCreator")
+  wonCommunityElections CommunityElection[] @relation("ElectionWinner")
+  eligibleElectionVotes ElectionEligibleVoter[]
+  electionNominations ElectionNomination[]
+  electionBallots ElectionBallot[] @relation("ElectionVoter")
+  createdTreasuries Treasury[] @relation("TreasuryCreator")
+  createdJournalTransactions JournalTransaction[] @relation("JournalActor")
+  createdObligations Obligation[] @relation("ObligationActor")
+  memberObligations Obligation[] @relation("ObligationMember")
+  createdContributionCampaigns ContributionCampaign[] @relation("ContributionCampaignCreator")
+  contributionCampaignEvents ContributionCampaignEvent[]
+  createdContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentCreator")
+  issuedContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentIssuer")
+  cancelledContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentCanceller")
+  contributionAssessmentSnapshots ContributionAssessmentMember[]
+  financialAuditEvents FinancialAuditEvent[] @relation("FinancialAuditActor")
+  verifiedReceipts PaymentReceipt[] @relation("ReceiptVerifier")
+  memberReceipts PaymentReceipt[] @relation("ReceiptMember")
+  createdAllocations ObligationAllocation[] @relation("AllocationActor")
 
   @@index([status])
   @@map("users")
@@ -195,6 +302,7 @@ model Community {
   description String?         @db.VarChar(1000)
   sport       String          @default("FOOTBALL") @db.VarChar(50)
   status      CommunityStatus @default(ACTIVE)
+  timezone    String          @default("UTC") @db.VarChar(64)
   ownerId     String
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
@@ -207,6 +315,10 @@ model Community {
   competitions Competition[]
   competitionEntries CompetitionEntry[]
   competitionInvitations CompetitionInvitation[]
+  elections CommunityElection[]
+  treasury Treasury?
+  contributionCampaigns ContributionCampaign[]
+  contributionAssessments ContributionAssessment[]
 
   @@index([ownerId])
   @@index([status])
@@ -437,54 +549,348 @@ model CompetitionInvitation {
 }
 
 
-model CompetitionSchedule {
-  id               String          @id @default(cuid())
-  competitionId    String          @unique
-  createdById      String
-  format           CompetitionFormat
-  algorithmVersion String          @db.VarChar(32)
-  participantCount Int
-  roundCount       Int
-  fixtureCount     Int
-  matchCount       Int
-  byeCount         Int
-  orderedEntryIds  Json
-  generatedAt      DateTime        @default(now())
-  createdAt        DateTime        @default(now())
+model CommunityElection {
+  id                 String         @id @default(cuid())
+  communityId        String
+  role               ElectionRole
+  status             ElectionStatus @default(NOMINATIONS_OPEN)
+  createdById        String
+  nominationsCloseAt DateTime
+  votingOpensAt      DateTime
+  votingClosesAt     DateTime
+  quorumPercent      Int
+  eligibleVoterCount Int
+  votesCast          Int            @default(0)
+  winnerId           String?
+  failureReason      String?        @db.VarChar(300)
+  completedAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
-  competition Competition @relation(fields: [competitionId, format], references: [id, format], onDelete: Cascade)
-  createdBy   User        @relation("CompetitionScheduleCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  fixtures    CompetitionFixture[]
+  community  Community             @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy  User                  @relation("ElectionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  winner     User?                 @relation("ElectionWinner", fields: [winnerId], references: [id], onDelete: Restrict)
+  electorate ElectionEligibleVoter[]
+  nominations ElectionNomination[]
+  ballots    ElectionBallot[]
 
-  @@unique([id, competitionId])
-  @@unique([competitionId, format])
-  @@map("competition_schedules")
+  @@index([communityId, status, role])
+  @@index([communityId, createdAt])
+  @@map("community_elections")
 }
 
-model CompetitionFixture {
-  id                    String                  @id @default(cuid())
-  scheduleId            String
-  competitionId         String
-  roundNumber           Int
-  fixtureNumber         Int
-  participantAEntryId   String
-  participantBEntryId   String?
-  winnerEntryId         String?
-  byeAdvances           Boolean                 @default(false)
-  status                CompetitionFixtureStatus @default(SCHEDULED)
-  scheduledAt           DateTime?
-  venue                 String?                 @db.VarChar(200)
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
+model ElectionEligibleVoter {
+  id         String   @id @default(cuid())
+  electionId String
+  userId     String
+  snapshotAt DateTime @default(now())
 
-  schedule      CompetitionSchedule @relation(fields: [scheduleId, competitionId], references: [id, competitionId], onDelete: Cascade)
-  competition   Competition         @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  participantA  CompetitionEntry    @relation("FixtureParticipantA", fields: [participantAEntryId, competitionId], references: [id, competitionId], onDelete: Cascade)
-  participantB  CompetitionEntry?   @relation("FixtureParticipantB", fields: [participantBEntryId, competitionId], references: [id, competitionId], onDelete: Cascade)
-  winner        CompetitionEntry?   @relation("FixtureWinner", fields: [winnerEntryId, competitionId], references: [id, competitionId], onDelete: Cascade)
+  election CommunityElection @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([scheduleId, roundNumber, fixtureNumber])
-  @@index([competitionId, roundNumber, fixtureNumber])
-  @@index([competitionId, status])
-  @@map("competition_fixtures")
+  @@unique([electionId, userId])
+  @@index([userId, electionId])
+  @@map("election_eligible_voters")
+}
+
+model ElectionNomination {
+  id          String    @id @default(cuid())
+  electionId  String
+  userId      String
+  createdAt   DateTime  @default(now())
+  withdrawnAt DateTime?
+
+  election CommunityElection @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ballots  ElectionBallot[]
+
+  @@unique([electionId, userId])
+  @@unique([id, electionId])
+  @@index([electionId, withdrawnAt])
+  @@map("election_nominations")
+}
+
+model ElectionBallot {
+  id          String   @id @default(cuid())
+  electionId  String
+  voterId     String
+  candidateId String
+  castAt      DateTime @default(now())
+
+  election CommunityElection @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  voter    User              @relation("ElectionVoter", fields: [voterId], references: [id], onDelete: Cascade)
+  candidate ElectionNomination @relation(fields: [candidateId, electionId], references: [id, electionId], onDelete: Cascade)
+
+  @@unique([electionId, voterId])
+  @@index([electionId, candidateId])
+  @@map("election_ballots")
+}
+
+
+model Treasury {
+  id          String   @id @default(cuid())
+  communityId String   @unique
+  createdById String
+  currency    String   @db.Char(3)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  community Community @relation(fields: [communityId], references: [id], onDelete: Restrict)
+  createdBy User @relation("TreasuryCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  accounts TreasuryAccount[]
+  journalTransactions JournalTransaction[]
+  obligations Obligation[]
+  auditEvents FinancialAuditEvent[]
+  receipts PaymentReceipt[]
+  allocations ObligationAllocation[]
+  @@map("treasuries")
+}
+
+model TreasuryAccount {
+  id String @id @default(cuid())
+  treasuryId String
+  code String @db.VarChar(32)
+  name String @db.VarChar(100)
+  type TreasuryAccountType
+  isSystem Boolean @default(false)
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  postings LedgerPosting[]
+  @@unique([treasuryId, code])
+  @@unique([id, treasuryId])
+  @@index([treasuryId, type, isActive])
+  @@map("treasury_accounts")
+}
+
+model JournalTransaction {
+  id String @id @default(cuid())
+  treasuryId String
+  type JournalTransactionType
+  status JournalTransactionStatus @default(DRAFT)
+  description String @db.VarChar(500)
+  sourceType String? @db.VarChar(64)
+  sourceId String? @db.VarChar(128)
+  idempotencyKey String @db.VarChar(160)
+  createdById String
+  reversalOfId String?
+  createdAt DateTime @default(now())
+  postedAt DateTime?
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  createdBy User @relation("JournalActor", fields: [createdById], references: [id], onDelete: Restrict)
+  postings LedgerPosting[]
+  reversalOf JournalTransaction? @relation("JournalReversals", fields: [reversalOfId, treasuryId], references: [id, treasuryId], onDelete: Restrict)
+  reversals JournalTransaction? @relation("JournalReversals")
+  @@unique([treasuryId, idempotencyKey])
+  @@unique([id, treasuryId])
+  @@unique([reversalOfId, treasuryId])
+  @@index([treasuryId, status, postedAt])
+  @@index([treasuryId, createdAt])
+  @@index([sourceType, sourceId])
+  @@map("journal_transactions")
+}
+
+model LedgerPosting {
+  id String @id @default(cuid())
+  treasuryId String
+  journalTransactionId String
+  accountId String
+  side LedgerPostingSide
+  amountMinor BigInt
+  createdAt DateTime @default(now())
+  journalTransaction JournalTransaction @relation(fields: [journalTransactionId, treasuryId], references: [id, treasuryId], onDelete: Restrict)
+  account TreasuryAccount @relation(fields: [accountId, treasuryId], references: [id, treasuryId], onDelete: Restrict)
+  @@index([treasuryId, accountId, createdAt])
+  @@index([journalTransactionId])
+  @@map("ledger_postings")
+}
+
+model Obligation {
+  id String @id @default(cuid())
+  treasuryId String
+  memberId String
+  sourceType ObligationSourceType
+  sourceId String @db.VarChar(128)
+  idempotencyKey String @db.VarChar(160)
+  description String @db.VarChar(500)
+  amountMinor BigInt
+  status ObligationStatus @default(OPEN)
+  dueAt DateTime?
+  createdById String
+  cancelledAt DateTime?
+  cancellationReason String? @db.VarChar(300)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  member User @relation("ObligationMember", fields: [memberId], references: [id], onDelete: Restrict)
+  createdBy User @relation("ObligationActor", fields: [createdById], references: [id], onDelete: Restrict)
+  @@unique([treasuryId, idempotencyKey])
+  @@unique([treasuryId, sourceType, sourceId])
+  @@unique([id, treasuryId, memberId])
+  @@index([treasuryId, status, dueAt])
+  @@index([memberId, status])
+  allocations ObligationAllocation[]
+  contributionSnapshot ContributionAssessmentMember?
+  @@map("obligations")
+}
+
+model PaymentReceipt {
+  id String @id @default(cuid())
+  treasuryId String
+  memberId String
+  source ReceiptSource @default(MANUAL_RECONCILIATION)
+  amountMinor BigInt
+  currency String @db.Char(3)
+  externalReference String @db.VarChar(160)
+  evidenceReference String @db.VarChar(500)
+  idempotencyKey String @db.VarChar(160)
+  receivedAt DateTime
+  verifiedById String
+  verifiedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  member User @relation("ReceiptMember", fields: [memberId], references: [id], onDelete: Restrict)
+  verifiedBy User @relation("ReceiptVerifier", fields: [verifiedById], references: [id], onDelete: Restrict)
+  allocations ObligationAllocation[]
+  @@unique([treasuryId, externalReference])
+  @@unique([treasuryId, idempotencyKey])
+  @@unique([id, treasuryId, memberId])
+  @@index([treasuryId, memberId, receivedAt])
+  @@map("payment_receipts")
+}
+
+model ObligationAllocation {
+  id String @id @default(cuid())
+  treasuryId String
+  memberId String
+  receiptId String
+  obligationId String
+  amountMinor BigInt
+  idempotencyKey String @db.VarChar(160)
+  createdById String
+  createdAt DateTime @default(now())
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  receipt PaymentReceipt @relation(fields: [receiptId, treasuryId, memberId], references: [id, treasuryId, memberId], onDelete: Restrict)
+  obligation Obligation @relation(fields: [obligationId, treasuryId, memberId], references: [id, treasuryId, memberId], onDelete: Restrict)
+  createdBy User @relation("AllocationActor", fields: [createdById], references: [id], onDelete: Restrict)
+  @@unique([treasuryId, idempotencyKey])
+  @@unique([receiptId, obligationId])
+  @@index([treasuryId, obligationId, createdAt])
+  @@index([treasuryId, receiptId])
+  @@map("obligation_allocations")
+}
+
+model FinancialAuditEvent {
+  id String @id @default(cuid())
+  treasuryId String
+  actorId String
+  action String @db.VarChar(80)
+  entityType String @db.VarChar(80)
+  entityId String @db.VarChar(128)
+  reason String? @db.VarChar(500)
+  metadata Json?
+  createdAt DateTime @default(now())
+  treasury Treasury @relation(fields: [treasuryId], references: [id], onDelete: Restrict)
+  actor User @relation("FinancialAuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  @@index([treasuryId, createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@map("financial_audit_events")
+}
+
+
+model ContributionCampaign {
+  id                   String                    @id @default(cuid())
+  communityId          String
+  name                 String                    @db.VarChar(140)
+  description          String?                   @db.VarChar(500)
+  amountMinor          BigInt
+  frequency            ContributionFrequency
+  assessmentGenerationMode ContributionAssessmentGenerationMode @default(MANUAL)
+  status               ContributionCampaignStatus @default(ACTIVE)
+  createdById          String
+  pausedAt             DateTime?
+  endedAt              DateTime?
+  cancelledAt          DateTime?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  community          Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy          User      @relation("ContributionCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assessments        ContributionAssessment[]
+  events             ContributionCampaignEvent[]
+
+  @@index([communityId, status, createdAt])
+  @@map("contribution_campaigns")
+}
+
+model ContributionAssessment {
+  id            String                       @id @default(cuid())
+  campaignId    String
+  communityId   String
+  periodKey     String                       @db.VarChar(32)
+  description   String                       @db.VarChar(500)
+  amountMinor   BigInt
+  currency      String                       @db.Char(3)
+  dueAt         DateTime?
+  status        ContributionAssessmentStatus @default(DRAFT)
+  createdById   String
+  issuedById    String?
+  cancelledById String?
+  issuedAt      DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+
+  campaign   ContributionCampaign       @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  community  Community                  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy  User                       @relation("ContributionAssessmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  issuedBy   User?                      @relation("ContributionAssessmentIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  cancelledBy User?                     @relation("ContributionAssessmentCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
+  members    ContributionAssessmentMember[]
+
+  @@unique([campaignId, periodKey])
+  @@index([communityId, status, dueAt])
+  @@index([campaignId, createdAt])
+  @@map("contribution_assessments")
+}
+
+model ContributionAssessmentMember {
+  id                  String              @id @default(cuid())
+  assessmentId        String
+  memberId            String
+  memberRole          CommunityMemberRole
+  memberJoinedAt      DateTime
+  memberFirstName     String              @db.VarChar(80)
+  memberLastName      String              @db.VarChar(80)
+  memberEmail         String              @db.VarChar(320)
+  snapshotAt          DateTime
+  obligationId        String?             @unique
+  createdAt           DateTime            @default(now())
+
+  assessment ContributionAssessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  member     User                   @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  obligation Obligation?            @relation(fields: [obligationId], references: [id], onDelete: Restrict)
+
+  @@unique([assessmentId, memberId])
+  @@index([assessmentId, snapshotAt])
+  @@index([memberId, createdAt])
+  @@map("contribution_assessment_members")
+}
+
+
+model ContributionCampaignEvent {
+  id         String                        @id @default(cuid())
+  campaignId String
+  actorId    String
+  type       ContributionCampaignEventType
+  reason     String                        @db.VarChar(500)
+  createdAt  DateTime                      @default(now())
+
+  campaign ContributionCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  actor    User                 @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([campaignId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("contribution_campaign_events")
 }

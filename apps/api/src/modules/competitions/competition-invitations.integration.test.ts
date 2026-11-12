@@ -40,7 +40,7 @@ test("invite-only competitions invite and admit only the intended player or team
         ownerId: owner.id,
         members: {
           create: [
-            { userId: owner.id, role: "OWNER" },
+            { userId: owner.id, role: "CREATOR" },
             { userId: captain.id, role: "MEMBER" },
             { userId: player.id, role: "MEMBER" },
           ],

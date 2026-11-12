@@ -2,9 +2,8 @@ import { generateCompetitionSchedule, getSportCapability } from "@playgeng/share
 import type { CompetitionParticipantType, CompetitionStatus, Prisma, Sport } from "@playgeng/database";
 import { AppError } from "../../shared/errors/app-error.js";
 import * as db from "./competitions.db.js";
+import { hasCommunityPermission, requireCommunityPermission } from "../../shared/authorization/community-permissions.js";
 import type { CreateCompetitionInput, RegisterCompetitionEntryInput, ReviewCompetitionEntryInput } from "./competitions.validator.js";
-
-const managerRoles = new Set(["OWNER", "ADMIN", "ORGANIZER"]);
 
 const requireMembership = async (communityId: string, userId: string) => {
   const membership = await db.findMembership(communityId, userId);
@@ -13,8 +12,7 @@ const requireMembership = async (communityId: string, userId: string) => {
 };
 
 const requireManager = async (communityId: string, userId: string) => {
-  const membership = await requireMembership(communityId, userId);
-  if (!managerRoles.has(membership.role)) throw new AppError("You do not have permission to manage competitions.", 403);
+  await requireCommunityPermission(communityId, userId, "MANAGE_COMPETITIONS", "You do not have permission to manage competitions.");
 };
 
 const requireActiveCommunity = async (communityId: string) => {
@@ -136,8 +134,8 @@ export const registerEntry = async (communityId: string, competitionId: string, 
       throw new AppError("An active team registered for this competition's sport is required.", 409);
     }
     const membership = await db.findTeamMembership(team.id, actorId);
-    const communityRole = (await db.findMembership(communityId, actorId))?.role;
-    if (membership?.role !== "CAPTAIN" && !managerRoles.has(communityRole ?? "")) {
+    const isCommunityManager = await hasCommunityPermission(communityId, actorId, "MANAGE_COMPETITIONS");
+    if (membership?.role !== "CAPTAIN" && !isCommunityManager) {
       throw new AppError("Only the team captain or a community manager can register this team.", 403);
     }
     teamId = team.id;
@@ -146,7 +144,7 @@ export const registerEntry = async (communityId: string, competitionId: string, 
 
   const status = competition.registrationMode === "OPEN" ? "APPROVED" : "PENDING";
   try {
-    return await db.withSerializableTransaction(async (tx) => {
+    return await db.withCompetitionRegistrationTransaction(competitionId, communityId, async (tx) => {
       const current = await tx.competition.findFirst({ where: { id: competitionId, communityId } });
       if (!current || current.status !== "REGISTRATION_OPEN") throw new AppError("This competition is not accepting registrations.", 409);
       const count = await tx.competitionEntry.count({ where: { competitionId, status: { in: ["PENDING", "APPROVED"] } } });
@@ -204,7 +202,7 @@ export const reviewEntry = async (communityId: string, competitionId: string, en
 };
 
 export const withdrawEntry = async (communityId: string, competitionId: string, entryId: string, actorId: string) => {
-  const actorMembership = await requireMembership(communityId, actorId);
+  await requireMembership(communityId, actorId);
   await requireActiveCommunity(communityId);
   const competition = await requireCompetition(communityId, competitionId);
   if (["IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(competition.status)) throw new AppError("Entries cannot be withdrawn after the competition starts.", 409);
@@ -213,7 +211,8 @@ export const withdrawEntry = async (communityId: string, competitionId: string, 
   if (entry.participantType === "PLAYER" && entry.playerUserId !== actorId) throw new AppError("You can only withdraw your own player entry.", 403);
   if (entry.participantType === "TEAM") {
     const teamMember = entry.teamId ? await db.findTeamMembership(entry.teamId, actorId) : null;
-    if (teamMember?.role !== "CAPTAIN" && !managerRoles.has(actorMembership.role)) throw new AppError("Only the team captain or a community manager can withdraw this entry.", 403);
+    const isCommunityManager = await hasCommunityPermission(communityId, actorId, "MANAGE_COMPETITIONS");
+    if (teamMember?.role !== "CAPTAIN" && !isCommunityManager) throw new AppError("Only the team captain or a community manager can withdraw this entry.", 403);
   }
   return db.withSerializableTransaction(async (tx) => {
     const currentCompetition = await tx.competition.findFirst({ where: { id: competitionId, communityId } });

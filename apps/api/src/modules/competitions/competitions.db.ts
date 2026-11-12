@@ -67,6 +67,24 @@ const isSerializationConflict = (error: unknown): boolean => {
   return false;
 };
 
+export const withCompetitionRegistrationTransaction = async <T>(
+  competitionId: string,
+  communityId: string,
+  work: (tx: Prisma.TransactionClient) => Promise<T>,
+) => prisma.$transaction(async (tx) => {
+  // Serialize capacity checks for this competition. Under READ COMMITTED, the
+  // count below sees registrations committed by the transaction that held the
+  // lock immediately before this one.
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id"
+    FROM "competitions"
+    WHERE "id" = ${competitionId} AND "communityId" = ${communityId}
+    FOR UPDATE
+  `;
+  if (rows.length !== 1) throw new Error("Competition registration lock could not be acquired.");
+  return work(tx);
+}, { isolationLevel: "ReadCommitted" });
+
 export const withSerializableTransaction = async <T>(work: (tx: Prisma.TransactionClient) => Promise<T>) => {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {

@@ -21,6 +21,8 @@ The product starts with football, inspired by the real-world problem of groups o
 - [Tournament Architecture](#tournament-architecture)
 - [System Architecture](#system-architecture)
 - [Implementation Phases](#implementation-phases)
+- [Community Contributions Implementation Plan](docs/implementation/COMMUNITY_CONTRIBUTIONS_README.md)
+- [Reconciled Implementation Status and Remaining Work](docs/implementation/IMPLEMENTATION_STATUS_AND_NEXT_STEPS.md)
 - [MVP Scope](#mvp-scope)
 - [Data Model](#data-model)
 - [API Architecture](#api-architecture)
@@ -73,6 +75,10 @@ Groups that collect money need to know:
 - Can every financial movement be verified?
 
 Money is where informal groups become vulnerable to disputes. The financial model therefore cannot be an afterthought.
+
+## Community Contributions
+
+Community-only assessments and recurring contributions are governed by the [Community Obligations architecture contract](docs/architecture/COMMUNITY_OBLIGATIONS.md). The initial release supports one-off and monthly assessments, immutable membership snapshots, equal per-member amounts, explicit due dates and audited campaign lifecycle transitions. Match and competition obligations remain separate future work.
 
 ## Tournaments
 
@@ -1648,3 +1654,386 @@ PlayGeng begins by solving a small, concrete problem:
 The long-term objective is broader:
 
 > **Build the operating system for sports communities, competitions, and shared sports activity.**
+
+
+---
+
+# Product Decision Record — Community Governance and Treasury
+
+**Recorded: November 10, 2026**
+
+This section captures product direction agreed during planning. It is intended to prevent these requirements from being lost when implementation resumes. It does not claim that the features are already implemented.
+
+## 1. Community matches are the core recurring activity
+
+PlayGeng's existing Match domain represents the regular games held by a sports community (for example, a weekly football session). These community matches are distinct from tournament fixtures.
+
+Do not replace or conflate the two concepts:
+
+- **Community Match:** a recurring or one-off game organized by a community, with its own participants, attendance, fees, teams and result.
+- **Tournament Fixture:** a scheduled contest generated or managed inside a structured competition, involving that competition's registered entries.
+
+Tournament scheduling must build on the existing generic competition and participant foundations. It must not redefine ordinary community matches as tournament fixtures.
+
+## 2. Community governance and role elections
+
+A community must not operate as the personal property of its creator. The creator is a distinct, protected origin role; all other community roles are intended to be assigned through a community voting process.
+
+The voting requirement applies to every non-creator role, including the roles currently defined as:
+
+- ADMIN
+- TREASURER
+- ORGANIZER
+
+It must also apply to additional non-creator roles introduced later, rather than silently making new privileged roles appointable without a vote.
+
+Membership itself is not an elected office. A person first becomes an eligible community member; elections then determine who occupies a community role.
+
+### Governance capabilities to design
+
+The governance domain must support:
+
+- Role nominations and candidate eligibility.
+- Elections scoped to a specific community and role.
+- A defined voting window and election status.
+- One valid ballot per eligible voter per election.
+- Vote validation and duplicate-vote prevention.
+- Tallying and recording election outcomes.
+- Assigning the elected role only after a valid outcome.
+- Election history and an auditable record of nominations, ballots, results and role changes.
+- Vacancies, resignation, removal and replacement elections.
+- Revoking role-specific permissions when a person's role ends.
+
+Governance must be enforced by the backend. Hiding UI controls is not authorization.
+
+### Governance rules still requiring an explicit product decision
+
+Do not invent these rules during implementation. Confirm and document them before building the election workflow:
+
+- Whether the creator has any emergency or override powers, and their exact limits.
+- Voter eligibility (for example, membership tenure or account standing).
+- Candidate eligibility for each role.
+- Whether an election requires a minimum participation quorum.
+- Whether a role is won by a simple majority, plurality, or another defined threshold.
+- Tie handling, failed elections, uncontested candidates and repeat elections.
+- Term length, re-election limits and when a role can be recalled.
+- Whether communities can configure election rules or must follow one platform-wide policy.
+
+The creator's exemption from role elections must not be interpreted as permission to bypass the governance system. Any exceptional powers must be explicit, narrow, authorized and auditable.
+
+## 3. Community-owned treasury
+
+Community funds are held for the community, not owned personally by the community creator or by whichever member currently has the Treasurer role.
+
+The product must provide a **Community Treasury** with clear financial ownership, transparent records and controlled operations.
+
+The treasury must account for:
+
+- Member contributions and contribution campaigns.
+- Match fees and match-related collections.
+- Tournament registration collections.
+- Other community income.
+- Expenses and refunds.
+- Payouts and withdrawals.
+- Amounts due, paid, unpaid and overdue.
+- Pending, processing, completed, failed, cancelled and refunded payment states.
+- Transaction references, supporting metadata and audit history.
+
+The system must distinguish at least three concepts:
+
+1. **Obligation:** what a member or participant is required to pay, including amount, due date and current paid/unpaid/overdue state.
+2. **Payment:** the payment attempt and its provider-confirmed outcome.
+3. **Ledger entry:** the accounting record created from a verified financial event.
+
+A person being marked as paid must be backed by a verified payment or an explicitly authorized, audited manual reconciliation. Creating an obligation must not itself increase the treasury balance.
+
+### Treasury controls
+
+- The ledger is the accounting source of truth; balances are derived, never manually edited.
+- Completed entries are immutable. Corrections use reversals or adjustments with reasons and audit records.
+- Payment webhooks and provider references must be verified and idempotent.
+- Financial actions require explicit permissions and must be attributable to an actor.
+- Role changes must immediately affect treasury permissions.
+- Withdrawals and payouts need authorization rules separate from the ability to record an expense.
+- Members should be able to inspect the financial information the community policy makes visible, including their own obligations and payment status.
+- Financial reporting must reconcile obligations, verified payments, ledger entries and externally held funds.
+
+### Critical custody distinction
+
+An in-app ledger is not a bank account and does not prove that PlayGeng or a community physically holds the money.
+
+Before implementing collection, storage or withdrawal flows, decide how funds are actually held and controlled. Evaluate the supported payment-provider and banking arrangements, including who legally owns or controls the receiving account, how community-level segregation works, who can authorize withdrawals, how refunds/disputes are handled, and the applicable Nigerian regulatory and provider requirements.
+
+Do not describe funds as being held by a community merely because the application displays a positive ledger balance. The custody model must be validated with the relevant payment provider and qualified legal/compliance advice before production money movement.
+
+## 4. Domain boundaries
+
+Keep these concerns separate even when they share community membership and authorization:
+
+| Domain | Responsibility |
+|---|---|
+| Membership | Joining, invitations, member status and eligibility |
+| Governance | Nominations, elections, ballots, outcomes and role assignments |
+| Community Matches | Regular community games, participants, attendance, teams and results |
+| Treasury | Obligations, collections, payments, expenses, payouts and ledger |
+| Payments | Provider integration, verification, webhooks, refunds and reconciliation |
+| Competitions | Tournament lifecycle, registrations, entries, fixtures and progression |
+
+Do not place election logic inside the community CRUD module or financial ledger logic inside payment-provider adapters. Services may coordinate across domains, but each domain must own its rules and persistence boundaries.
+
+## 5. Revised implementation priority
+
+The existing competition and participant foundation (Phase 7) is already merged. The deterministic scheduling work recorded under Phase 8 remains a valid technical track, but the next product priorities must not be inferred from the older roadmap diagram alone.
+
+The agreed priority is:
+
+1. Finish and verify the deterministic scheduling contract already in progress, without expanding into advanced tournament formats or speculative fixture features.
+2. Audit the current schema and community authorization implementation before adding governance or finance models.
+3. Define and implement Community Governance, including elections for every non-creator community role.
+4. Define the Community Treasury, obligations, paid/unpaid tracking, auditable ledger and financial permissions.
+5. Decide and validate the real-world funds custody and payment-provider model before enabling production collections or withdrawals.
+6. Integrate payment flows with verified obligations and ledger events.
+7. Return to tournament commercial workflows (registration fees, payment status, refunds and reconciliation), then continue fixture persistence, results, standings and progression in dependency order.
+
+This priority supersedes the older roadmap's placement of finance after tournament fixtures and statistics. Existing merged competition work is retained; it is not a reason to postpone governance and treasury foundations.
+
+## 6. Required repository audit before implementation
+
+Before designing migrations or endpoints, inspect the actual implementation and report what already exists.
+
+Audit at minimum:
+
+- Prisma models and enums for communities, memberships, roles and permissions.
+- Community creation, invitation, membership removal and role assignment services.
+- Existing authorization middleware and every community-scoped permission check.
+- Match participation and match-fee handling.
+- Competition registration, entry, invitation and payment-related fields.
+- Existing payment, contribution, expense, transaction, audit-log and webhook models/modules.
+- Database constraints, transaction boundaries and integration tests relevant to concurrency and financial consistency.
+
+The audit output must identify existing behavior, missing behavior, unsafe assumptions, schema changes required and migration dependencies. Do not duplicate existing concepts or start migrations based only on this README.
+
+## 7. Implementation constraints
+
+- Preserve the modular backend convention: `db`, `service`, `controller`, `routes` and `validator`.
+- Keep business rules in services and persistence in the database layer.
+- Use database transactions and appropriate constraints for elections, role assignment, capacity, payments and ledger posting.
+- Test authorization at service/API boundaries, not only in the frontend.
+- Add auditability for governance and financial actions from the first implementation.
+- Update this README and the relevant architecture documents when decisions are finalized or implementation status changes.
+
+
+### Confirmed first-election policy — November 10, 2026
+
+The following baseline rules are approved for the first governance implementation:
+
+- The community creator may vote as an ordinary eligible member and receives exactly one vote per election.
+- The creator has no additional vote weight, unilateral veto or power to appoint elected officers outside the election process.
+- Each eligible community member may cast one ballot per election. Duplicate ballots are prevented by a database uniqueness constraint.
+- An election requires a participation quorum. The numeric quorum threshold must be finalized in the governance implementation before elections can open; it must not be guessed in code.
+- The winner must receive a simple majority of valid votes. A tie or failed quorum produces no appointment and requires a new election.
+- Elected officers have no fixed term in the first release. They remain in office until resignation, a valid removal process or a subsequent election.
+- Membership is not an elected office. Members become eligible voters and candidates only under the published eligibility rules.
+- The creator is represented by the immutable `Community.ownerId` identity. The membership enum uses `CREATOR` only as a display/classification label; authorization must derive creator privileges from `Community.ownerId`, not from the membership role string.
+- ADMIN, TREASURER and ORGANIZER are elected offices. Adding another privileged community role must require an explicit governance policy and election path.
+
+These defaults do not authorize the creator to bypass election results. Emergency powers, candidate tenure requirements, recall thresholds and numerical quorum remain explicit policy decisions and must be documented before the related workflows ship.
+
+
+### Governance implementation contract
+
+The first election workflow uses these explicit rules:
+
+- ADMIN, TREASURER and ORGANIZER are the elected offices. MEMBER is ordinary membership; CREATOR is a distinct immutable identity.
+- Any active community member may initiate an election for an office. Only one non-terminal election for the same office may exist in a community at a time.
+- The eligible electorate is snapshotted when the election is created. Every active member at that point is included, including the creator. New members do not join an election already in progress.
+- The creator has exactly one ballot and is not eligible to stand for an elected office.
+- Candidates nominate themselves. A candidate must be in the snapshotted electorate, remain an active community member and hold no other elected office. An incumbent may stand for re-election to the same office.
+- Each election must declare a quorum between 50% and 100% of the snapshotted electorate. The quorum is calculated against that frozen electorate, not only the people who remain members later.
+- An officer is appointed only if quorum is met and one candidate receives strictly more than half of valid ballots. Ties, no majority, no candidates, failed quorum or an ineligible winner result in no appointment.
+- Ballots are immutable and the database enforces one ballot per voter per election. Ballot choices are not returned by election read endpoints; vote totals are revealed only after the election is terminal.
+- Role assignment and election completion occur in one serializable database transaction. Previous holders of that office are demoted to MEMBER as the winner is assigned.
+- Election and ballot records are retained as the governance history. Manual privileged-role changes remain disabled.
+
+The first API implementation exposes elections under `/api/v1/communities/:communityId/elections`. Treasury permissions and financial controls are intentionally not included in this module.
+
+
+## Community Treasury implementation contract — November 10, 2026
+
+The first governance workflow is merged (PR #17). Treasury is now the next financial foundation.
+
+The repository audit found no existing treasury, payment, receipt, obligation, expense, journal, ledger, webhook or financial audit models. Match participants and competition entries also have no payment state. Finance will therefore be implemented as a shared domain rather than separate paid flags in matches and competitions.
+
+The architecture and invariants are documented in [docs/architecture/COMMUNITY_TREASURY.md](docs/architecture/COMMUNITY_TREASURY.md). Key rules:
+
+- Use a double-entry, append-only journal. Posted entries are immutable; corrections are reversals.
+- Store money as integer minor units and give each community treasury one ISO-4217 currency, immutable after its first posting.
+- Separate obligations, payment attempts, verified receipts and ledger postings. An obligation is not cash; a payment attempt is not proof of receipt.
+- Enforce balanced debit/credit postings, atomic settlement, idempotency and audit attribution.
+- Match participation and approved competition registration create obligations through Treasury; those domains do not own payment status.
+- Manual reconciliation requires Treasurer authorization, evidence, a reason and an audit record.
+- The Creator role does not provide a hidden financial override. Current elected-role authorization is checked at operation time.
+- Production collection, custody, transfers and withdrawals remain disabled until the receiving-account/custody model, segregation, dual authorization, provider terms and Nigerian compliance requirements are validated.
+
+### Treasury delivery order
+
+1. Treasury and chart-of-accounts schema. (PR #19)
+2. Append-only balanced journal posting and reversal service. (current PR)
+3. Idempotent obligations, receipts and allocation rules.
+4. Treasury summary, ledger and member-obligation read APIs.
+5. Treasurer permissions, manual reconciliation and audit trail.
+6. PostgreSQL integrity constraints and concurrency-focused integration tests.
+7. Payment-provider and funds-custody integration as a separate phase.
+
+
+### Treasury journal API foundation
+
+The treasury API is mounted at `/api/v1/communities/:communityId/treasury` and currently provides:
+
+- `POST /`: initialize a treasury using an ISO-4217 currency code and seed the standard chart of accounts.
+- `GET /`: retrieve treasury accounts and calculated balances.
+- `POST /journal`: post a balanced journal transaction using integer minor-unit strings and an idempotency key.
+- `GET /journal`: list posted journal transactions.
+- `POST /journal/:transactionId/reverse`: create a linked reversing transaction with a mandatory reason.
+
+Authorization is intentionally narrower than the general community permission helper: only the currently elected TREASURER can initialize, post or reverse. ADMIN and TREASURER can inspect treasury summaries and journal history. CREATOR does not receive an implicit financial override.
+
+The database transaction writes the draft header and postings, then changes the journal to POSTED in one serializable transaction. Deferred PostgreSQL constraints verify that posted journals have at least two postings and equal debit/credit totals. Idempotency retries return the original transaction only when the supplied transaction details match. Reversals write opposite postings; original posted records remain immutable.
+
+This API is an internal ledger foundation, not a payment confirmation or cash custody integration. Only verified receipts/manual reconciliation in a later phase may justify posting real receipts. The current journal endpoint must not be exposed as a general public payment endpoint.
+
+
+### Verified receipts and obligation allocation schema
+
+The treasury schema now separates:
+
+- **Obligations:** amounts a member owes for a contribution, match fee, competition registration or other approved source.
+- **Verified receipts:** money independently received and reconciled, with an external reference, evidence reference, verifying Treasurer and idempotency key.
+- **Allocations:** the amount of a verified receipt applied to a specific obligation.
+
+A receipt is not a payment attempt, and an obligation is not a payment. Partial allocations are supported by the data model; paid and outstanding amounts are derived from allocations rather than mutable balance fields. Database relations prevent allocations across different treasuries or members.
+
+The current schema foundation supports manual reconciliation only. Receipt creation, allocation services, ledger posting, member-facing obligation reads and payment-provider integration are separate implementation steps. No unverified payment claim can settle an obligation.
+
+
+## Obligation service implementation checkpoint — November 10, 2026
+
+The first obligation service layer is implemented on branch `feat/treasury-obligation-services` (pending CI/review):
+
+- Treasurer-only obligation issuance against an active community member.
+- Stable source identity and treasury-scoped idempotency; repeated requests must match the original obligation details.
+- Obligation issuance and its journal entry are written in one serializable transaction: debit RECEIVABLES and credit the source-appropriate income account. Creating a due amount does not increase CASH.
+- Cancellation is permitted only before any receipt allocation exists. It writes an immutable reversing journal entry, records the cancellation reason and actor, and marks the obligation cancelled in the same transaction.
+- Members can read only their own obligations. ADMIN/TREASURER can inspect the community obligation list; only TREASURER can create or cancel obligations.
+- Amounts are integer minor-unit strings. Outstanding and allocated amounts are calculated from allocation rows; overdue is derived from due date at read time.
+
+Endpoints under `/api/v1/communities/:communityId/treasury/obligations`:
+
+- `POST /` create an obligation.
+- `GET /` list all obligations for ADMIN/TREASURER.
+- `GET /mine` list the authenticated member's obligations.
+- `GET /:obligationId` retrieve an obligation subject to ownership/finance-role checks.
+- `POST /:obligationId/cancel` cancel an unsettled obligation with an audited reversal.
+
+Receipt verification, allocations and cash receipt posting are deliberately not included in this checkpoint. The next service must make receipt creation, allocation and DR CASH / CR RECEIVABLES posting atomic; it must reject unallocated excess receipts rather than silently creating a negative receivable.
+
+
+### Journal workflow guardrails added with obligation services
+
+The generic journal endpoint is now restricted to documented opening balances and non-cash adjustments. An opening balance must debit CASH and credit OPENING_EQUITY and include a source reference; it is audited. Generic adjustments cannot touch CASH, RECEIVABLES or operational income accounts. Obligation-issued journals cannot be reversed through the generic reversal endpoint; they must use the obligation cancellation workflow. This prevents a manual journal request from bypassing receipt verification or leaving an obligation open after its receivable has been reversed.
+
+
+## Treasury implementation checkpoint — manual receipts
+
+The obligation issuance/cancellation services and the first manual receipt workflow are implemented.
+
+- Only the currently elected Treasurer can verify a manual receipt.
+- A verified receipt must include an independently reconciled external reference and evidence reference.
+- One receipt may be allocated across multiple obligations for the same member, but allocation amounts must add up exactly to the receipt amount.
+- Allocations cannot exceed the remaining balance of an obligation. Concurrent receipt allocations and obligation cancellation are serialized.
+- Receipt creation, allocations, DR CASH / CR RECEIVABLES journal posting and the audit event are atomic and idempotent.
+- Members can see only their own obligations and receipts; ADMIN/TREASURER can inspect community finance records.
+- This is manual reconciliation only. It does not integrate a payment provider, accept unverified member claims, move funds, or prove custody of community money.
+
+See [Community Treasury Architecture](docs/architecture/COMMUNITY_TREASURY.md) for the implementation contract and API details.
+
+
+## Commercial workflow audit — November 10, 2026
+
+**Status:** Initial code audit documented; no commercial workflow integration implemented in this phase.
+
+The current implementation was inspected in `apps/api/src/modules/matches`, `apps/api/src/modules/competitions`, `apps/api/src/modules/communities`, the shared community authorization policy, and `packages/database/prisma/schema.prisma`.
+
+### Verified current behavior
+
+| Domain | Existing behavior | Financial integration status |
+|---|---|---|
+| Community contributions | The product README describes contribution campaigns and recurring/monthly contributions. | No contribution campaign/assessment model or contribution API module exists in the inspected schema/API. |
+| Community matches | Managers create, edit and cancel scheduled matches. Members join, decline, leave or waitlist; managers record ATTENDED/NO_SHOW. Capacity checks and participant changes use database transactions. | No fee configuration, obligation source record, payment status or receipt relation exists on Match/MatchParticipant. Joining a match does not create an obligation. |
+| Competitions | Supports TEAM and PLAYER entries; OPEN registrations auto-approve, APPROVAL_REQUIRED entries begin PENDING, and INVITE_ONLY uses invitations. Capacity is checked under a competition row lock. Entries can be reviewed or withdrawn before the competition starts. | No registration fee, payment state, obligation reference or payment gate exists on Competition/CompetitionEntry. |
+| Invitations | Invite-only registration has expiry, acceptance and decline flows. Team invitations are addressed to the active captain. | No payment obligation is created on invitation or acceptance. |
+| Treasury | Treasury owns obligations, verified manual receipts, allocations and the ledger. | It is not yet invoked by match or competition lifecycle services. |
+
+### Lifecycle observations and gaps
+
+**Matches**
+- A participant is created as CONFIRMED unless capacity is full, in which case the participant is WAITLISTED.
+- Leaving a scheduled match changes an active participant to CANCELLED; the earliest waitlisted participant is promoted when a confirmed participant leaves.
+- Attendance changes a confirmed participant to ATTENDED or NO_SHOW; a NO_SHOW can also promote the earliest waitlisted participant.
+- Match cancellation currently changes only the Match status to CANCELLED. It does not transition participant rows or create a cancellation event for downstream consumers.
+- Match edits are restricted to SCHEDULED matches. There is no explicit rescheduling event or history record.
+- No fee or payment behavior exists, so current code cannot distinguish a free match from a fee-bearing match.
+
+**Competitions**
+- Registration is accepted only while status is REGISTRATION_OPEN and within configured opening/closing times.
+- OPEN mode creates APPROVED entries; APPROVAL_REQUIRED creates PENDING entries; INVITE_ONLY uses invitation acceptance to create an APPROVED entry.
+- TEAM registration requires a team captain or community competition manager. PLAYER registration is for the active community member.
+- Entries can be withdrawn while the competition is not IN_PROGRESS, COMPLETED or CANCELLED. This includes both PENDING and APPROVED entries.
+- Competition cancellation is a status transition available from non-terminal states. The transition does not itself change active entry statuses or expire/cancel pending invitations.
+- There is no fee, paid/unpaid state, payment deadline, refund state, or obligation check before approval, acceptance, or starting the competition.
+- The schema supports one entry per participant under its uniqueness constraints, but there is no commercial rule defining whether a team fee is paid by the team, captain, or split among players.
+
+**Contributions**
+- The README describes monthly and purpose-specific contributions, but the inspected Prisma schema has no campaign, assessment, schedule, contribution-member assignment, or contribution payment model.
+- The Treasury obligation source enum already includes CONTRIBUTION, but that is only a generic source classification. It does not provide a contribution campaign lifecycle or stable source record by itself.
+- Recurring generation, member eligibility snapshots, due dates, exemptions, proration and campaign cancellation are not implemented.
+
+### Cross-domain findings
+
+1. The Treasury service is a separate financial domain. Match and competition services currently do not call it; do not add independent `isPaid` booleans to their models.
+2. Obligation issuance must be tied to a durable business event and a deterministic source identity. Retries must not create duplicate obligations.
+3. A tentative registration, invitation, waitlist position or unapproved entry must not automatically create a payable obligation without an explicit product rule.
+4. Cancellation/withdrawal after an obligation exists needs an explicit policy: cancel an unsettled obligation, retain it, or route a settled amount through a refund workflow. The current Treasury cancellation service only supports cancellation before any receipt allocation; it is not a refund mechanism.
+5. Attendance status is recorded only for a scheduled match and only for confirmed participants. The product must decide whether match liability is based on confirmation, actual attendance, or a cutoff rule. The current model does not preserve an immutable confirmation/cancellation history.
+6. The shared community permission helper grants the community owner all generic community permissions by checking `Community.ownerId` before role permissions. Treasury write endpoints have narrower Treasurer-specific checks. Future commercial integrations must preserve that separation and must not infer financial authority from match/competition management authority.
+7. Competition capacity counts PENDING and APPROVED entries. Any payment-gated design must decide whether unpaid pending entries reserve capacity, and for how long.
+
+### Decisions required before implementation
+
+Do not guess these rules in code. Finalize them in the product/architecture contract first:
+
+- **Contributions:** one-off versus recurring campaigns; who can create/approve them; whether every active member is assessed by default; exemptions; due dates; schedule generation; joining/leaving mid-cycle; cancellation and adjustments.
+- **Matches:** whether a fee is optional per match; the exact liability trigger (confirmation versus attendance/cutoff); whether waitlisted participants owe anything before promotion; what happens when a player cancels; whether a NO_SHOW remains liable; match cancellation/rescheduling and refunds.
+- **Competitions:** whether fees are per team or per player; who is the liable payer for a team entry; when an obligation is created (registration submission, approval, or invitation acceptance); payment deadline; whether payment is required before approval, before entry confirmation, or before fixtures; withdrawal, rejection, competition cancellation and refund policy; capacity reservation and expiry for unpaid entries.
+- **Operations:** who can waive or adjust an obligation, how the action is approved/audited, and how removal from a community affects outstanding obligations.
+
+### Recommended implementation order
+
+1. Finalize the business rules above and document the accepted state transitions.
+2. Design contribution campaigns/assessments as a first-class domain; do not treat the generic Treasury source enum as the contribution model.
+3. Add match-to-obligation integration at the agreed liability trigger, with atomic/idempotent source identity and explicit cancellation handling.
+4. Add competition-to-obligation integration at the agreed registration/approval trigger, including team-versus-player payer semantics and payment gating.
+5. Add provider payment attempts/webhooks only after these commercial event flows and the separate custody decision are ready.
+
+**Phase 1 audit constraint:** this checkpoint records observed behavior and implementation gaps only. It does not authorize new fee rules, payment-provider integration, custody, or withdrawal functionality.
+
+
+---
+
+# Current implementation status — November 11, 2026
+
+The consolidated, repository-verified status of completed work, open pull requests, approved product decisions, unresolved policies, and the recommended implementation sequence is maintained in:
+
+[Reconciled Implementation Status and Remaining Work](docs/implementation/IMPLEMENTATION_STATUS_AND_NEXT_STEPS.md).
+
+That document supersedes older phase summaries and historical audit statements where later merged PRs have changed the implementation status. In particular, contribution campaign administration and reporting are implemented; atomic assessment issuance remains in open PR #31.

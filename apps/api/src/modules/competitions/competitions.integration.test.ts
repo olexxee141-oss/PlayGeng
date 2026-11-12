@@ -25,7 +25,7 @@ test("competition registration enforces tenant boundaries, re-registration, and 
         name: `Competition ${label} ${suffix.slice(0, 8)}`,
         slug: `competition-${label}-${suffix.slice(0, 8)}`,
         ownerId: user.id,
-        members: { create: { userId: user.id, role: "OWNER" } },
+        members: { create: { userId: user.id, role: "CREATOR" } },
         sports: { create: { sport: "FOOTBALL", isPrimary: true } },
       },
     });
