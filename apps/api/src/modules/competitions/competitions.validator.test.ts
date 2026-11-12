@@ -4,6 +4,7 @@ import {
   createCompetitionSchema,
   registerCompetitionEntrySchema,
   reviewCompetitionEntrySchema,
+  setCompetitionEntrySeedSchema,
   updateCompetitionStatusSchema,
 } from "./competitions.validator.js";
 
@@ -44,6 +45,8 @@ test("rejection requires a reason", () => {
 test("status updates accept lifecycle targets only", () => {
   assert.equal(updateCompetitionStatusSchema.safeParse({ status: "REGISTRATION_OPEN" }).success, true);
   assert.equal(updateCompetitionStatusSchema.safeParse({ status: "DRAFT" }).success, false);
+  assert.equal(updateCompetitionStatusSchema.safeParse({ status: "IN_PROGRESS" }).success, false);
+  assert.equal(updateCompetitionStatusSchema.safeParse({ status: "COMPLETED" }).success, false);
 });
 
 test("registration must close before the competition starts", () => {
@@ -56,4 +59,11 @@ test("registration must close before the competition starts", () => {
     startsAt: "2026-11-15T15:00:00.000Z",
   });
   assert.equal(result.success, false);
+});
+
+test("seed assignment accepts positive integers or an explicit clear", () => {
+  assert.equal(setCompetitionEntrySeedSchema.safeParse({ seed: 1 }).success, true);
+  assert.equal(setCompetitionEntrySeedSchema.safeParse({ seed: null }).success, true);
+  assert.equal(setCompetitionEntrySeedSchema.safeParse({ seed: 0 }).success, false);
+  assert.equal(setCompetitionEntrySeedSchema.safeParse({ seed: 1.5 }).success, false);
 });

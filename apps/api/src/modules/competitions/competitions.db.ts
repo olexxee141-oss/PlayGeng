@@ -145,3 +145,20 @@ export const expirePendingInvitations = (communityId: string, competitionId: str
     },
     data: { status: "EXPIRED" },
   });
+
+
+export const findSchedule = (competitionId: string) =>
+  prisma.competitionSchedule.findUnique({
+    where: { competitionId },
+    include: {
+      fixtures: {
+        include: {
+          participantA: { select: { id: true, participantNameSnapshot: true } },
+          participantB: { select: { id: true, participantNameSnapshot: true } },
+          winner: { select: { id: true, participantNameSnapshot: true } },
+        },
+        orderBy: [{ roundNumber: "asc" }, { fixtureNumber: "asc" }],
+      },
+    },
+  });
+

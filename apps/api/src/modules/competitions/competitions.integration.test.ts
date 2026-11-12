@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { prisma } from "@playgeng/database";
 import { AppError } from "../../shared/errors/app-error.js";
-import { createCompetition, registerEntry, reviewEntry, transitionCompetition, withdrawEntry } from "./competitions.service.js";
+import { createCompetition, generateSchedule, getSchedule, registerEntry, reviewEntry, setEntrySeed, transitionCompetition, withdrawEntry } from "./competitions.service.js";
 
 test("competition registration enforces tenant boundaries, re-registration, and concurrent capacity", async () => {
   const suffix = randomUUID();
@@ -61,9 +61,22 @@ test("competition registration enforces tenant boundaries, re-registration, and 
     });
     await transitionCompetition(first.community.id, approvalCompetition.id, first.user.id, "REGISTRATION_OPEN");
     const pendingEntry = await registerEntry(first.community.id, approvalCompetition.id, first.user.id, { teamId: teams[3]!.id });
+    const secondPendingEntry = await registerEntry(first.community.id, approvalCompetition.id, first.user.id, { teamId: teams[2]!.id });
     assert.equal(pendingEntry.status, "PENDING");
+    assert.equal(secondPendingEntry.status, "PENDING");
+    await transitionCompetition(first.community.id, approvalCompetition.id, first.user.id, "REGISTRATION_CLOSED");
+    await assert.rejects(
+      generateSchedule(first.community.id, approvalCompetition.id, first.user.id),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
     const approvedEntry = await reviewEntry(first.community.id, approvalCompetition.id, pendingEntry.id, first.user.id, { decision: "APPROVED" });
+    const secondApprovedEntry = await reviewEntry(first.community.id, approvalCompetition.id, secondPendingEntry.id, first.user.id, { decision: "APPROVED" });
     assert.equal(approvedEntry.status, "APPROVED");
+    assert.equal(secondApprovedEntry.status, "APPROVED");
+    const approvedKnockoutSchedule = await generateSchedule(first.community.id, approvalCompetition.id, first.user.id);
+    assert.equal(approvedKnockoutSchedule.format, "KNOCKOUT");
+    assert.equal(approvedKnockoutSchedule.matchCount, 1);
+    assert.equal(approvedKnockoutSchedule.byeCount, 0);
 
     const player = await prisma.user.create({
       data: {
@@ -137,6 +150,105 @@ test("competition registration enforces tenant boundaries, re-registration, and 
       }),
       (error: unknown) => typeof error === "object" && error !== null && "code" in error && error.code === "P2003",
     );
+
+    await transitionCompetition(first.community.id, competition.id, first.user.id, "REGISTRATION_CLOSED");
+    const approvedEntries = await prisma.competitionEntry.findMany({
+      where: { competitionId: competition.id, status: "APPROVED" },
+      orderBy: [{ registeredAt: "asc" }, { id: "asc" }],
+    });
+    await setEntrySeed(first.community.id, competition.id, approvedEntries[0]!.id, first.user.id, 1);
+    await assert.rejects(
+      setEntrySeed(first.community.id, competition.id, approvedEntries[1]!.id, first.user.id, 1),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
+    await setEntrySeed(first.community.id, competition.id, approvedEntries[1]!.id, first.user.id, 2);
+    await setEntrySeed(first.community.id, competition.id, approvedEntries[2]!.id, first.user.id, 3);
+
+    const [schedule, repeatedSchedule] = await Promise.all([
+      generateSchedule(first.community.id, competition.id, first.user.id),
+      generateSchedule(first.community.id, competition.id, first.user.id),
+    ]);
+    assert.equal(schedule.format, "ROUND_ROBIN");
+    assert.equal(schedule.participantCount, 3);
+    assert.equal(schedule.roundCount, 3);
+    assert.equal(schedule.matchCount, 3);
+    assert.equal(schedule.byeCount, 3);
+    assert.equal(schedule.fixtures.length, 6);
+    assert.equal(schedule.fixtures.filter((fixture) => fixture.status === "BYE").length, 3);
+    assert.ok(schedule.fixtures.filter((fixture) => fixture.status === "BYE").every((fixture) => fixture.winnerEntryId === null && fixture.byeAdvances === false));
+
+    assert.equal(repeatedSchedule.id, schedule.id);
+    assert.equal((await getSchedule(first.community.id, competition.id, first.user.id)).id, schedule.id);
+    assert.equal((await prisma.competition.findUniqueOrThrow({ where: { id: competition.id } })).status, "IN_PROGRESS");
+    await assert.rejects(
+      registerEntry(first.community.id, competition.id, first.user.id, { teamId: teams[0]!.id }),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
+    await assert.rejects(
+      setEntrySeed(first.community.id, competition.id, approvedEntries[0]!.id, first.user.id, 4),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
+
+    const foreignCompetition = await prisma.competition.create({
+      data: {
+        communityId: second.community.id,
+        communitySportId: second.sport.id,
+        createdById: second.user.id,
+        name: "Foreign Fixture Competition",
+        format: "ROUND_ROBIN",
+        participantType: "TEAM",
+      },
+    });
+    const foreignEntry = await prisma.competitionEntry.create({
+      data: {
+        competitionId: foreignCompetition.id,
+        communityId: second.community.id,
+        participantType: "TEAM",
+        teamId: foreignTeam.id,
+        status: "APPROVED",
+        participantNameSnapshot: foreignTeam.name,
+      },
+    });
+    await assert.rejects(
+      prisma.competitionFixture.create({
+        data: {
+          scheduleId: schedule.id,
+          competitionId: competition.id,
+          roundNumber: 1,
+          fixtureNumber: 999,
+          participantAEntryId: foreignEntry.id,
+          participantBEntryId: approvedEntries[0]!.id,
+        },
+      }),
+      (error: unknown) => typeof error === "object" && error !== null && "code" in error && error.code === "P2003",
+    );
+
+    const knockoutCompetition = await createCompetition(first.community.id, first.user.id, {
+      name: "Knockout Schedule Cup",
+      sport: "FOOTBALL",
+      format: "KNOCKOUT",
+      participantType: "TEAM",
+      registrationMode: "OPEN",
+      maxEntries: 4,
+    });
+    await transitionCompetition(first.community.id, knockoutCompetition.id, first.user.id, "REGISTRATION_OPEN");
+    await registerEntry(first.community.id, knockoutCompetition.id, first.user.id, { teamId: teams[0]!.id });
+    await registerEntry(first.community.id, knockoutCompetition.id, first.user.id, { teamId: teams[1]!.id });
+    await registerEntry(first.community.id, knockoutCompetition.id, first.user.id, { teamId: teams[2]!.id });
+    await assert.rejects(
+      generateSchedule(first.community.id, knockoutCompetition.id, first.user.id),
+      (error: unknown) => error instanceof AppError && error.statusCode === 409,
+    );
+    await transitionCompetition(first.community.id, knockoutCompetition.id, first.user.id, "REGISTRATION_CLOSED");
+    const knockoutSchedule = await generateSchedule(first.community.id, knockoutCompetition.id, first.user.id);
+    assert.equal(knockoutSchedule.format, "KNOCKOUT");
+    assert.equal(knockoutSchedule.participantCount, 3);
+    assert.equal(knockoutSchedule.roundCount, 2);
+    assert.equal(knockoutSchedule.fixtureCount, 2);
+    assert.equal(knockoutSchedule.matchCount, 1);
+    assert.equal(knockoutSchedule.byeCount, 1);
+    assert.equal(knockoutSchedule.fixtures.filter((fixture) => fixture.status === "BYE").length, 1);
+    assert.ok(knockoutSchedule.fixtures.filter((fixture) => fixture.status === "BYE").every((fixture) => fixture.winnerEntryId === fixture.participantAEntryId && fixture.byeAdvances));
   } finally {
     for (const communityId of communities) {
       await prisma.community.deleteMany({ where: { id: communityId } });

@@ -27,6 +27,7 @@ test("sports without a competition adapter are rejected", () => {
 test("competition lifecycle rejects skipped and terminal transitions", () => {
   assert.equal(canTransitionCompetition("DRAFT" as CompetitionStatus, "REGISTRATION_OPEN" as CompetitionStatus), true);
   assert.equal(canTransitionCompetition("DRAFT" as CompetitionStatus, "IN_PROGRESS" as CompetitionStatus), false);
+  assert.equal(canTransitionCompetition("REGISTRATION_CLOSED" as CompetitionStatus, "IN_PROGRESS" as CompetitionStatus), false);
   assert.equal(canTransitionCompetition("COMPLETED" as CompetitionStatus, "CANCELLED" as CompetitionStatus), false);
   assert.equal(canTransitionCompetition("IN_PROGRESS" as CompetitionStatus, "COMPLETED" as CompetitionStatus), false);
   assert.equal(canTransitionCompetition("REGISTRATION_OPEN" as CompetitionStatus, "CANCELLED" as CompetitionStatus), true);

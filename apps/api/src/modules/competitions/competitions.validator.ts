@@ -20,11 +20,15 @@ export const createCompetitionSchema = z.object({
 { message: "Registration must close before the competition starts.", path: ["registrationClosesAt"] });
 
 export const updateCompetitionStatusSchema = z.object({
-  status: z.enum(["REGISTRATION_OPEN", "REGISTRATION_CLOSED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]),
+  status: z.enum(["REGISTRATION_OPEN", "REGISTRATION_CLOSED", "CANCELLED"]),
 });
 
 export const registerCompetitionEntrySchema = z.object({
   teamId: z.string().min(1).optional(),
+}).strict();
+
+export const setCompetitionEntrySeedSchema = z.object({
+  seed: z.number().int().min(1).max(512).nullable(),
 }).strict();
 
 export const reviewCompetitionEntrySchema = z.object({
@@ -39,3 +43,4 @@ export type CreateCompetitionInput = z.infer<typeof createCompetitionSchema>;
 export type UpdateCompetitionStatusInput = z.infer<typeof updateCompetitionStatusSchema>;
 export type RegisterCompetitionEntryInput = z.infer<typeof registerCompetitionEntrySchema>;
 export type ReviewCompetitionEntryInput = z.infer<typeof reviewCompetitionEntrySchema>;
+export type SetCompetitionEntrySeedInput = z.infer<typeof setCompetitionEntrySeedSchema>;

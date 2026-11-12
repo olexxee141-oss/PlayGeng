@@ -42,3 +42,24 @@ export const withdrawEntry: RequestHandler = async (req, res) => {
   await service.withdrawEntry(param(req, "communityId"), param(req, "competitionId"), param(req, "entryId"), auth(res).userId);
   res.status(204).send();
 };
+
+export const setSeed: RequestHandler = async (req, res) => {
+  const entry = await service.setEntrySeed(
+    param(req, "communityId"),
+    param(req, "competitionId"),
+    param(req, "entryId"),
+    auth(res).userId,
+    req.body.seed,
+  );
+  res.status(200).json({ success: true, data: { entry } });
+};
+
+export const getSchedule: RequestHandler = async (req, res) => {
+  const schedule = await service.getSchedule(param(req, "communityId"), param(req, "competitionId"), auth(res).userId);
+  res.status(200).json({ success: true, data: { schedule } });
+};
+
+export const generateSchedule: RequestHandler = async (req, res) => {
+  const schedule = await service.generateSchedule(param(req, "communityId"), param(req, "competitionId"), auth(res).userId);
+  res.status(200).json({ success: true, data: { schedule } });
+};

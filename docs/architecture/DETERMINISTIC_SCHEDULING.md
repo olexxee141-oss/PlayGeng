@@ -1,10 +1,10 @@
 # Phase 8 — Deterministic Scheduling Contract
 
-## Scope of the first scheduling slice
+## Scope
 
-Phase 8 starts with a pure, database-independent scheduler. It consumes approved competition entry identities and returns deterministic pairings. It does not create database fixtures, advance brackets, or accept results in this slice.
+Phase 8 is delivered in layers. PR #13 added the pure, database-independent scheduler and its algorithm tests. The current persistence/API slice consumes approved competition entry identities and stores deterministic pairings. It does not advance brackets or accept results yet.
 
-This is intentional: pairing correctness, byes, stable seeding, and edge cases must be proven before persistence and API orchestration are introduced.
+This separation proves pairing correctness, byes, stable seeding, and edge cases before persistence and API orchestration are coupled to the algorithms.
 
 ## Generic participant contract
 
@@ -53,17 +53,21 @@ The output contains bracket size, total round count, first-round match count, by
 
 The pure scheduler is deterministic for the same participant identities, timestamps, seeds, format, and algorithm version, regardless of input array order.
 
-Persistence must later enforce:
+Persistence enforces:
 
-- One schedule record per competition.
+- One schedule record per competition, enforced by a unique competition ID.
+- A schedule stores format, algorithm version, participant order snapshot, round count, participant count, fixture count, match count, bye count, and creator.
 - Unique fixture identity within a schedule (round + fixture number).
-- Fixture participants must reference entries belonging to that same competition.
+- Fixture participants must reference entries belonging to that same competition, enforced with composite foreign keys.
+- Bye fixtures have one participant. Round-robin byes do not count as wins or advances; knockout byes explicitly set the advancing entry. Ordinary fixtures have two distinct participants.
+- Explicit positive seeds are unique among active entries and can only be assigned after registration closes and before generation.
 - Schedule generation and fixture insertion happen in one transaction.
 - Repeated generation requests return the existing schedule rather than creating duplicate fixtures.
-- Once a schedule is generated, registration and withdrawal are frozen.
+- Schedule generation requires every pending registration to be resolved; pending invitations are cancelled in the same transaction.
+- Once a schedule is generated, registration, withdrawal, and seed changes are frozen.
 - Store algorithm version and seed/order metadata with the schedule for auditability.
 
-The pure engine does not claim database idempotency by itself; those guarantees belong to the persistence/service layer.
+The schedule-generation endpoint is idempotent: repeat calls return the existing schedule. Fixture insertion and the competition transition to IN_PROGRESS happen in one serializable transaction. Manual status changes cannot move a competition to IN_PROGRESS; schedule generation owns that transition.
 
 ## NewDelyx reuse decisions
 
@@ -83,3 +87,19 @@ PlayGeng therefore:
 The pure test suite covers even and odd round-robin fields, pair uniqueness, one appearance per round, input-order determinism, standard knockout seeding, byes, participant coverage, duplicate IDs, duplicate seeds, invalid seeds, invalid timestamps, and minimum field size.
 
 No fixture persistence or result workflow should be added until this contract and test suite pass CI.
+
+## API workflow in the persistence slice
+
+- `PATCH /api/v1/communities/:communityId/competitions/:competitionId/entries/:entryId/seed`: assign or clear a positive seed after registration closes.
+- `POST /api/v1/communities/:communityId/competitions/:competitionId/schedule`: generate the schedule once and return the existing schedule on repeat calls.
+- `GET /api/v1/communities/:communityId/competitions/:competitionId/schedule`: retrieve the schedule and ordered fixtures.
+
+Round-robin generates the complete set of rounds. Knockout generates only round one; later rounds require approved winners and belong to the progression/result workflow. The schedule endpoint atomically changes the competition from REGISTRATION_CLOSED to IN_PROGRESS; the generic lifecycle endpoint cannot start a competition without generating its schedule.
+
+## Not implemented in this slice
+
+- Fixture rescheduling, venue assignment, or cancellation workflows.
+- Result reports, disputes, evidence, and approval.
+- Knockout advancement after approved results.
+- Standings and statistics.
+- Competition completion. The API continues to block COMPLETED until result verification exists.
