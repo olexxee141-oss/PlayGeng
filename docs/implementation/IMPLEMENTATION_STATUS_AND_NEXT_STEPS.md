@@ -1,6 +1,6 @@
 # PlayGeng — Reconciled Implementation Status and Remaining Work
 
-**Last reconciled:** November 11, 2026  
+**Last reconciled:** November 12, 2026  
 **Repository:** `olexxee141-oss/PlayGeng`  
 **Purpose:** One current source of truth for what has shipped, what is in progress, what remains unimplemented, and which product decisions must be settled before additional financial work begins.
 
@@ -18,8 +18,11 @@ PlayGeng has moved beyond the initial product and community foundations. The rep
 - Obligation issuance/cancellation and manually verified receipts with obligation allocations.
 - Community contribution campaign administration and monthly draft generation.
 - Member contribution history and assessment reporting.
+- PostgreSQL-enforced immutability for issued contribution assessments, member snapshots, and campaign lifecycle events (PR #34).
+- Provider-independent Financial Service schema and service foundation, including collection idempotency, provider-event identity, verified-event settlement coordination, and reconciliation records (PR #40).
+- Deterministic competition schedule and fixture persistence, seed assignment, and idempotent generation (PR #14).
 
-**PR #31: atomic contribution assessment issuance through Treasury is merged** at `bde0b87a3fff6148fad9675d0e500d1254e4d1c6`. Its CI passed on the merged head.
+PR #31 (atomic contribution assessment issuance), PR #34 (contribution immutability hardening), PR #40 (Financial Service foundation), and PR #14 (fixture persistence) are merged. The latest CI runs for PR #40 and PR #14 passed on their exact merged heads.
 
 The financial system is **not production payment/custody infrastructure yet**. Current receipt verification is manual. No payment-provider collection, provider webhook settlement, pooled custody arrangement, provider transfer execution, or withdrawal workflow is implemented.
 
@@ -49,13 +52,18 @@ Repository status was checked against GitHub on November 11, 2026.
 | #30 | Campaign administration and monthly draft scheduler | Merged |
 | #32 | Member visibility and assessment reporting | Merged |
 | #31 | Atomic assessment issuance through Treasury | Merged (`bde0b87`) |
-| #14 | Fixture persistence and generation | **Open; recorded CI run failed; separate older workstream** |
+| #34 | Contribution database immutability and recovery runbook | Merged |
+| #39 | Ratified Community Review Council charter | Merged |
+| #40 | Provider-independent Financial Service foundation | Merged (`f8f368c`) |
+| #14 | Fixture persistence and generation | Merged (`d6a2abe`) |
 
 ### Important PR dependencies and caveats
 
 - PR #31 is merged. Its issuance transaction, shared membership-boundary locking, retry handling, and integration tests are now part of `main`.
 - PR #32's reporting layer and PR #31's issuance workflow are both merged. Reporting now reads the immutable snapshots and Treasury allocations created by issuance.
-- PR #14 is not a dependency for the financial work. It is an older open fixture-persistence PR with a failed recorded CI run. Rebase/audit it and inspect its current checks before deciding whether to continue, replace, or close it. Do not merge it based on its age or previous work.
+- PR #14 is merged. Competition schedules and fixtures are now persisted, and schedule generation is idempotent and transactional. Result submission/approval, disputes, evidence, knockout advancement, standings, statistics, and venue/time scheduling are still separate work.
+- PR #34's PostgreSQL triggers and recovery runbook complete the previously listed contribution-hardening PR D. The remaining contribution work is operational end-to-end validation and governance-authorized relief/refund workflows, not basic snapshot immutability.
+- PR #40 is a provider-independent foundation, not a live payment integration. It does not implement provider signature verification, a Paystack adapter, live collection initiation, transfer execution, beneficiaries, or withdrawals.
 
 ---
 
@@ -98,7 +106,9 @@ Implemented through PRs #19–24.
 - Manual reconciliation requires an independently checked external reference and evidence reference. An evidence reference is not proof of custody.
 - No generic endpoint should permit arbitrary cash, receivable, or operational-income journal manipulation.
 
-**Not implemented by this foundation:** payment-provider collection, provider webhooks, funds custody, bank settlement, transfers, refunds, or withdrawals.
+**Implemented by PR #40:** provider-independent provider/collection/event/settlement/reconciliation records; collection idempotency; duplicate provider-event identity; validated-event settlement coordination; atomic Treasury receipt/journal/allocation settlement; and mismatch reconciliation.
+
+**Still not implemented:** provider signature verification, a production webhook endpoint/adapter, Paystack SDK/API integration, live collection initialization, external bank/provider statement reconciliation, custody approval, beneficiary verification, transfers, refunds, or withdrawals. Do not treat the current internal verified-event function as proof that an external event is authentic.
 
 ### 3.3 Community-only contributions
 
@@ -134,7 +144,8 @@ Current contribution delivery:
 | Campaign administration and monthly draft scheduler | Merged (#30) |
 | Atomic snapshot + obligation issuance | Merged (#31) |
 | Member history and assessment reporting | Merged (#32) |
-| Exemption/waiver authorization policy | Assembly authority and case-vote rules ratified; Review Council charter ratified November 11, 2026; implementation pending |
+| Database immutability and issuance recovery runbook | Merged (#34) |
+| Exemption/waiver authorization policy | Assembly authority, case-vote rules, and Review Council charter ratified; implementation pending |
 | Refund workflow for settled obligations | Not implemented |
 
 ### 3.4 Current match and competition behavior
@@ -196,14 +207,13 @@ A database subledger does not itself segregate funds legally, protect community 
 
 ## 5. Everything still awaiting implementation or final policy
 
-### A. Immediate: finish community contributions
+### A. Contribution workflow — hardening baseline merged; policy workflows remain
 
-1. Run the full contribution workflow from campaign creation through draft generation, due-date assignment, issuance, member history, and reporting.
-2. Add database-level immutability guards for issued assessments, issued member snapshots, and campaign lifecycle events; verify direct mutation attempts fail.
-3. Expand failure-injection and concurrency coverage for issuance, scheduler retries, membership changes, and duplicate requests.
-4. Maintain the [contribution issuance operations and recovery runbook](../operations/COMMUNITY_CONTRIBUTION_ISSUANCE_RUNBOOK.md), including uncertain-response recovery, integrity checks, and reconciliation guidance.
-5. Implement the ratified Assembly case-vote procedure: 48-hour notice, 72-hour voting window, requester exclusion, direct-conflict disclosure and recusal, fixed non-recused electorate, restricted evidence, independent handling of disputed conflicts, Judiciary procedural review, and audited Treasury adjustments without erasing original obligations.
-6. Add a distinct refund/reversal workflow before any settled receipt can be returned. Obligation cancellation is not a refund.
+1. Execute the full campaign-to-reporting workflow against PostgreSQL in CI/staging, including automatic/manual draft generation, due-date assignment, issuance, member history, and reports.
+2. Retain PR #34's database immutability guards and runbook; add failure-injection/concurrency cases only where a coverage review identifies a real gap.
+3. Implement Assembly-authorized exemptions/waivers using the ratified case-vote procedure, but do not enable case voting in production until an independent Review Council is operational for disputed recusals.
+4. Apply final relief through separately authorized Treasury adjustment/reversal entries; never mutate issued assessments, snapshots, obligations, or posted journal entries.
+5. Implement a distinct refund workflow before any settled receipt can be returned. Obligation cancellation or waiver is not a refund.
 
 ### B. Treasury operational hardening
 
@@ -213,18 +223,18 @@ A database subledger does not itself segregate funds legally, protect community 
 4. Confirm pending withdrawal reservations, reversal handling, and provider reconciliation semantics before building transfer execution.
 5. Keep all monetary calculations in integer minor units; do not use floating-point currency amounts.
 
-### C. Separate Financial Service
+### C. Financial Service — provider-independent foundation merged; live integration blocked by custody approval
 
-Not yet implemented.
+PR #40 establishes the first provider-independent database and service boundary. It creates collection intents, stores provider event identities, coordinates settlement only for events already marked VALIDATED by a trusted adapter, and atomically records Treasury receipts/journal postings/obligation allocations or reconciliation discrepancies.
 
-1. Finalize custody/provider permission and regulatory review.
-2. Define service boundary and authenticated PlayGeng-to-Financial-Service contract.
-3. Design provider-neutral collections, receipts, community attribution, ledger, beneficiary, withdrawal, transfer, reconciliation, and audit modules.
-4. Implement one provider adapter first, subject to approval; do not create one Paystack account per community.
-5. Ensure each incoming provider transaction is attributed exactly once to the correct community and cannot be double-posted by duplicate webhooks or manual reconciliation.
-6. Implement verified beneficiary management and Treasurer-only withdrawal authorization.
-7. Implement pending-transfer reservations, provider idempotency, webhook/status polling, failed-transfer release, and reconciliation.
-8. Add sandbox/contract tests and failure-injection tests before enabling live money movement.
+Remaining work:
+1. Finalize the authenticated PlayGeng-to-Financial-Service service contract and service-to-service identity model.
+2. Obtain written Paystack approval for the proposed single merchant integration receiving funds attributable to multiple independent communities, plus Nigerian legal/compliance advice on custody, safeguarding, third-party funds, settlement, and payouts.
+3. Implement a Paystack adapter only after approval, including request signing, webhook signature verification, replay protection, provider API idempotency, status polling, and sandbox/contract tests.
+4. Add explicit collection lifecycle transitions and external-reference binding; ensure provider callbacks cannot be trusted merely because they reach an internal service function.
+5. Add external statement reconciliation and operational exception handling.
+6. Design verified beneficiary management, Treasurer-only withdrawal authorization, pending reservations, transfer execution, definitive failure release, and unknown-outcome reconciliation as a separate later phase.
+7. Do not enable live collection or movement of funds before provider permission and legal/compliance validation.
 
 ### D. Match-to-Treasury integration
 
@@ -260,16 +270,17 @@ Policy decisions required before code:
 
 Then implement obligation creation and payment gates through Treasury, not local paid flags. Tournament fixture generation must not proceed on an unresolved registration/payment state if the eventual policy requires payment first.
 
-### F. Fixture persistence and results
+### F. Competition fixtures and results
 
-PR #14 remains open with a recorded failing CI run. It covers fixture persistence and generation, but is not the immediate financial dependency.
+PR #14 is merged. It delivers competition-scoped schedule and fixture persistence, explicit seed assignment, deterministic generation, transactionally coupled competition start, pending-registration resolution, invitation cancellation, and idempotent schedule retrieval/generation.
 
-Before resuming it:
-- Rebase/audit against current main.
-- Inspect the current head and latest CI rather than relying on the old run.
-- Confirm that registration/payment lifecycle rules will not invalidate its scheduling gates.
-- Keep fixture generation idempotent and transactionally tied to valid competition lifecycle state.
-- Results, disputes, evidence, approval, standings, statistics, venue/time scheduling, and later knockout-round advancement remain separate future work unless already delivered by another verified PR.
+Remaining work:
+- Result submission, result approval, and correction/reversal policy.
+- Evidence attachment, disputes, conflict handling, and appeal boundaries for disputed results.
+- Knockout advancement based only on approved results.
+- Standings and statistics after sport-specific result semantics are validated.
+- Venue/time scheduling and fixture rescheduling.
+- Revisit commercial registration gates only after the competition payer, fee, liability, cancellation, and refund policies are approved.
 
 ---
 
@@ -279,15 +290,16 @@ This is the reconciled order. It intentionally avoids building payment collectio
 
 | Order | Work | Exit condition |
 |---|---|---|
-| 1 | Finish contribution hardening (PR D) | Database immutability, rollback/concurrency tests, migration validation, and recovery runbook pass |
-| 2 | Implement the ratified three-arm governance and exemption/waiver workflow | Independent Review Council elections, direct Assembly case votes, procedural review, recusal safeguards, and audited Treasury adjustment lifecycle are implemented and tested |
-| 3 | Finalize custody and provider feasibility | Written provider approval and Nigerian compliance review for the intended pooled model |
-| 4 | Specify and build Financial Service foundation | Authenticated service boundary, provider adapter, ledger, attribution, audit, reconciliation |
-| 5 | Implement provider collection and verified receipt flow | Idempotent provider events reconcile to one community and one ledger receipt |
-| 6 | Implement Treasurer-only withdrawals | Verified beneficiaries, reservations, transfers, final-status reconciliation, audit |
-| 7 | Finalize and implement match obligations | Liability/cancellation/no-show/refund rules approved and tested |
-| 8 | Finalize and implement competition commercial workflow | Payer/payment/capacity/refund rules approved and tested |
-| 9 | Reconcile fixture PR #14 and continue competition scheduling/results | Current CI passes and scheduling gates match commercial rules |
+| 1 | Governance foundation: independent Review Council election and membership lifecycle | Three elected members plus two ranked alternates; independent Assembly election; eligibility, terms, conflicts, vacancies, recall, and permission separation enforced |
+| 2 | Ratified Assembly case-vote and Judiciary review workflows | 48-hour notice, 72-hour voting, frozen non-recused electorate, 50% quorum, strict majority, requester exclusion, restricted evidence, conflict review, seven-day challenges, Council quorum/decision rules, and audit trail tested |
+| 3 | Treasury relief and contribution refund/reversal workflows | Final Assembly decisions create auditable adjustments without mutating original obligations; refunds are separate from waivers and cancellation |
+| 4 | Financial Service integration readiness | Authenticated service boundary and external reconciliation are defined; no live movement until provider and legal approval |
+| 5 | Provider adapter and verified collection flow | Written provider/custody approval; signed requests/webhooks, replay protection, provider idempotency, sandbox tests, and one receipt per verified collection |
+| 6 | Treasurer-only withdrawals | Verified beneficiaries, pending reservations, provider idempotency, definitive failure release, unknown-outcome reconciliation, and audit |
+| 7 | Match-to-Treasury integration | Liability trigger, waitlist, cancellation, no-show, reschedule, waiver, and refund rules approved and tested |
+| 8 | Competition commercial integration | Fee payer, obligation trigger, deadline, capacity reservation, withdrawal, rejection, cancellation, and refund rules approved and tested |
+| 9 | Competition result lifecycle | Result submission/approval, disputes/evidence, knockout advancement, standings, statistics, venue/time scheduling |
+| 10 | Product-wide operational readiness | Full end-to-end workflows, security review, observability, backup/recovery, and production runbooks pass |
 
 If provider approval or compliance review rejects pooled custody, stop before live collections and redesign the custody arrangement. Do not quietly work around provider restrictions.
 
@@ -312,7 +324,7 @@ If provider approval or compliance review rejects pooled custody, stop before li
 
 ## 8. Current next action
 
-**PR #31 is merged. The next code action is PR D: Community Contributions hardening and operational readiness.** Add database-level immutability for issued assessment history, complete failure/concurrency coverage, validate migrations and generated Prisma compatibility, and document operational recovery.
+**The contribution-hardening PR D is merged (#34), the provider-independent Financial Service foundation is merged (#40), and fixture persistence is merged (#14). The next implementation phase is the ratified three-arm community governance workflow, beginning with independent Review Council election and membership lifecycle.**
 
-After hardening, close the remaining contribution-policy gaps and obtain written provider permission plus Nigerian compliance review for the proposed pooled custody model. Only then should we implement live collection and withdrawal paths in the separate Financial Service.
+Do not start live Paystack collection or withdrawal execution as a shortcut. The pooled custody model still requires written provider permission and Nigerian legal/compliance review. Governance must be implemented before enabling Assembly exemption/waiver case votes, because disputed recusals require an independent Judiciary. See [Community Governance Implementation Plan](COMMUNITY_GOVERNANCE_IMPLEMENTATION_README.md) for the ordered implementation contract.
 
