@@ -1,12 +1,12 @@
-# Proposed Review Council Charter — Pending Assembly Ratification
+# Community Review Council Charter — Ratified November 11, 2026
 
-**Status:** Proposal only. None of the rules in this document are ratified. Do not implement them as constitutional policy until the Community Assembly explicitly approves them.
+**Status:** Ratified by the user on November 11, 2026. This document is the approved Review Council charter and implementation contract. Future amendments require explicit Community Assembly approval.
 
-This proposal completes the open Judiciary design decisions in [Three Arms of Community Governance](../governance/THREE_ARMS_COMMUNITY_GOVERNANCE.md). It preserves the Assembly's final authority while giving the Judiciary enough independence and process to review constitutional and procedural disputes.
+This charter completes the Judiciary design decisions in [Three Arms of Community Governance](../governance/THREE_ARMS_COMMUNITY_GOVERNANCE.md). It preserves the Assembly's final authority while giving the Judiciary enough independence and process to review constitutional and procedural disputes.
 
 ## 1. Composition and independence
 
-**Recommendation: three elected Review Council members, plus two elected alternates.**
+**Ratified structure: three elected Review Council members, plus two elected alternates.**
 
 - The three members form the standing Review Council.
 - The two alternates are elected in the same process and in ranked order. They have no voting or case-decision authority unless formally substituted for a recused, unavailable, or removed Council member.
@@ -23,7 +23,7 @@ Why this structure: three active members keep the body small; two elected altern
 - Candidates must be active community members in good standing and must not hold an Executive office while serving.
 - A candidate must disclose material conflicts and any current disciplinary restriction relevant to impartial service before the election.
 - Use the existing one-member/one-vote election foundation. Each seat is filled only by a candidate who satisfies the community's ratified election quorum and majority rule. Unfilled seats remain vacant; do not appoint a runner-up who failed the threshold.
-- **Recommended term: 12 months**, with a maximum of two consecutive full terms.
+- **Ratified term: 12 months**, with a maximum of two consecutive full terms.
 - The initial three seats should be staggered only if the election system can do so transparently without arbitrary term assignment; otherwise, use simultaneous first terms and adopt staggered renewal at the next constitutional review.
 - A Council member may resign. A vacancy is filled by the highest-ranked eligible alternate who accepts and remains conflict-free; if no alternate is eligible, hold a by-election.
 - Removal before term end requires a recall vote of the Assembly under the same notice, frozen-electorate, quorum, and majority safeguards used for other governance decisions. A Council member cannot adjudicate their own recall.
@@ -85,7 +85,7 @@ The Council must not replace a substantive Assembly decision with its own prefer
 
 ## 7. Urgent temporary relief
 
-**Recommendation: narrow interim relief is permitted, but not for the underlying merits of an exemption request.**
+**Ratified rule: narrow interim relief is permitted, but not for the underlying merits of an exemption request.**
 
 - A party may request interim relief where immediate action risks irreversible harm or would make the eventual review meaningless.
 - At least two conflict-free Council members must approve it.
@@ -105,9 +105,9 @@ Until the Review Council is elected and operational:
 - The Assembly may first elect the Review Council under a one-time, published election procedure. No temporary Judiciary power is granted to the Executive.
 - Existing ratified case-vote rules remain binding; this transitional rule does not amend them.
 
-## 9. Decisions requiring explicit ratification
+## 9. Ratified decisions
 
-The Assembly must approve or amend each of these before implementation:
+The following decisions are ratified and must be implemented as written:
 
 1. Three Council members plus two alternates.
 2. Independent Assembly election and no concurrent Executive office.
@@ -121,4 +121,4 @@ The Assembly must approve or amend each of these before implementation:
 10. Narrow, time-limited interim relief.
 11. Transitional rule: disputed cases remain pending until an independent Council is operational.
 
-**No item above is approved merely because it appears in this proposal.** The Assembly may ratify the package as written or amend individual provisions. Any approved changes must be reflected in the constitution and implementation-status document before code is written.
+**Ratification record:** The user explicitly approved this charter on November 11, 2026. The package is approved as written. Any future amendment must be approved by the Community Assembly and reflected in the constitution and implementation-status document.
