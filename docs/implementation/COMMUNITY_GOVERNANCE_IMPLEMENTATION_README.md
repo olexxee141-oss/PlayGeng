@@ -19,7 +19,7 @@ The repository currently has an Executive election foundation:
 The following are **implemented in part**:
 
 - Independent Review Council election, seats, alternates, terms, vacancy succession, resignation, and term expiry are implemented; Assembly recall remains pending.
-- PR #45 adds private exemption/waiver case intake as a requester-only workflow; it is not merged yet. Evidence storage, conflict declarations, recusals, electorate snapshots, notice, and voting remain pending.
+- PR #45 merged private exemption/waiver case intake. PR #46 implements conflict declarations, one-time subject responses, independent Review Council determinations, and electorate freezing; evidence storage, notices, voting, Judiciary case review, and Treasury relief remain pending.
 - Conflict declarations, recusals, and independent disputed-conflict determination remain pending.
 - Judiciary case assignment, decisions, appeals, and interim relief.
 - Audited Treasury adjustments applying final Assembly relief decisions.
@@ -83,7 +83,7 @@ A case vote must remain pending if a disputed recusal cannot be independently de
 
 ### PR B — Assembly exemption/waiver requests and case votes
 
-**Progress:** PR #44 merged the deterministic vote-policy foundation. PR #45 proposes private case intake and append-only submission/withdrawal audit records; merge is pending exact-head CI. Conflict declarations, restricted evidence, independent recusal decisions, electorate freeze, notice, and ballot casting are still outstanding.
+**Progress:** PR #44 merged the deterministic vote-policy foundation. PR #45 merged private case intake and append-only submission/withdrawal audit records. PR #46 implements the conflict-declaration and electorate-freeze slice. Secure evidence storage, case notice, and ballot casting remain outstanding.
 
 Deliverables:
 
