@@ -75,3 +75,9 @@ export const respondToConflictDeclaration = async (communityId: string, caseId: 
   if (result.kind !== "RESPONDED") fail(result.kind);
   return result.declaration;
 };
+
+export const listConflictDeclarationsForCouncil = async (communityId: string, caseId: string, userId: string) => {
+  const result = await db.listConflictDeclarationsForCouncil(communityId, caseId, userId);
+  if (result.kind !== "LISTED") fail(result.kind);
+  return result.declarations;
+};
