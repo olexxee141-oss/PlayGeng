@@ -58,6 +58,8 @@ export const createElection = async (
   });
   if (!creatorMembership || creatorMembership.user.status !== "ACTIVE") return { kind: "NOT_MEMBER" as const };
 
+  await reconcileMembershipLifecycleTx(tx, communityId, new Date());
+
   const activeMembers = await tx.reviewCouncilMember.findMany({
     where: { communityId, status: "ACTIVE" },
     select: { seatNumber: true },
@@ -66,8 +68,6 @@ export const createElection = async (
   const activeSeats = new Set(activeMembers.map((member) => member.seatNumber));
   const seatNumber = [1, 2, 3, 4, 5].find((seat) => !activeSeats.has(seat));
   if (!seatNumber) return { kind: "COUNCIL_FULL" as const };
-
-  if (seatNumber > 1 && !activeSeats.has(seatNumber - 1)) return { kind: "PREVIOUS_SEAT_UNFILLED" as const };
 
   const existing = await tx.communityReviewCouncilElection.findFirst({
     where: { communityId, seatNumber, status: { in: ["NOMINATIONS_OPEN", "NOMINATIONS_CLOSED", "VOTING_OPEN"] } },
@@ -308,6 +308,92 @@ export const listMembers = (communityId: string) =>
     where: { communityId, status: "ACTIVE" },
     include: { user: { select: { id: true, firstName: true, lastName: true } } },
     orderBy: { seatNumber: "asc" },
+  });
+
+const reconcileMembershipLifecycleTx = async (tx: Prisma.TransactionClient, communityId: string, now: Date) => {
+  await tx.reviewCouncilMember.updateMany({
+    where: { communityId, status: "ACTIVE", termEndsAt: { lte: now } },
+    data: { status: "ENDED", endedAt: now, endReason: "TERM_EXPIRED" },
+  });
+
+  // Fill any primary vacancy from the highest-ranked active alternate.
+  for (const primarySeat of [1, 2, 3]) {
+    const occupied = await tx.reviewCouncilMember.findFirst({
+      where: { communityId, status: "ACTIVE", seatNumber: primarySeat },
+      select: { id: true },
+    });
+    if (occupied) continue;
+
+    const alternate = await tx.reviewCouncilMember.findFirst({
+      where: { communityId, status: "ACTIVE", seat: "ALTERNATE" },
+      orderBy: { alternateRank: "asc" },
+    });
+    if (!alternate) continue;
+
+    await tx.reviewCouncilMember.update({
+      where: { id: alternate.id },
+      data: { seatNumber: primarySeat, seat: "PRIMARY", alternateRank: null },
+    });
+  }
+
+  // Compact remaining alternates so rank #1 is always the next successor.
+  const alternates = await tx.reviewCouncilMember.findMany({
+    where: { communityId, status: "ACTIVE", seat: "ALTERNATE" },
+    orderBy: { alternateRank: "asc" },
+  });
+  for (let index = 0; index < alternates.length; index += 1) {
+    const rank = index + 1;
+    await tx.reviewCouncilMember.update({
+      where: { id: alternates[index].id },
+      data: { seatNumber: 3 + rank, alternateRank: rank },
+    });
+  }
+};
+
+export const reconcileMembershipLifecycle = (communityId: string, now: Date) =>
+  withSerializableTransaction(async (tx) => {
+    const lock = await tx.$queryRaw<Array<{ id: string }>>`
+      UPDATE "communities" SET "updatedAt" = "updatedAt" WHERE "id" = ${communityId} RETURNING "id"
+    `;
+    if (lock.length !== 1) return { kind: "NOT_FOUND" as const };
+    await reconcileMembershipLifecycleTx(tx, communityId, now);
+    return { kind: "RECONCILED" as const };
+  });
+
+export const resignMembership = (communityId: string, userId: string, now: Date, reason: string) =>
+  withSerializableTransaction(async (tx) => {
+    const lock = await tx.$queryRaw<Array<{ id: string }>>`
+      UPDATE "communities" SET "updatedAt" = "updatedAt" WHERE "id" = ${communityId} RETURNING "id"
+    `;
+    if (lock.length !== 1) return { kind: "COMMUNITY_NOT_FOUND" as const };
+
+    await reconcileMembershipLifecycleTx(tx, communityId, now);
+    const membership = await tx.reviewCouncilMember.findFirst({
+      where: { communityId, userId, status: "ACTIVE" },
+      select: { id: true },
+    });
+    if (!membership) return { kind: "NOT_ACTIVE_MEMBER" as const };
+
+    await tx.reviewCouncilMember.update({
+      where: { id: membership.id },
+      data: { status: "RESIGNED", endedAt: now, endReason: reason },
+    });
+    await reconcileMembershipLifecycleTx(tx, communityId, now);
+    return { kind: "RESIGNED" as const };
+  });
+
+export const listMembershipHistory = (communityId: string) =>
+  prisma.reviewCouncilMember.findMany({
+    where: { communityId },
+    include: { user: { select: { id: true, firstName: true, lastName: true } } },
+    orderBy: [{ status: "asc" }, { seatNumber: "asc" }, { createdAt: "asc" }],
+  });
+
+export const listDueMemberships = (now: Date) =>
+  prisma.reviewCouncilMember.findMany({
+    where: { status: "ACTIVE", termEndsAt: { lte: now } },
+    select: { communityId: true },
+    distinct: ["communityId"],
   });
 
 export const listDueElections = (now: Date) =>
