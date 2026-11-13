@@ -37,7 +37,7 @@ A disputed conflict must be determined by an independent, conflict-free authorit
 
 - A member may submit a private request only against their own issued contribution assessment snapshot and non-cancelled obligation.
 - The request reason is visible only through the requester's own case endpoints; there is no community-wide or Executive listing endpoint.
-- One case is permitted per issued assessment-member snapshot; duplicate requests are rejected.
+- Only one submitted case may be open for an issued assessment-member snapshot at a time; a withdrawn case remains in history and does not permanently block a later submission.
 - Submission and requester withdrawal are recorded as append-only audit events.
 - Filing or withdrawing a request does not mutate the assessment, obligation, allocation, or Treasury.
 - Secure evidence upload and restricted evidence references are not included in this slice; they require a trusted storage upload/verification boundary before any evidence object key is accepted.
