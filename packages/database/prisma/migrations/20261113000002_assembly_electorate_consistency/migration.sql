@@ -3,7 +3,7 @@ ALTER TABLE "assembly_cases"
   CHECK (
     ("electorateFrozenAt" IS NULL AND "eligibleVoterCount" IS NULL)
     OR
-    ("electorateFrozenAt" IS NOT NULL AND "conflictReviewStartedAt" IS NOT NULL AND "eligibleVoterCount" > 0)
+    ("electorateFrozenAt" IS NOT NULL AND "conflictReviewStartedAt" IS NOT NULL AND "eligibleVoterCount" IS NOT NULL AND "eligibleVoterCount" > 0)
   );
 
 DROP TRIGGER "assembly_case_electorate_append_only" ON "assembly_case_electorate_members";
