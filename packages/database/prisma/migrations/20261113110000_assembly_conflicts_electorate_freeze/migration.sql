@@ -142,11 +142,3 @@ CREATE TRIGGER "assembly_case_electorate_append_only"
 BEFORE UPDATE OR DELETE ON "assembly_case_electorate_members"
 FOR EACH ROW EXECUTE FUNCTION "reject_assembly_electorate_mutation"();
 
-CREATE FUNCTION "guard_assembly_case_event_type"() RETURNS trigger AS $$
-BEGIN
-  IF NEW."type" NOT IN ('SUBMITTED','WITHDRAWN','CONFLICT_REVIEW_STARTED','ELECTORATE_FROZEN') THEN
-    RAISE EXCEPTION 'Invalid Assembly case event type';
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
