@@ -72,6 +72,7 @@ export const nominateSelf = async (communityId: string, electionId: string, user
     if (result.kind === "NOT_MEMBER") throw new AppError("Only active community members can nominate themselves.", 403);
     if (result.kind === "EXECUTIVE_OFFICE") throw new AppError("Executive office holders and the creator are not eligible for the Review Council.", 403);
     if (result.kind === "ALREADY_ON_COUNCIL") throw new AppError("An active Review Council member cannot hold another Council seat.", 409);
+    if (result.kind === "TERM_LIMIT_REACHED") throw new AppError("You have reached the maximum of two consecutive full Review Council terms.", 409);
     if (result.kind === "NOT_IN_ELECTORATE") throw new AppError("You were not in the electorate snapshot for this election.", 403);
     return result.nomination;
   } catch (error) {
