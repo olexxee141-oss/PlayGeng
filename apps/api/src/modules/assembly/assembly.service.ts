@@ -2,8 +2,18 @@ import { AppError } from "../../shared/errors/app-error.js";
 import * as db from "./assembly.db.js";
 import type { SubmitAssemblyCaseInput } from "./assembly.validator.js";
 
+const isConflict = (error: unknown) =>
+  typeof error === "object" && error !== null && "code" in error &&
+  (error.code === "P2002" || error.code === "P2034");
+
 export const submitCase = async (communityId: string, requesterId: string, input: SubmitAssemblyCaseInput) => {
-  const result = await db.submitCase(communityId, requesterId, input);
+  let result: Awaited<ReturnType<typeof db.submitCase>>;
+  try {
+    result = await db.submitCase(communityId, requesterId, input);
+  } catch (error) {
+    if (isConflict(error)) throw new AppError("A case already exists for this issued assessment, or the request conflicted with another update. Reload and try again.", 409);
+    throw error;
+  }
   if (result.kind === "COMMUNITY_NOT_FOUND") throw new AppError("Community not found.", 404);
   if (result.kind === "NOT_MEMBER") throw new AppError("Only an active community member can submit an Assembly case.", 403);
   if (result.kind === "ASSESSMENT_NOT_FOUND") throw new AppError("An issued contribution assessment belonging to you is required.", 404);
