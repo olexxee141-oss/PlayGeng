@@ -1,6 +1,6 @@
 import { AppError } from "../../shared/errors/app-error.js";
 import * as db from "./review-council.db.js";
-import type { CastReviewCouncilBallotInput, CreateReviewCouncilElectionInput } from "./review-council.validator.js";
+import type { CastReviewCouncilBallotInput, CreateReviewCouncilElectionInput, ResignReviewCouncilMembershipInput } from "./review-council.validator.js";
 
 const isUniqueConflict = (error: unknown) =>
   typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
@@ -109,11 +109,29 @@ export const castBallot = async (communityId: string, electionId: string, voterI
 export const listMembers = async (communityId: string, userId: string) => {
   const membership = await db.findMembership(communityId, userId);
   if (!membership || membership.user.status !== "ACTIVE") throw new AppError("Community not found.", 404);
+  await db.reconcileMembershipLifecycle(communityId, new Date());
   return db.listMembers(communityId);
 };
 
+export const listMembershipHistory = async (communityId: string, userId: string) => {
+  const membership = await db.findMembership(communityId, userId);
+  if (!membership || membership.user.status !== "ACTIVE") throw new AppError("Community not found.", 404);
+  await db.reconcileMembershipLifecycle(communityId, new Date());
+  return db.listMembershipHistory(communityId);
+};
+
+export const resign = async (communityId: string, userId: string, input: ResignReviewCouncilMembershipInput) => {
+  const result = await db.resignMembership(communityId, userId, new Date(), input.reason);
+  if (result.kind === "COMMUNITY_NOT_FOUND") throw new AppError("Community not found.", 404);
+  if (result.kind === "NOT_ACTIVE_MEMBER") throw new AppError("You do not hold an active Review Council seat.", 409);
+};
+
 export const processDueElections = async () => {
-  const due = await db.listDueElections(new Date());
-  for (const election of due) await db.syncElection(election.id, new Date());
-  return due.length;
+  const now = new Date();
+  const dueMemberships = await db.listDueMemberships(now);
+  for (const membership of dueMemberships) await db.reconcileMembershipLifecycle(membership.communityId, now);
+
+  const due = await db.listDueElections(now);
+  for (const election of due) await db.syncElection(election.id, now);
+  return due.length + dueMemberships.length;
 };
