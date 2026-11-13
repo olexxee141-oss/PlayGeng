@@ -22,6 +22,13 @@ BEGIN
   ELSIF NEW."respondedAt" IS DISTINCT FROM OLD."respondedAt" THEN
     RAISE EXCEPTION 'Conflict response timestamp is immutable';
   END IF;
+  IF OLD."status" = 'OPEN' AND NEW."status" = 'OPEN' THEN
+    IF NEW."withdrawnAt" IS DISTINCT FROM OLD."withdrawnAt"
+      OR NEW."determinedAt" IS DISTINCT FROM OLD."determinedAt" THEN
+      RAISE EXCEPTION 'Only the subject response may change while a declaration is open';
+    END IF;
+    RETURN NEW;
+  END IF;
   IF OLD."status" <> 'OPEN' OR NEW."status" NOT IN ('WITHDRAWN','CONFLICT_CONFIRMED','NO_CONFLICT') THEN
     RAISE EXCEPTION 'Invalid Assembly conflict declaration transition';
   END IF;
