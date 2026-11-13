@@ -73,6 +73,10 @@ enum ContributionAssessmentStatus {
 enum AssemblyCaseStatus {
   SUBMITTED
   WITHDRAWN
+  NOTICE_PUBLISHED
+  VOTING_OPEN
+  APPROVED
+  REJECTED
 }
 
 enum AssemblyCaseEventType {
@@ -80,6 +84,11 @@ enum AssemblyCaseEventType {
   WITHDRAWN
   CONFLICT_REVIEW_STARTED
   ELECTORATE_FROZEN
+  NOTICE_PUBLISHED
+  VOTING_OPENED
+  BALLOT_CAST
+  VOTING_CLOSED
+  OUTCOME_RECORDED
 }
 
 enum AssemblyConflictDeclarationStatus {
@@ -1277,6 +1286,16 @@ model AssemblyCase {
   conflictReviewStartedAt DateTime?
   electorateFrozenAt DateTime?
   eligibleVoterCount Int?
+  noticePublishedAt DateTime?
+  noticeOpensAt DateTime?
+  votingOpenedAt DateTime?
+  votingClosesAt DateTime?
+  outcomeRecordedAt DateTime?
+  approvedAt DateTime?
+  rejectedAt DateTime?
+  yesVoteCount Int?
+  noVoteCount Int?
+  quorumRequired Int?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -1286,6 +1305,7 @@ model AssemblyCase {
   events           AssemblyCaseEvent[]
   conflictDeclarations AssemblyConflictDeclaration[]
   electorate AssemblyCaseElectorateMember[]
+  ballots AssemblyCaseBallot[]
 
   @@index([assessmentMemberId, status])
   @@index([communityId, status, submittedAt])
@@ -1345,6 +1365,26 @@ model AssemblyConflictDecision {
   @@unique([declarationId, reviewerId])
   @@index([declarationId, createdAt])
   @@map("assembly_conflict_decisions")
+}
+
+model AssemblyCaseBallot {
+  id String @id @default(cuid())
+  caseId String
+  voterId String
+  vote AssemblyVoteChoice
+  castAt DateTime @default(now())
+
+  assemblyCase AssemblyCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  voter User @relation(fields: [voterId], references: [id], onDelete: Restrict)
+
+  @@unique([caseId, voterId])
+  @@index([caseId, vote])
+  @@map("assembly_case_ballots")
+}
+
+enum AssemblyVoteChoice {
+  YES
+  NO
 }
 
 model AssemblyCaseElectorateMember {
