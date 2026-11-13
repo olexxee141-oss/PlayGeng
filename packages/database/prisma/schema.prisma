@@ -719,7 +719,6 @@ model CommunityReviewCouncilElection {
   ballots    ReviewCouncilBallot[]
   membership ReviewCouncilMember?
 
-  @@unique([communityId, seatNumber])
   @@index([communityId, status, seatNumber])
   @@index([communityId, createdAt])
   @@map("community_review_council_elections")
@@ -791,7 +790,6 @@ model ReviewCouncilMember {
   user      User                            @relation(fields: [userId], references: [id], onDelete: Restrict)
   election  CommunityReviewCouncilElection  @relation(fields: [electionId], references: [id], onDelete: Restrict)
 
-  @@unique([communityId, userId, status])
   @@index([communityId, status, seat, alternateRank])
   @@index([communityId, termEndsAt])
   @@map("review_council_members")
