@@ -28,8 +28,8 @@ export const submitCase = async (communityId: string, requesterId: string, input
     if (!snapshot || !snapshot.obligation) return { kind: "ASSESSMENT_NOT_FOUND" as const };
     if (snapshot.obligation.status === "CANCELLED") return { kind: "OBLIGATION_CANCELLED" as const };
 
-    const existing = await tx.assemblyCase.findUnique({
-      where: { assessmentMemberId: snapshot.id },
+    const existing = await tx.assemblyCase.findFirst({
+      where: { assessmentMemberId: snapshot.id, status: "SUBMITTED" },
       select: { id: true },
     });
     if (existing) return { kind: "CASE_ALREADY_EXISTS" as const };
