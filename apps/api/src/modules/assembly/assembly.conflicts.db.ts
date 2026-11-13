@@ -183,3 +183,29 @@ export const listMyConflictDeclarations = (communityId: string, caseId: string, 
     select: { id: true, subjectUserId: true, reason: true, subjectResponse: true, respondedAt: true, status: true, createdAt: true, withdrawnAt: true, determinedAt: true },
     orderBy: { createdAt: "asc" },
   });
+
+export const listConflictDeclarationsForCouncil = async (communityId: string, caseId: string, reviewerId: string) => {
+  const item = await prisma.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" }, select: { requesterId: true } });
+  if (!item) return { kind: "CASE_NOT_FOUND" as const };
+  const membership = await prisma.communityMember.findUnique({
+    where: { communityId_userId: { communityId, userId: reviewerId } },
+    include: { user: { select: { status: true } } },
+  });
+  const council = await prisma.reviewCouncilMember.findFirst({
+    where: { communityId, userId: reviewerId, status: "ACTIVE", seat: "PRIMARY" },
+    select: { id: true },
+  });
+  if (!membership || membership.user.status !== "ACTIVE" || !council) return { kind: "NOT_PRIMARY_COUNCIL" as const };
+  if (item.requesterId === reviewerId) return { kind: "REQUESTER_RECUSED" as const };
+  const declarations = await prisma.assemblyConflictDeclaration.findMany({
+    where: { caseId },
+    select: {
+      id: true, declarantId: true, subjectUserId: true, reason: true,
+      subjectResponse: true, respondedAt: true, status: true, createdAt: true,
+      withdrawnAt: true, determinedAt: true,
+      decisions: { select: { reviewerId: true, conflictExists: true, reason: true, createdAt: true }, orderBy: { createdAt: "asc" } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  return { kind: "LISTED" as const, declarations };
+};
