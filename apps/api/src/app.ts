@@ -8,6 +8,7 @@ import { matchRoutes } from "./modules/matches/matches.routes.js";
 import { teamRoutes } from "./modules/teams/teams.routes.js";
 import { competitionRoutes } from "./modules/competitions/competitions.routes.js";
 import { governanceRoutes } from "./modules/governance/governance.routes.js";
+import { reviewCouncilRoutes } from "./modules/review-council/review-council.routes.js";
 import { treasuryRoutes } from "./modules/treasury/treasury.routes.js";
 import { contributionRoutes } from "./modules/contributions/contributions.routes.js";
 import { financialServiceRoutes } from "./modules/financial-service/financial-service.routes.js";
@@ -46,6 +47,7 @@ export const createApp = () => {
   app.use("/api/v1/communities/:communityId/matches", matchRoutes);
   app.use("/api/v1/communities/:communityId/competitions", competitionRoutes);
   app.use("/api/v1/communities/:communityId/elections", governanceRoutes);
+  app.use("/api/v1/communities/:communityId/review-council/elections", reviewCouncilRoutes);
   app.use("/api/v1/communities/:communityId/treasury", treasuryRoutes);
   app.use("/api/v1/communities/:communityId/contributions", contributionRoutes);
   app.use("/api/v1/communities/:communityId/financial", financialServiceRoutes);
