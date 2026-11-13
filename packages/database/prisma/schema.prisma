@@ -165,6 +165,18 @@ enum ElectionStatus {
   CANCELLED
 }
 
+enum ReviewCouncilSeat {
+  PRIMARY
+  ALTERNATE
+}
+
+enum ReviewCouncilMembershipStatus {
+  ACTIVE
+  RESIGNED
+  RECALLED
+  ENDED
+}
+
 enum Sport {
   FOOTBALL
   BASKETBALL
@@ -268,6 +280,12 @@ model User {
   eligibleElectionVotes ElectionEligibleVoter[]
   electionNominations ElectionNomination[]
   electionBallots ElectionBallot[] @relation("ElectionVoter")
+  createdReviewCouncilElections CommunityReviewCouncilElection[] @relation("ReviewCouncilElectionCreator")
+  wonReviewCouncilElections CommunityReviewCouncilElection[] @relation("ReviewCouncilElectionWinner")
+  eligibleReviewCouncilVotes ReviewCouncilEligibleVoter[]
+  reviewCouncilNominations ReviewCouncilNomination[]
+  reviewCouncilBallots ReviewCouncilBallot[] @relation("ReviewCouncilVoter")
+  reviewCouncilMemberships ReviewCouncilMember[]
   createdTreasuries Treasury[] @relation("TreasuryCreator")
   createdJournalTransactions JournalTransaction[] @relation("JournalActor")
   createdObligations Obligation[] @relation("ObligationActor")
@@ -355,6 +373,8 @@ model Community {
   competitionEntries CompetitionEntry[]
   competitionInvitations CompetitionInvitation[]
   elections CommunityElection[]
+  reviewCouncilElections CommunityReviewCouncilElection[]
+  reviewCouncilMemberships ReviewCouncilMember[]
   treasury Treasury?
   contributionCampaigns ContributionCampaign[]
   contributionAssessments ContributionAssessment[]
@@ -669,6 +689,112 @@ model CommunityElection {
   @@index([communityId, status, role])
   @@index([communityId, createdAt])
   @@map("community_elections")
+}
+
+model CommunityReviewCouncilElection {
+  id                 String         @id @default(cuid())
+  communityId        String
+  seatNumber         Int
+  seat               ReviewCouncilSeat
+  alternateRank      Int?
+  status             ElectionStatus @default(NOMINATIONS_OPEN)
+  createdById        String
+  nominationsCloseAt DateTime
+  votingOpensAt      DateTime
+  votingClosesAt     DateTime
+  quorumPercent      Int
+  eligibleVoterCount Int
+  votesCast          Int            @default(0)
+  winnerId           String?
+  failureReason      String?        @db.VarChar(300)
+  completedAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  community  Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy  User      @relation("ReviewCouncilElectionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  winner     User?     @relation("ReviewCouncilElectionWinner", fields: [winnerId], references: [id], onDelete: Restrict)
+  electorate ReviewCouncilEligibleVoter[]
+  nominations ReviewCouncilNomination[]
+  ballots    ReviewCouncilBallot[]
+  membership ReviewCouncilMember?
+
+  @@unique([communityId, seatNumber])
+  @@index([communityId, status, seatNumber])
+  @@index([communityId, createdAt])
+  @@map("community_review_council_elections")
+}
+
+model ReviewCouncilEligibleVoter {
+  id         String   @id @default(cuid())
+  electionId String
+  userId     String
+  snapshotAt DateTime @default(now())
+
+  election CommunityReviewCouncilElection @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  user     User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([electionId, userId])
+  @@index([userId, electionId])
+  @@map("review_council_eligible_voters")
+}
+
+model ReviewCouncilNomination {
+  id          String    @id @default(cuid())
+  electionId  String
+  userId      String
+  createdAt   DateTime  @default(now())
+  withdrawnAt DateTime?
+
+  election CommunityReviewCouncilElection @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  user     User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ballots  ReviewCouncilBallot[]
+
+  @@unique([electionId, userId])
+  @@unique([id, electionId])
+  @@index([electionId, withdrawnAt])
+  @@map("review_council_nominations")
+}
+
+model ReviewCouncilBallot {
+  id          String   @id @default(cuid())
+  electionId  String
+  voterId     String
+  candidateId String
+  castAt      DateTime @default(now())
+
+  election  CommunityReviewCouncilElection @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  voter     User                          @relation("ReviewCouncilVoter", fields: [voterId], references: [id], onDelete: Cascade)
+  candidate ReviewCouncilNomination       @relation(fields: [candidateId, electionId], references: [id, electionId], onDelete: Cascade)
+
+  @@unique([electionId, voterId])
+  @@index([electionId, candidateId])
+  @@map("review_council_ballots")
+}
+
+model ReviewCouncilMember {
+  id            String                       @id @default(cuid())
+  communityId   String
+  userId        String
+  electionId    String                       @unique
+  seat          ReviewCouncilSeat
+  alternateRank Int?
+  status        ReviewCouncilMembershipStatus @default(ACTIVE)
+  termStartsAt  DateTime
+  termEndsAt    DateTime
+  endedAt       DateTime?
+  endReason     String?                      @db.VarChar(300)
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+
+  community Community                       @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User                            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  election  CommunityReviewCouncilElection  @relation(fields: [electionId], references: [id], onDelete: Restrict)
+
+  @@unique([communityId, userId, status])
+  @@index([communityId, status, seat, alternateRank])
+  @@index([communityId, termEndsAt])
+  @@map("review_council_members")
 }
 
 model ElectionEligibleVoter {
