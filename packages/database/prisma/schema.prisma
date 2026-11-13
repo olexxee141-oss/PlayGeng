@@ -791,7 +791,6 @@ model ReviewCouncilMember {
   user      User                            @relation(fields: [userId], references: [id], onDelete: Restrict)
   election  CommunityReviewCouncilElection  @relation(fields: [electionId], references: [id], onDelete: Restrict)
 
-  @@unique([communityId, seatNumber, status])
   @@index([communityId, status, seat, alternateRank])
   @@index([communityId, termEndsAt])
   @@map("review_council_members")
