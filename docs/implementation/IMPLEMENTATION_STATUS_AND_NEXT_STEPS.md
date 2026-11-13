@@ -24,7 +24,9 @@ PlayGeng has moved beyond the initial product and community foundations. The rep
 
 PR #31 (atomic contribution assessment issuance), PR #34 (contribution immutability hardening), PR #40 (Financial Service foundation), and PR #14 (fixture persistence) are merged. The latest CI runs for PR #40 and PR #14 passed on their exact merged heads.
 
-PR #42/#43 deliver the independent Review Council election and lifecycle foundations. PR #44/#45 deliver the Assembly vote-policy foundation and private case intake. PR #46 is implementing conflict declarations, independent recusal determinations, and immutable electorate freezing; it is not yet merged.\n\nThe financial system is **not production payment/custody infrastructure yet**. Current receipt verification is manual. No payment-provider collection, provider webhook settlement, pooled custody arrangement, provider transfer execution, or withdrawal workflow is implemented.
+PR #42/#43 deliver the independent Review Council election and lifecycle foundations. PR #44/#45 deliver the Assembly vote-policy foundation and private case intake. PR #46 is implementing conflict declarations, independent recusal determinations, and immutable electorate freezing; it is not yet merged.
+
+The financial system is **not production payment/custody infrastructure yet**. Current receipt verification is manual. No payment-provider collection, provider webhook settlement, pooled custody arrangement, provider transfer execution, or withdrawal workflow is implemented.
 
 Match and competition workflows are not yet connected to Treasury. Their fee, liability, cancellation, refund, and payer rules remain to be decided before implementation.
 
@@ -57,7 +59,13 @@ Repository status was checked against GitHub on November 11, 2026.
 | #40 | Provider-independent Financial Service foundation | Merged (`f8f368c`) |
 | #14 | Fixture persistence and generation | Merged (`d6a2abe`) |
 
-| #42 | Independent Review Council election foundation | Merged |\n| #43 | Review Council membership lifecycle and succession | Merged |\n| #44 | Community Assembly vote policy foundation | Merged |\n| #45 | Private Community Assembly case intake | Merged (`fcd8d5c`) |\n| #46 | Conflict declarations, independent determinations, electorate freeze | Open / CI pending |\n\n### Important PR dependencies and caveats
+| #42 | Independent Review Council election foundation | Merged |
+| #43 | Review Council membership lifecycle and succession | Merged |
+| #44 | Community Assembly vote policy foundation | Merged |
+| #45 | Private Community Assembly case intake | Merged (`fcd8d5c`) |
+| #46 | Conflict declarations, independent determinations, electorate freeze | Open / CI pending |
+
+### Important PR dependencies and caveats
 
 - PR #31 is merged. Its issuance transaction, shared membership-boundary locking, retry handling, and integration tests are now part of `main`.
 - PR #32's reporting layer and PR #31's issuance workflow are both merged. Reporting now reads the immutable snapshots and Treasury allocations created by issuance.
