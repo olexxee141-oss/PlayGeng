@@ -1,6 +1,6 @@
 # Community Assembly Implementation
 
-**Status:** Policy foundation in progress. This document tracks implementation of the ratified Community Assembly rules; it does not create or amend constitutional authority.
+**Status:** Policy foundation merged (#44); private case intake in progress (PR #45). This document tracks implementation of the ratified Community Assembly rules; it does not create or amend constitutional authority.
 
 ## Constitutional baseline
 
@@ -33,12 +33,14 @@ A disputed conflict must be determined by an independent, conflict-free authorit
 - Abstentions excluded from the vote totals.
 - Tests for minimum notice, exact duration, odd-sized electorate quorum, strict majority, ties, invalid counts, and ballot totals.
 
-### Slice 2 — Case intake and restricted records
+### Slice 2 — Private case intake (PR #45)
 
-- Private exemption/waiver request against a specific issued assessment or obligation.
-- Evidence references with access control.
-- Requester eligibility and duplicate/open-request rules.
-- No mutation of the underlying obligation or Treasury when a request is filed.
+- A member may submit a private request only against their own issued contribution assessment snapshot and non-cancelled obligation.
+- The request reason is visible only through the requester's own case endpoints; there is no community-wide or Executive listing endpoint.
+- Only one submitted case may be open for an issued assessment-member snapshot at a time; a withdrawn case remains in history and does not permanently block a later submission.
+- Submission and requester withdrawal are recorded as append-only audit events.
+- Filing or withdrawing a request does not mutate the assessment, obligation, allocation, or Treasury.
+- Secure evidence upload and restricted evidence references are not included in this slice; they require a trusted storage upload/verification boundary before any evidence object key is accepted.
 
 ### Slice 3 — Conflict declarations and electorate freeze
 
@@ -74,4 +76,4 @@ A disputed conflict must be determined by an independent, conflict-free authorit
 
 ## Current implementation status
 
-The policy helper and unit tests are the first isolated code slice. Persistent case records, conflict/recusal workflow, electorate snapshots, ballot storage, APIs, and user interfaces remain unimplemented until their respective slices are delivered and validated.
+The policy helper and unit tests are merged (#44). PR #45 proposes persistent private case intake, requester-only retrieval, requester withdrawal, and append-only lifecycle events; merge remains pending exact-head CI. Evidence upload, conflict/recusal workflow, electorate snapshots, notices, ballots, Judiciary review, and user interfaces remain unimplemented.

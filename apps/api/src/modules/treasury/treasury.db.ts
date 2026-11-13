@@ -5,8 +5,12 @@ const isSerializationConflict = (error: unknown): boolean => {
   if ("code" in error && error.code === "P2034") return true;
   if ("meta" in error && typeof error.meta === "object" && error.meta !== null &&
     "code" in error.meta && String(error.meta.code) === "40001") return true;
+  // Prisma's PostgreSQL driver adapter can wrap SQLSTATE 40001 as a
+  // DriverAdapterError whose cause exposes originalCode/kind rather than code.
+  if ("originalCode" in error && String(error.originalCode) === "40001") return true;
+  if ("kind" in error && error.kind === "TransactionWriteConflict") return true;
   if ("message" in error && typeof error.message === "string" &&
-    /could not serialize access|serialization failure|code:\s*\x6040001\x60/i.test(error.message)) return true;
+    /could not serialize access|serialization failure|TransactionWriteConflict|code:\s*\x6040001\x60/i.test(error.message)) return true;
   if ("cause" in error) return isSerializationConflict(error.cause);
   return false;
 };

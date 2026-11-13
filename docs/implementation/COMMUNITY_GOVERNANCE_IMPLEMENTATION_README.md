@@ -16,11 +16,11 @@ The repository currently has an Executive election foundation:
 - ADMIN, TREASURER, and ORGANIZER are assigned through this existing Executive election workflow.
 - The community creator remains a distinct identity and has one ordinary Assembly vote.
 
-The following are **not implemented**:
+The following are **implemented in part**:
 
-- Independent Review Council election, seats, alternates, terms, vacancies, and recall.
-- Private exemption/waiver requests and Assembly case votes.
-- Conflict declarations, recusals, and independent disputed-conflict determination.
+- Independent Review Council election, seats, alternates, terms, vacancy succession, resignation, and term expiry are implemented; Assembly recall remains pending.
+- PR #45 adds private exemption/waiver case intake as a requester-only workflow; it is not merged yet. Evidence storage, conflict declarations, recusals, electorate snapshots, notice, and voting remain pending.
+- Conflict declarations, recusals, and independent disputed-conflict determination remain pending.
 - Judiciary case assignment, decisions, appeals, and interim relief.
 - Audited Treasury adjustments applying final Assembly relief decisions.
 
@@ -77,27 +77,13 @@ A case vote must remain pending if a disputed recusal cannot be independently de
 
 ### PR A — Independent Review Council election and membership
 
-Build the Judiciary's institutional foundation before enabling Assembly case voting.
+**Completed:** PR #42 delivered independent Council election and seat foundations. PR #43 delivered the membership lifecycle: three primary members, two ranked alternates, twelve-month terms, the two-consecutive-full-term limit, resignation, term expiry, vacancy succession, and alternate-rank compaction.
 
-Deliverables:
-
-- Separate Review Council election-cycle and seat records. Do not add a generic JUDGE permission to CommunityMember.role.
-- Three Council member seats and two alternate seats, with alternate rank explicitly persisted.
-- Active-member eligibility, required disclosures, and exclusion of anyone holding an Executive office.
-- Independent Assembly electorate snapshot and one-member/one-vote ballot enforcement.
-- Ratified election quorum and majority rules for every filled seat. A seat without a qualifying winner remains vacant; never promote a runner-up who failed the threshold.
-- Twelve-month terms and two-consecutive-full-term limit.
-- Acceptance and substitution of the highest-ranked eligible alternate for a vacancy or case recusal.
-- By-election when no eligible alternate can fill a vacancy.
-- Assembly recall under the ratified notice, electorate, quorum, and majority safeguards.
-- No Executive, creator, or Treasury write permissions for Council members or alternates.
-- Immutable election and membership history, audit events, and integration tests.
-
-**Ballot mechanics constraint:** preserve the existing one-voter/one-candidate, quorum, and strict-majority semantics. The implementation must make the five seats and alternate ranking explicit and deterministic; it must not silently substitute plurality or ranked-choice voting. The exact seat-round sequencing must be documented in the PR before schema migration.
-
-Exit condition: a community can elect and maintain the Review Council without granting Judiciary members Executive permissions, and all vacancy/recusal/recall paths are tested.
+**Still outstanding:** Assembly recall, by-election behavior when no eligible alternate exists, and any additional hardening identified by integration/security review. Do not treat recall as implemented.
 
 ### PR B — Assembly exemption/waiver requests and case votes
+
+**Progress:** PR #44 merged the deterministic vote-policy foundation. PR #45 proposes private case intake and append-only submission/withdrawal audit records; merge is pending exact-head CI. Conflict declarations, restricted evidence, independent recusal decisions, electorate freeze, notice, and ballot casting are still outstanding.
 
 Deliverables:
 

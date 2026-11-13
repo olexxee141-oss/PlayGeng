@@ -324,7 +324,7 @@ If provider approval or compliance review rejects pooled custody, stop before li
 
 ## 8. Current next action
 
-**The contribution-hardening PR D is merged (#34), the provider-independent Financial Service foundation is merged (#40), and fixture persistence is merged (#14). The next implementation phase is the ratified three-arm community governance workflow, beginning with independent Review Council election and membership lifecycle.**
+**The contribution-hardening work (#34), provider-independent Financial Service foundation (#40), fixture persistence (#14), Review Council election (#42), Review Council lifecycle (#43), and Assembly policy foundation (#44) are merged. PR #45 is implementing private Assembly case intake. Remaining governance work includes secure evidence handling, conflict declarations/recusals, immutable electorate snapshots, case notices and voting, Judiciary review/appeals, and authorized Treasury relief execution.**
 
 Do not start live Paystack collection or withdrawal execution as a shortcut. The pooled custody model still requires written provider permission and Nigerian legal/compliance review. Governance must be implemented before enabling Assembly exemption/waiver case votes, because disputed recusals require an independent Judiciary. See [Community Governance Implementation Plan](COMMUNITY_GOVERNANCE_IMPLEMENTATION_README.md) for the ordered implementation contract.
 

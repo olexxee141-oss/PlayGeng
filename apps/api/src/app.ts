@@ -12,6 +12,7 @@ import { reviewCouncilRoutes } from "./modules/review-council/review-council.rou
 import { treasuryRoutes } from "./modules/treasury/treasury.routes.js";
 import { contributionRoutes } from "./modules/contributions/contributions.routes.js";
 import { financialServiceRoutes } from "./modules/financial-service/financial-service.routes.js";
+import { assemblyRoutes } from "./modules/assembly/assembly.routes.js";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { errorMiddleware } from "./shared/middlewares/error.middleware.js";
@@ -51,6 +52,7 @@ export const createApp = () => {
   app.use("/api/v1/communities/:communityId/treasury", treasuryRoutes);
   app.use("/api/v1/communities/:communityId/contributions", contributionRoutes);
   app.use("/api/v1/communities/:communityId/financial", financialServiceRoutes);
+  app.use("/api/v1/communities/:communityId/assembly", assemblyRoutes);
   app.use("/api/v1/communities/:communityId", teamRoutes);
 
   app.get("/health", (_req, res) => {
