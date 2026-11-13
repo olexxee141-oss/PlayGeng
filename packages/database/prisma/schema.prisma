@@ -1314,6 +1314,8 @@ model AssemblyConflictDeclaration {
   declarantId String
   subjectUserId String
   reason String @db.VarChar(2000)
+  subjectResponse String? @db.VarChar(2000)
+  respondedAt DateTime?
   status AssemblyConflictDeclarationStatus @default(OPEN)
   createdAt DateTime @default(now())
   withdrawnAt DateTime?
