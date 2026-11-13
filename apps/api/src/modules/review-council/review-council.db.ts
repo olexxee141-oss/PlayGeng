@@ -354,9 +354,11 @@ const reconcileMembershipLifecycleTx = async (tx: Prisma.TransactionClient, comm
     orderBy: { alternateRank: "asc" },
   });
   for (let index = 0; index < alternates.length; index += 1) {
+    const alternate = alternates[index];
+    if (!alternate) continue;
     const rank = index + 1;
     await tx.reviewCouncilMember.update({
-      where: { id: alternates[index].id },
+      where: { id: alternate.id },
       data: { seatNumber: 3 + rank, alternateRank: rank },
     });
   }
