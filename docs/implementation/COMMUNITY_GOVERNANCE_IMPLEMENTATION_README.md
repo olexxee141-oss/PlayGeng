@@ -19,7 +19,7 @@ The repository currently has an Executive election foundation:
 The following are **implemented in part**:
 
 - Independent Review Council election, seats, alternates, terms, vacancy succession, resignation, and term expiry are implemented; Assembly recall remains pending.
-- Private exemption/waiver case intake is implemented as a restricted requester-only workflow; evidence storage, conflict declarations, recusals, electorate snapshots, notice, and voting remain pending.
+- PR #45 adds private exemption/waiver case intake as a requester-only workflow; it is not merged yet. Evidence storage, conflict declarations, recusals, electorate snapshots, notice, and voting remain pending.
 - Conflict declarations, recusals, and independent disputed-conflict determination remain pending.
 - Judiciary case assignment, decisions, appeals, and interim relief.
 - Audited Treasury adjustments applying final Assembly relief decisions.
@@ -77,7 +77,7 @@ A case vote must remain pending if a disputed recusal cannot be independently de
 
 ### PR A — Independent Review Council election and membership
 
-<text>Completed in PRs #42 and #43: independent Council elections, three primary seats, two ranked alternates, terms, eligibility, succession, resignation, and term expiry. Assembly recall remains outstanding.</text>
+Completed in PRs #42 and #43: independent Council elections, three primary seats, two ranked alternates, terms, eligibility, succession, resignation, and term expiry. Assembly recall remains outstanding.
 
 Build on the existing Judiciary foundation before enabling Assembly case voting.
 
@@ -101,7 +101,7 @@ Exit condition: a community can elect and maintain the Review Council without gr
 
 ### PR B — Assembly exemption/waiver requests and case votes
 
-**Progress:** PR #44 merged the deterministic vote-policy foundation. PR #45 is implementing private case intake and append-only submission/withdrawal audit records. Conflict declarations, restricted evidence, independent recusal decisions, electorate freeze, notice, and ballot casting are still outstanding.
+**Progress:** PR #44 merged the deterministic vote-policy foundation. PR #45 proposes private case intake and append-only submission/withdrawal audit records; merge is pending exact-head CI. Conflict declarations, restricted evidence, independent recusal decisions, electorate freeze, notice, and ballot casting are still outstanding.
 
 Deliverables:
 
