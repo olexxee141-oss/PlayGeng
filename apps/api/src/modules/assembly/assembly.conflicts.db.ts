@@ -141,9 +141,28 @@ export const freezeElectorate = (communityId: string, caseId: string, actorId: s
     return { kind: "FROZEN" as const, electorateFrozenAt: now, eligibleVoterCount, totalMembers: rows.length };
   }, { isolationLevel: "Serializable" });
 
+export const respondToConflictDeclaration = (communityId: string, caseId: string, declarationId: string, subjectUserId: string, response: string) =>
+  prisma.$transaction(async (tx) => {
+    if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
+    const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
+    if (!item) return { kind: "CASE_NOT_FOUND" as const };
+    if (item.conflictReviewStartedAt) return { kind: "DECLARATIONS_CLOSED" as const };
+    const declaration = await tx.assemblyConflictDeclaration.findFirst({
+      where: { id: declarationId, caseId, subjectUserId, status: "OPEN", subjectResponse: null },
+      select: { id: true },
+    });
+    if (!declaration) return { kind: "DECLARATION_NOT_FOUND" as const };
+    const updated = await tx.assemblyConflictDeclaration.update({
+      where: { id: declarationId },
+      data: { subjectResponse: response, respondedAt: new Date() },
+      select: { id: true, subjectResponse: true, respondedAt: true },
+    });
+    return { kind: "RESPONDED" as const, declaration: updated };
+  }, { isolationLevel: "Serializable" });
+
 export const listMyConflictDeclarations = (communityId: string, caseId: string, userId: string) =>
   prisma.assemblyConflictDeclaration.findMany({
-    where: { caseId, assemblyCase: { communityId }, declarantId: userId },
-    select: { id: true, subjectUserId: true, reason: true, status: true, createdAt: true, withdrawnAt: true, determinedAt: true },
+    where: { caseId, assemblyCase: { communityId }, OR: [{ declarantId: userId }, { subjectUserId: userId }] },
+    select: { id: true, subjectUserId: true, reason: true, subjectResponse: true, respondedAt: true, status: true, createdAt: true, withdrawnAt: true, determinedAt: true },
     orderBy: { createdAt: "asc" },
   });
