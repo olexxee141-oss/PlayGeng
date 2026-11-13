@@ -76,4 +76,4 @@ A disputed conflict must be determined by an independent, conflict-free authorit
 
 ## Current implementation status
 
-The policy helper and unit tests are merged (#44). PR #45 adds persistent private case intake, requester-only retrieval, requester withdrawal, and append-only lifecycle events. Evidence upload, conflict/recusal workflow, electorate snapshots, notices, ballots, Judiciary review, and user interfaces remain unimplemented.
+The policy helper and unit tests are merged (#44). PR #45 proposes persistent private case intake, requester-only retrieval, requester withdrawal, and append-only lifecycle events; merge remains pending exact-head CI. Evidence upload, conflict/recusal workflow, electorate snapshots, notices, ballots, Judiciary review, and user interfaces remain unimplemented.
