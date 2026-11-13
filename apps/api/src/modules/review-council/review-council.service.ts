@@ -21,7 +21,6 @@ export const createElection = async (communityId: string, userId: string, input:
     if (result.kind === "COMMUNITY_NOT_FOUND") throw new AppError("Community not found.", 404);
     if (result.kind === "NOT_MEMBER") throw new AppError("Only active community members can create Review Council elections.", 403);
     if (result.kind === "COUNCIL_FULL") throw new AppError("All Review Council seats are currently filled.", 409);
-    if (result.kind === "PREVIOUS_SEAT_UNFILLED") throw new AppError("Review Council seats must be elected in constitutional order.", 409);
     if (result.kind === "ACTIVE_ELECTION_EXISTS") throw new AppError("An election for the next Review Council seat is already active.", 409);
     if (result.kind === "NO_ELIGIBLE_VOTERS") throw new AppError("This community has no eligible voters.", 409);
     return result.election;
