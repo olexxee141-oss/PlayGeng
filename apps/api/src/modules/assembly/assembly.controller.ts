@@ -56,3 +56,8 @@ export const freezeElectorate: RequestHandler = async (req, res) => {
   const result = await conflictService.freezeElectorate(param(req, "communityId"), param(req, "caseId"), auth(res).userId);
   res.status(200).json({ success: true, data: result });
 };
+
+export const respondToConflict: RequestHandler = async (req, res) => {
+  const declaration = await conflictService.respondToConflictDeclaration(param(req, "communityId"), param(req, "caseId"), param(req, "declarationId"), auth(res).userId, req.body.response);
+  res.status(200).json({ success: true, data: { declaration } });
+};
