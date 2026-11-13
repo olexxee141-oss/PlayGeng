@@ -35,6 +35,16 @@ const addOneYear = (date: Date) => {
   return result;
 };
 
+const hasReachedConsecutiveTermLimit = async (tx: Prisma.TransactionClient, communityId: string, userId: string) => {
+  const terms = await tx.reviewCouncilMember.findMany({
+    where: { communityId, userId, status: "ENDED", endReason: "TERM_EXPIRED" },
+    orderBy: { termEndsAt: "desc" },
+    take: 2,
+    select: { termEndsAt: true },
+  });
+  return terms.length >= 2;
+};
+
 export const findMembership = (communityId: string, userId: string) =>
   prisma.communityMember.findUnique({
     where: { communityId_userId: { communityId, userId } },
@@ -193,7 +203,8 @@ export const syncElection = (electionId: string, now: Date) =>
         where: { communityId: current.communityId, userId: winnerNomination.userId, status: "ACTIVE" },
         select: { id: true },
       });
-      if (!membership || membership.user.status !== "ACTIVE" || hasExecutiveOffice || alreadyOnCouncil) {
+      if (!membership || membership.user.status !== "ACTIVE" || hasExecutiveOffice || alreadyOnCouncil ||
+        await hasReachedConsecutiveTermLimit(tx, current.communityId, winnerNomination.userId)) {
         failureReason = "WINNER_NO_LONGER_ELIGIBLE";
       } else {
         await tx.reviewCouncilMember.create({
@@ -240,6 +251,7 @@ export const nominate = (communityId: string, electionId: string, userId: string
       where: { communityId, userId, status: "ACTIVE" }, select: { id: true },
     });
     if (alreadyOnCouncil) return { kind: "ALREADY_ON_COUNCIL" as const };
+    if (await hasReachedConsecutiveTermLimit(tx, communityId, userId)) return { kind: "TERM_LIMIT_REACHED" as const };
     const eligible = await tx.reviewCouncilEligibleVoter.findUnique({ where: { electionId_userId: { electionId, userId } } });
     if (!eligible) return { kind: "NOT_IN_ELECTORATE" as const };
     const nomination = await tx.reviewCouncilNomination.create({ data: { electionId, userId } });
