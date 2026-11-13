@@ -1255,7 +1255,7 @@ model ContributionCampaignEvent {
 model AssemblyCase {
   id                 String             @id @default(cuid())
   communityId        String
-  assessmentMemberId String             @unique
+  assessmentMemberId String
   requesterId        String
   reason             String             @db.VarChar(2000)
   status             AssemblyCaseStatus @default(SUBMITTED)
@@ -1269,6 +1269,7 @@ model AssemblyCase {
   requester        User                       @relation("AssemblyCaseRequester", fields: [requesterId], references: [id], onDelete: Restrict)
   events           AssemblyCaseEvent[]
 
+  @@index([assessmentMemberId, status])
   @@index([communityId, status, submittedAt])
   @@index([requesterId, status, submittedAt])
   @@map("assembly_cases")
