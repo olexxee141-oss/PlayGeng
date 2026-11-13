@@ -19,3 +19,4 @@ assemblyRoutes.post("/cases/:caseId/conflict-review/start", asyncHandler(control
 assemblyRoutes.post("/cases/:caseId/conflicts/:declarationId/decisions", validate(decideAssemblyConflictSchema), asyncHandler(controller.decideConflict));
 assemblyRoutes.post("/cases/:caseId/electorate/freeze", asyncHandler(controller.freezeElectorate));
 assemblyRoutes.post("/cases/:caseId/conflicts/:declarationId/response", validate(respondToAssemblyConflictSchema), asyncHandler(controller.respondToConflict));
+assemblyRoutes.get("/cases/:caseId/conflicts", asyncHandler(controller.listConflictDocket));
