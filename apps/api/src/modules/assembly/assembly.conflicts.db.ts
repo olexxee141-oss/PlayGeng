@@ -1,7 +1,28 @@
 import { resolveConflictDetermination } from "./assembly.conflicts.policy.js";
-import { prisma } from "@playgeng/database";
+import { prisma, type Prisma } from "@playgeng/database";
 
-const lockCommunity = async (tx: any, communityId: string) => {
+const isSerializationConflict = (error: unknown): boolean => {
+  if (typeof error !== "object" || error === null) return false;
+  if ("code" in error && error.code === "P2034") return true;
+  if ("meta" in error && typeof error.meta === "object" && error.meta !== null && "code" in error.meta && String(error.meta.code) === "40001") return true;
+  if ("originalCode" in error && String(error.originalCode) === "40001") return true;
+  if ("kind" in error && error.kind === "TransactionWriteConflict") return true;
+  if ("message" in error && typeof error.message === "string" && /serialization failure|could not serialize access|TransactionWriteConflict|40001/i.test(error.message)) return true;
+  return "cause" in error && isSerializationConflict(error.cause);
+};
+
+const withAssemblyTransaction = async <T>(work: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> => {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try { return await prisma.$transaction(work, { isolationLevel: "Serializable" }); }
+    catch (error) {
+      if (!isSerializationConflict(error) || attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 10 * (attempt + 1)));
+    }
+  }
+  throw new Error("Assembly transaction retry limit reached.");
+};
+
+const lockCommunity = async (tx: Prisma.TransactionClient, communityId: string) => {
   const rows = await tx.$queryRaw<Array<{ id: string }>>`
     UPDATE "communities" SET "updatedAt" = "updatedAt"
     WHERE "id" = ${communityId} AND "status" = 'ACTIVE'
@@ -10,7 +31,7 @@ const lockCommunity = async (tx: any, communityId: string) => {
   return rows.length === 1;
 };
 
-const requirePrimaryReviewer = async (tx: any, communityId: string, userId: string) => {
+const requirePrimaryReviewer = async (tx: Prisma.TransactionClient, communityId: string, userId: string) => {
   const membership = await tx.communityMember.findUnique({
     where: { communityId_userId: { communityId, userId } },
     include: { user: { select: { status: true } } },
@@ -24,7 +45,7 @@ const requirePrimaryReviewer = async (tx: any, communityId: string, userId: stri
 };
 
 export const declareConflict = (communityId: string, caseId: string, declarantId: string, input: { subjectUserId: string; reason: string }) =>
-  prisma.$transaction(async (tx) => {
+  withAssemblyTransaction(async (tx) => {
     if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
     const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
     if (!item) return { kind: "CASE_NOT_FOUND" as const };
@@ -41,7 +62,7 @@ export const declareConflict = (communityId: string, caseId: string, declarantId
       select: { id: true, caseId: true, declarantId: true, subjectUserId: true, reason: true, status: true, createdAt: true },
     });
     return { kind: "CREATED" as const, declaration: created };
-  }, { isolationLevel: "Serializable" });
+  });
 
 export const withdrawConflictDeclaration = (communityId: string, caseId: string, declarationId: string, declarantId: string) =>
   prisma.$transaction(async (tx) => {
