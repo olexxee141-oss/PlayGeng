@@ -2,6 +2,7 @@ import type { Request, RequestHandler, Response } from "express";
 import type { AuthContext } from "../auth/auth.middleware.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import * as service from "./assembly.service.js";
+import * as votingService from "./assembly.voting.service.js";
 
 const auth = (res: Response) => (res.locals as { auth: AuthContext }).auth;
 const param = (req: Request, name: string) => {
@@ -65,4 +66,29 @@ export const respondToConflict: RequestHandler = async (req, res) => {
 export const listConflictDocket: RequestHandler = async (req, res) => {
   const declarations = await conflictService.listConflictDeclarationsForCouncil(param(req, "communityId"), param(req, "caseId"), auth(res).userId);
   res.status(200).json({ success: true, data: { declarations } });
+};
+
+export const publishAssemblyNotice: RequestHandler = async (req, res) => {
+  const result = await votingService.publishAssemblyNotice(param(req, "communityId"), param(req, "caseId"), auth(res).userId);
+  res.status(200).json({ success: true, data: result });
+};
+
+export const openAssemblyVoting: RequestHandler = async (req, res) => {
+  const result = await votingService.openAssemblyVoting(param(req, "communityId"), param(req, "caseId"), auth(res).userId);
+  res.status(200).json({ success: true, data: result });
+};
+
+export const castAssemblyBallot: RequestHandler = async (req, res) => {
+  const ballot = await votingService.castAssemblyBallot(param(req, "communityId"), param(req, "caseId"), auth(res).userId, req.body.vote);
+  res.status(201).json({ success: true, data: { ballot } });
+};
+
+export const finalizeAssemblyVoting: RequestHandler = async (req, res) => {
+  const result = await votingService.finalizeAssemblyVoting(param(req, "communityId"), param(req, "caseId"), auth(res).userId);
+  res.status(200).json({ success: true, data: result });
+};
+
+export const getAssemblyVotingStatus: RequestHandler = async (req, res) => {
+  const result = await votingService.getAssemblyVotingStatus(param(req, "communityId"), param(req, "caseId"), auth(res).userId);
+  res.status(200).json({ success: true, data: result });
 };
