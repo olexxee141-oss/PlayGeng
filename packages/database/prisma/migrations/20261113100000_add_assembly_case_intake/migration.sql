@@ -34,3 +34,39 @@ CREATE INDEX "assembly_cases_communityId_status_submittedAt_idx" ON "assembly_ca
 CREATE INDEX "assembly_cases_requesterId_status_submittedAt_idx" ON "assembly_cases"("requesterId", "status", "submittedAt");
 CREATE INDEX "assembly_case_events_caseId_createdAt_idx" ON "assembly_case_events"("caseId", "createdAt");
 CREATE INDEX "assembly_case_events_actorId_createdAt_idx" ON "assembly_case_events"("actorId", "createdAt");
+
+-- Audit events are append-only. Case events must never be rewritten or deleted.
+CREATE FUNCTION "reject_assembly_case_event_mutation"() RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'Assembly case audit events are append-only';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER "assembly_case_events_append_only"
+BEFORE UPDATE OR DELETE ON "assembly_case_events"
+FOR EACH ROW EXECUTE FUNCTION "reject_assembly_case_event_mutation"();
+
+-- Case identity and submitted reason are immutable; only a pending request may be withdrawn.
+CREATE FUNCTION "guard_assembly_case_transition"() RETURNS trigger AS $$
+BEGIN
+  IF NEW."communityId" IS DISTINCT FROM OLD."communityId"
+    OR NEW."assessmentMemberId" IS DISTINCT FROM OLD."assessmentMemberId"
+    OR NEW."requesterId" IS DISTINCT FROM OLD."requesterId"
+    OR NEW."reason" IS DISTINCT FROM OLD."reason"
+    OR NEW."submittedAt" IS DISTINCT FROM OLD."submittedAt"
+    OR NEW."createdAt" IS DISTINCT FROM OLD."createdAt" THEN
+    RAISE EXCEPTION 'Assembly case identity and submission content are immutable';
+  END IF;
+
+  IF OLD."status" <> 'SUBMITTED' OR NEW."status" <> 'WITHDRAWN'
+    OR NEW."withdrawnAt" IS NULL OR OLD."withdrawnAt" IS NOT NULL THEN
+    RAISE EXCEPTION 'Only a submitted Assembly case may be withdrawn';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER "assembly_cases_transition_guard"
+BEFORE UPDATE ON "assembly_cases"
+FOR EACH ROW EXECUTE FUNCTION "guard_assembly_case_transition"();
