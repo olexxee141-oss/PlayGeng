@@ -44,3 +44,13 @@ export const members: RequestHandler = async (req, res) => {
   const members = await service.listMembers(param(req, "communityId"), auth(res).userId);
   res.status(200).json({ success: true, data: { members } });
 };
+
+export const membershipHistory: RequestHandler = async (req, res) => {
+  const memberships = await service.listMembershipHistory(param(req, "communityId"), auth(res).userId);
+  res.status(200).json({ success: true, data: { memberships } });
+};
+
+export const resign: RequestHandler = async (req, res) => {
+  await service.resign(param(req, "communityId"), auth(res).userId, req.body);
+  res.status(204).send();
+};
