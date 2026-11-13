@@ -320,6 +320,7 @@ model User {
   declaredAssemblyConflicts AssemblyConflictDeclaration[] @relation("AssemblyConflictDeclarant")
   subjectOfAssemblyConflicts AssemblyConflictDeclaration[] @relation("AssemblyConflictSubject")
   reviewedAssemblyConflictDecisions AssemblyConflictDecision[]
+  assemblyCaseElectorateMemberships AssemblyCaseElectorateMember[]
   financialAuditEvents FinancialAuditEvent[] @relation("FinancialAuditActor")
   verifiedReceipts PaymentReceipt[] @relation("ReceiptVerifier")
   memberReceipts PaymentReceipt[] @relation("ReceiptMember")
