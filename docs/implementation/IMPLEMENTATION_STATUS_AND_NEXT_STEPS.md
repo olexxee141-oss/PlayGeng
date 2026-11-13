@@ -58,7 +58,6 @@ Repository status was checked against GitHub on November 11, 2026.
 | #39 | Ratified Community Review Council charter | Merged |
 | #40 | Provider-independent Financial Service foundation | Merged (`f8f368c`) |
 | #14 | Fixture persistence and generation | Merged (`d6a2abe`) |
-
 | #42 | Independent Review Council election foundation | Merged |
 | #43 | Review Council membership lifecycle and succession | Merged |
 | #44 | Community Assembly vote policy foundation | Merged |
