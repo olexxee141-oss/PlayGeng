@@ -12,3 +12,7 @@ export const decideAssemblyConflictSchema = z.object({
 
 export type DeclareAssemblyConflictInput = z.infer<typeof declareAssemblyConflictSchema>;
 export type DecideAssemblyConflictInput = z.infer<typeof decideAssemblyConflictSchema>;
+
+export const respondToAssemblyConflictSchema = z.object({
+  response: z.string().trim().min(20).max(2000),
+}).strict();
