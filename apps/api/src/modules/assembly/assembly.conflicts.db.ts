@@ -1,0 +1,149 @@
+import { prisma } from "@playgeng/database";
+
+const lockCommunity = async (tx: any, communityId: string) => {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    UPDATE "communities" SET "updatedAt" = "updatedAt"
+    WHERE "id" = ${communityId} AND "status" = 'ACTIVE'
+    RETURNING "id"
+  `;
+  return rows.length === 1;
+};
+
+const requirePrimaryReviewer = async (tx: any, communityId: string, userId: string) => {
+  const membership = await tx.communityMember.findUnique({
+    where: { communityId_userId: { communityId, userId } },
+    include: { user: { select: { status: true } } },
+  });
+  if (!membership || membership.user.status !== "ACTIVE") return false;
+  const council = await tx.reviewCouncilMember.findFirst({
+    where: { communityId, userId, status: "ACTIVE", seat: "PRIMARY" },
+    select: { id: true },
+  });
+  return Boolean(council);
+};
+
+export const declareConflict = (communityId: string, caseId: string, declarantId: string, input: { subjectUserId: string; reason: string }) =>
+  prisma.$transaction(async (tx) => {
+    if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
+    const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
+    if (!item) return { kind: "CASE_NOT_FOUND" as const };
+    if (item.conflictReviewStartedAt || item.electorateFrozenAt) return { kind: "DECLARATIONS_CLOSED" as const };
+    const [declarant, subject] = await Promise.all([
+      tx.communityMember.findUnique({ where: { communityId_userId: { communityId, userId: declarantId } }, include: { user: { select: { status: true } } } }),
+      tx.communityMember.findUnique({ where: { communityId_userId: { communityId, userId: input.subjectUserId } }, include: { user: { select: { status: true } } } }),
+    ]);
+    if (!declarant || declarant.user.status !== "ACTIVE") return { kind: "NOT_MEMBER" as const };
+    if (!subject || subject.user.status !== "ACTIVE") return { kind: "SUBJECT_NOT_MEMBER" as const };
+    if (item.requesterId === input.subjectUserId) return { kind: "REQUESTER_SUBJECT" as const };
+    const created = await tx.assemblyConflictDeclaration.create({
+      data: { caseId, declarantId, subjectUserId: input.subjectUserId, reason: input.reason },
+      select: { id: true, caseId: true, declarantId: true, subjectUserId: true, reason: true, status: true, createdAt: true },
+    });
+    return { kind: "CREATED" as const, declaration: created };
+  }, { isolationLevel: "Serializable" });
+
+export const withdrawConflictDeclaration = (communityId: string, caseId: string, declarationId: string, declarantId: string) =>
+  prisma.$transaction(async (tx) => {
+    if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
+    const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
+    if (!item) return { kind: "CASE_NOT_FOUND" as const };
+    if (item.conflictReviewStartedAt) return { kind: "DECLARATIONS_CLOSED" as const };
+    const declaration = await tx.assemblyConflictDeclaration.findFirst({ where: { id: declarationId, caseId, declarantId, status: "OPEN" } });
+    if (!declaration) return { kind: "DECLARATION_NOT_FOUND" as const };
+    await tx.assemblyConflictDeclaration.update({ where: { id: declarationId }, data: { status: "WITHDRAWN", withdrawnAt: new Date() } });
+    return { kind: "WITHDRAWN" as const };
+  }, { isolationLevel: "Serializable" });
+
+export const startConflictReview = (communityId: string, caseId: string, actorId: string) =>
+  prisma.$transaction(async (tx) => {
+    if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
+    const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
+    if (!item) return { kind: "CASE_NOT_FOUND" as const };
+    if (!await requirePrimaryReviewer(tx, communityId, actorId)) return { kind: "NOT_PRIMARY_COUNCIL" as const };
+    if (item.requesterId === actorId) return { kind: "REQUESTER_RECUSED" as const };
+    if (item.conflictReviewStartedAt) return { kind: "ALREADY_STARTED" as const };
+    const now = new Date();
+    await tx.assemblyCase.update({ where: { id: caseId }, data: { conflictReviewStartedAt: now } });
+    await tx.assemblyCaseEvent.create({ data: { caseId, actorId, type: "CONFLICT_REVIEW_STARTED" } });
+    return { kind: "STARTED" as const, startedAt: now };
+  }, { isolationLevel: "Serializable" });
+
+export const decideConflict = (communityId: string, caseId: string, declarationId: string, reviewerId: string, input: { conflictExists: boolean; reason: string }) =>
+  prisma.$transaction(async (tx) => {
+    if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
+    const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
+    if (!item) return { kind: "CASE_NOT_FOUND" as const };
+    if (!item.conflictReviewStartedAt || item.electorateFrozenAt) return { kind: "REVIEW_NOT_OPEN" as const };
+    const declaration = await tx.assemblyConflictDeclaration.findFirst({ where: { id: declarationId, caseId, status: "OPEN" } });
+    if (!declaration) return { kind: "DECLARATION_NOT_FOUND" as const };
+    if (!await requirePrimaryReviewer(tx, communityId, reviewerId)) return { kind: "NOT_PRIMARY_COUNCIL" as const };
+    if ([item.requesterId, declaration.declarantId, declaration.subjectUserId].includes(reviewerId)) return { kind: "REVIEWER_CONFLICTED" as const };
+    const reviewerConflict = await tx.assemblyConflictDeclaration.findFirst({
+      where: { caseId, subjectUserId: reviewerId, status: { in: ["OPEN", "CONFLICT_CONFIRMED"] } },
+      select: { id: true },
+    });
+    if (reviewerConflict) return { kind: "REVIEWER_CONFLICTED" as const };
+    await tx.assemblyConflictDecision.create({ data: { declarationId, reviewerId, ...input } });
+
+    const eligibleCouncil = await tx.reviewCouncilMember.findMany({
+      where: {
+        communityId, status: "ACTIVE", seat: "PRIMARY",
+        user: { communityMemberships: { some: { communityId, user: { status: "ACTIVE" } } } },
+      },
+      select: { userId: true },
+    });
+    const declarations = await tx.assemblyConflictDeclaration.findMany({
+      where: { caseId, status: { in: ["OPEN", "CONFLICT_CONFIRMED"] } },
+      select: { subjectUserId: true },
+    });
+    const blocked = new Set([item.requesterId, ...declarations.map((d: { subjectUserId: string }) => d.subjectUserId), declaration.declarantId, declaration.subjectUserId]);
+    const eligible = eligibleCouncil.map((m: { userId: string }) => m.userId).filter((id: string) => !blocked.has(id));
+    const decisions = await tx.assemblyConflictDecision.findMany({ where: { declarationId }, select: { reviewerId: true, conflictExists: true } });
+    const valid = decisions.filter((d: { reviewerId: string }) => eligible.includes(d.reviewerId));
+    const yes = valid.filter((d: { conflictExists: boolean }) => d.conflictExists).length;
+    const no = valid.length - yes;
+    let status: "CONFLICT_CONFIRMED" | "NO_CONFLICT" | null = null;
+    if (valid.length >= 2 && yes > no) status = "CONFLICT_CONFIRMED";
+    if (valid.length >= 2 && no > yes) status = "NO_CONFLICT";
+    if (status) {
+      await tx.assemblyConflictDeclaration.update({ where: { id: declarationId }, data: { status, determinedAt: new Date() } });
+    }
+    return { kind: "RECORDED" as const, status, votes: valid.length, eligibleReviewers: eligible.length };
+  }, { isolationLevel: "Serializable" });
+
+export const freezeElectorate = (communityId: string, caseId: string, actorId: string) =>
+  prisma.$transaction(async (tx) => {
+    if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
+    const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
+    if (!item) return { kind: "CASE_NOT_FOUND" as const };
+    if (!await requirePrimaryReviewer(tx, communityId, actorId)) return { kind: "NOT_PRIMARY_COUNCIL" as const };
+    if (item.requesterId === actorId) return { kind: "REQUESTER_RECUSED" as const };
+    if (!item.conflictReviewStartedAt) return { kind: "REVIEW_NOT_STARTED" as const };
+    if (item.electorateFrozenAt) return { kind: "ALREADY_FROZEN" as const };
+    const unresolved = await tx.assemblyConflictDeclaration.count({ where: { caseId, status: "OPEN" } });
+    if (unresolved > 0) return { kind: "UNRESOLVED_CONFLICTS" as const };
+    const [members, conflicts] = await Promise.all([
+      tx.communityMember.findMany({ where: { communityId, user: { status: "ACTIVE" } }, select: { userId: true } }),
+      tx.assemblyConflictDeclaration.findMany({ where: { caseId, status: "CONFLICT_CONFIRMED" }, select: { subjectUserId: true } }),
+    ]);
+    const conflicted = new Set(conflicts.map((d: { subjectUserId: string }) => d.subjectUserId));
+    const rows = members.map((member: { userId: string }) => ({
+      caseId, userId: member.userId,
+      eligible: member.userId !== item.requesterId && !conflicted.has(member.userId),
+      exclusionReason: member.userId === item.requesterId ? "REQUESTER" : conflicted.has(member.userId) ? "MATERIAL_CONFLICT" : null,
+    }));
+    const eligibleVoterCount = rows.filter((row: { eligible: boolean }) => row.eligible).length;
+    if (eligibleVoterCount < 1) return { kind: "NO_ELIGIBLE_VOTERS" as const };
+    await tx.assemblyCaseElectorateMember.createMany({ data: rows });
+    const now = new Date();
+    await tx.assemblyCase.update({ where: { id: caseId }, data: { electorateFrozenAt: now, eligibleVoterCount } });
+    await tx.assemblyCaseEvent.create({ data: { caseId, actorId, type: "ELECTORATE_FROZEN" } });
+    return { kind: "FROZEN" as const, electorateFrozenAt: now, eligibleVoterCount, totalMembers: rows.length };
+  }, { isolationLevel: "Serializable" });
+
+export const listMyConflictDeclarations = (communityId: string, caseId: string, userId: string) =>
+  prisma.assemblyConflictDeclaration.findMany({
+    where: { caseId, assemblyCase: { communityId }, declarantId: userId },
+    select: { id: true, subjectUserId: true, reason: true, status: true, createdAt: true, withdrawnAt: true, determinedAt: true },
+    orderBy: { createdAt: "asc" },
+  });
