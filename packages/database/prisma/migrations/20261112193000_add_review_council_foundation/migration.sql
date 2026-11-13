@@ -79,6 +79,7 @@ CREATE TABLE "review_council_members" (
   "communityId" TEXT NOT NULL,
   "userId" TEXT NOT NULL,
   "electionId" TEXT NOT NULL,
+  "seatNumber" INTEGER NOT NULL,
   "seat" "ReviewCouncilSeat" NOT NULL,
   "alternateRank" INTEGER,
   "status" "ReviewCouncilMembershipStatus" NOT NULL DEFAULT 'ACTIVE',
@@ -92,6 +93,14 @@ CREATE TABLE "review_council_members" (
   CONSTRAINT "review_council_members_communityId_fkey" FOREIGN KEY ("communityId") REFERENCES "communities"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "review_council_members_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "review_council_members_electionId_fkey" FOREIGN KEY ("electionId") REFERENCES "community_review_council_elections"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "review_council_members_seatNumber_check" CHECK ("seatNumber" >= 1 AND "seatNumber" <= 5),
+  CONSTRAINT "review_council_members_seat_mapping_check" CHECK (
+    ("seatNumber" BETWEEN 1 AND 3 AND "seat" = 'PRIMARY' AND "alternateRank" IS NULL)
+    OR
+    ("seatNumber" = 4 AND "seat" = 'ALTERNATE' AND "alternateRank" = 1)
+    OR
+    ("seatNumber" = 5 AND "seat" = 'ALTERNATE' AND "alternateRank" = 2)
+  ),
   CONSTRAINT "review_council_members_alternateRank_check" CHECK (("seat" = 'PRIMARY' AND "alternateRank" IS NULL) OR ("seat" = 'ALTERNATE' AND "alternateRank" IN (1, 2))),
   CONSTRAINT "review_council_members_term_check" CHECK ("termEndsAt" > "termStartsAt")
 );
@@ -116,10 +125,6 @@ CREATE UNIQUE INDEX "review_council_members_one_active_user_key"
   ON "review_council_members"("communityId", "userId")
   WHERE "status" = 'ACTIVE';
 
-CREATE UNIQUE INDEX "review_council_members_one_active_primary_seat_key"
-  ON "review_council_members"("communityId", "seat")
-  WHERE "status" = 'ACTIVE' AND "seat" = 'PRIMARY';
-
-CREATE UNIQUE INDEX "review_council_members_one_active_alternate_rank_key"
-  ON "review_council_members"("communityId", "alternateRank")
-  WHERE "status" = 'ACTIVE' AND "seat" = 'ALTERNATE';
+CREATE UNIQUE INDEX "review_council_members_one_active_seat_key"
+  ON "review_council_members"("communityId", "seatNumber")
+  WHERE "status" = 'ACTIVE';
