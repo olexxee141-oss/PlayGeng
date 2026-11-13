@@ -69,3 +69,9 @@ export const freezeElectorate = async (communityId: string, caseId: string, user
 
 export const listMyConflictDeclarations = (communityId: string, caseId: string, userId: string) =>
   db.listMyConflictDeclarations(communityId, caseId, userId);
+
+export const respondToConflictDeclaration = async (communityId: string, caseId: string, declarationId: string, userId: string, response: string) => {
+  const result = await db.respondToConflictDeclaration(communityId, caseId, declarationId, userId, response);
+  if (result.kind !== "RESPONDED") fail(result.kind);
+  return result.declaration;
+};
