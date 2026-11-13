@@ -70,6 +70,16 @@ enum ContributionAssessmentStatus {
   CANCELLED
 }
 
+enum AssemblyCaseStatus {
+  SUBMITTED
+  WITHDRAWN
+}
+
+enum AssemblyCaseEventType {
+  SUBMITTED
+  WITHDRAWN
+}
+
 enum ContributionCampaignEventType {
   PAUSED
   RESUMED
@@ -296,6 +306,8 @@ model User {
   issuedContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentIssuer")
   cancelledContributionAssessments ContributionAssessment[] @relation("ContributionAssessmentCanceller")
   contributionAssessmentSnapshots ContributionAssessmentMember[]
+  requestedAssemblyCases AssemblyCase[] @relation("AssemblyCaseRequester")
+  assemblyCaseEvents AssemblyCaseEvent[] @relation("AssemblyCaseEventActor")
   financialAuditEvents FinancialAuditEvent[] @relation("FinancialAuditActor")
   verifiedReceipts PaymentReceipt[] @relation("ReceiptVerifier")
   memberReceipts PaymentReceipt[] @relation("ReceiptMember")
@@ -378,6 +390,7 @@ model Community {
   treasury Treasury?
   contributionCampaigns ContributionCampaign[]
   contributionAssessments ContributionAssessment[]
+  assemblyCases AssemblyCase[]
 
   @@index([ownerId])
   @@index([status])
@@ -1214,6 +1227,7 @@ model ContributionAssessmentMember {
   assessment ContributionAssessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
   member     User                   @relation(fields: [memberId], references: [id], onDelete: Restrict)
   obligation Obligation?            @relation(fields: [obligationId], references: [id], onDelete: Restrict)
+  assemblyCase AssemblyCase?
 
   @@unique([assessmentId, memberId])
   @@index([assessmentId, snapshotAt])
@@ -1236,4 +1250,41 @@ model ContributionCampaignEvent {
   @@index([campaignId, createdAt])
   @@index([actorId, createdAt])
   @@map("contribution_campaign_events")
+}
+
+model AssemblyCase {
+  id                 String             @id @default(cuid())
+  communityId        String
+  assessmentMemberId String             @unique
+  requesterId        String
+  reason             String             @db.VarChar(2000)
+  status             AssemblyCaseStatus @default(SUBMITTED)
+  submittedAt        DateTime           @default(now())
+  withdrawnAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  community        Community                  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  assessmentMember ContributionAssessmentMember @relation(fields: [assessmentMemberId], references: [id], onDelete: Restrict)
+  requester        User                       @relation("AssemblyCaseRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  events           AssemblyCaseEvent[]
+
+  @@index([communityId, status, submittedAt])
+  @@index([requesterId, status, submittedAt])
+  @@map("assembly_cases")
+}
+
+model AssemblyCaseEvent {
+  id        String                 @id @default(cuid())
+  caseId    String
+  actorId   String
+  type      AssemblyCaseEventType
+  createdAt DateTime               @default(now())
+
+  assemblyCase AssemblyCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  actor        User         @relation("AssemblyCaseEventActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("assembly_case_events")
 }
