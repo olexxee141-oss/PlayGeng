@@ -78,6 +78,15 @@ enum AssemblyCaseStatus {
 enum AssemblyCaseEventType {
   SUBMITTED
   WITHDRAWN
+  CONFLICT_REVIEW_STARTED
+  ELECTORATE_FROZEN
+}
+
+enum AssemblyConflictDeclarationStatus {
+  OPEN
+  WITHDRAWN
+  CONFLICT_CONFIRMED
+  NO_CONFLICT
 }
 
 enum ContributionCampaignEventType {
@@ -308,6 +317,10 @@ model User {
   contributionAssessmentSnapshots ContributionAssessmentMember[]
   requestedAssemblyCases AssemblyCase[] @relation("AssemblyCaseRequester")
   assemblyCaseEvents AssemblyCaseEvent[] @relation("AssemblyCaseEventActor")
+  declaredAssemblyConflicts AssemblyConflictDeclaration[] @relation("AssemblyConflictDeclarant")
+  subjectOfAssemblyConflicts AssemblyConflictDeclaration[] @relation("AssemblyConflictSubject")
+  reviewedAssemblyConflictDecisions AssemblyConflictDecision[]
+  assemblyCaseElectorateMemberships AssemblyCaseElectorateMember[]
   financialAuditEvents FinancialAuditEvent[] @relation("FinancialAuditActor")
   verifiedReceipts PaymentReceipt[] @relation("ReceiptVerifier")
   memberReceipts PaymentReceipt[] @relation("ReceiptMember")
@@ -1261,6 +1274,9 @@ model AssemblyCase {
   status             AssemblyCaseStatus @default(SUBMITTED)
   submittedAt        DateTime           @default(now())
   withdrawnAt        DateTime?
+  conflictReviewStartedAt DateTime?
+  electorateFrozenAt DateTime?
+  eligibleVoterCount Int?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -1268,6 +1284,8 @@ model AssemblyCase {
   assessmentMember ContributionAssessmentMember @relation(fields: [assessmentMemberId], references: [id], onDelete: Restrict)
   requester        User                       @relation("AssemblyCaseRequester", fields: [requesterId], references: [id], onDelete: Restrict)
   events           AssemblyCaseEvent[]
+  conflictDeclarations AssemblyConflictDeclaration[]
+  electorate AssemblyCaseElectorateMember[]
 
   @@index([assessmentMemberId, status])
   @@index([communityId, status, submittedAt])
@@ -1288,4 +1306,59 @@ model AssemblyCaseEvent {
   @@index([caseId, createdAt])
   @@index([actorId, createdAt])
   @@map("assembly_case_events")
+}
+
+model AssemblyConflictDeclaration {
+  id String @id @default(cuid())
+  caseId String
+  declarantId String
+  subjectUserId String
+  reason String @db.VarChar(2000)
+  subjectResponse String? @db.VarChar(2000)
+  respondedAt DateTime?
+  status AssemblyConflictDeclarationStatus @default(OPEN)
+  createdAt DateTime @default(now())
+  withdrawnAt DateTime?
+  determinedAt DateTime?
+
+  assemblyCase AssemblyCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  declarant User @relation("AssemblyConflictDeclarant", fields: [declarantId], references: [id], onDelete: Restrict)
+  subject User @relation("AssemblyConflictSubject", fields: [subjectUserId], references: [id], onDelete: Restrict)
+  decisions AssemblyConflictDecision[]
+
+  @@index([caseId, status, createdAt])
+  @@index([subjectUserId, status])
+  @@map("assembly_conflict_declarations")
+}
+
+model AssemblyConflictDecision {
+  id String @id @default(cuid())
+  declarationId String
+  reviewerId String
+  conflictExists Boolean
+  reason String @db.VarChar(1000)
+  createdAt DateTime @default(now())
+
+  declaration AssemblyConflictDeclaration @relation(fields: [declarationId], references: [id], onDelete: Restrict)
+  reviewer User @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@unique([declarationId, reviewerId])
+  @@index([declarationId, createdAt])
+  @@map("assembly_conflict_decisions")
+}
+
+model AssemblyCaseElectorateMember {
+  id String @id @default(cuid())
+  caseId String
+  userId String
+  eligible Boolean
+  exclusionReason String? @db.VarChar(80)
+  createdAt DateTime @default(now())
+
+  assemblyCase AssemblyCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([caseId, userId])
+  @@index([caseId, eligible])
+  @@map("assembly_case_electorate_members")
 }

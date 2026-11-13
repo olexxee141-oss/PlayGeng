@@ -71,7 +71,7 @@ export const listMyCases = (communityId: string, requesterId: string) =>
 export const withdrawCase = (communityId: string, caseId: string, requesterId: string) =>
   prisma.$transaction(async (tx) => {
     const updated = await tx.assemblyCase.updateMany({
-      where: { id: caseId, communityId, requesterId, status: "SUBMITTED" },
+      where: { id: caseId, communityId, requesterId, status: "SUBMITTED", conflictReviewStartedAt: null, electorateFrozenAt: null },
       data: { status: "WITHDRAWN", withdrawnAt: new Date() },
     });
     if (updated.count !== 1) return false;

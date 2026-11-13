@@ -1,6 +1,6 @@
 # Community Assembly Implementation
 
-**Status:** Policy foundation merged (#44); private case intake in progress (PR #45). This document tracks implementation of the ratified Community Assembly rules; it does not create or amend constitutional authority.
+**Status:** Policy foundation (#44) and private case intake (#45) merged; conflict review and electorate freeze implemented in PR #46 (pending exact-head CI). This document tracks implementation of the ratified Community Assembly rules; it does not create or amend constitutional authority.
 
 ## Constitutional baseline
 
@@ -42,13 +42,17 @@ A disputed conflict must be determined by an independent, conflict-free authorit
 - Filing or withdrawing a request does not mutate the assessment, obligation, allocation, or Treasury.
 - Secure evidence upload and restricted evidence references are not included in this slice; they require a trusted storage upload/verification boundary before any evidence object key is accepted.
 
-### Slice 3 — Conflict declarations and electorate freeze
+### Slice 3 — Conflict declarations and electorate freeze (PR #46)
 
-- Per-case declarations and restricted recusal decisions.
-- Independent determination for disputed conflicts.
-- Requester and recused-member exclusion.
-- Immutable electorate snapshot and recorded quorum denominator.
-- Vote cannot open while a material conflict dispute remains unresolved.
+- Any active community member may confidentially declare a direct, material conflict against another active member; self-disclosure is supported.
+- Declarations are case-specific, reasoned, retained for audit, and limited to one open declaration per subject per case.
+- The subject can view the allegation without the declarant's identity and submit one response before independent review begins.
+- An active primary Review Council member closes declaration intake and starts the independent review stage.
+- The requester, declarant, subject, and any Council member who is themselves the subject of an open or confirmed conflict declaration are excluded from deciding that declaration.
+- Only active primary Review Council members may decide; at least two eligible independent decisions and a strict majority are required. A tie or insufficient panel leaves the declaration unresolved.
+- The electorate cannot be frozen while any declaration remains unresolved.
+- Freeze records every active member, marks the requester and members with confirmed material conflicts ineligible, and stores the immutable eligible count used as the later quorum denominator.
+- No evidence upload is accepted in this slice; secure evidence storage remains blocked on a trusted storage verification boundary.
 
 ### Slice 4 — Case notice and voting
 
@@ -76,4 +80,4 @@ A disputed conflict must be determined by an independent, conflict-free authorit
 
 ## Current implementation status
 
-The policy helper and unit tests are merged (#44). PR #45 proposes persistent private case intake, requester-only retrieval, requester withdrawal, and append-only lifecycle events; merge remains pending exact-head CI. Evidence upload, conflict/recusal workflow, electorate snapshots, notices, ballots, Judiciary review, and user interfaces remain unimplemented.
+The policy helper (#44), private case intake (#45), and Treasury-safe case intake foundation are merged. PR #46 implements confidential conflict declarations, one-time subject responses, independent primary-Council determinations, and an immutable electorate snapshot with the frozen quorum denominator. Evidence upload, notices, Assembly ballots, Judiciary review, Treasury relief execution, and user interfaces remain unimplemented.
