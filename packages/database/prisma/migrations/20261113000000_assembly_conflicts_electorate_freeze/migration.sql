@@ -83,6 +83,7 @@ BEGIN
   END IF;
 
   IF OLD."status" = 'SUBMITTED' AND NEW."status" = 'WITHDRAWN'
+    AND OLD."conflictReviewStartedAt" IS NULL AND OLD."electorateFrozenAt" IS NULL
     AND NEW."withdrawnAt" IS NOT NULL AND OLD."withdrawnAt" IS NULL
     AND NEW."conflictReviewStartedAt" IS NOT DISTINCT FROM OLD."conflictReviewStartedAt"
     AND NEW."electorateFrozenAt" IS NOT DISTINCT FROM OLD."electorateFrozenAt"
