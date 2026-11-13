@@ -65,7 +65,7 @@ export const declareConflict = (communityId: string, caseId: string, declarantId
   });
 
 export const withdrawConflictDeclaration = (communityId: string, caseId: string, declarationId: string, declarantId: string) =>
-  prisma.$transaction(async (tx) => {
+  withAssemblyTransaction(async (tx) => {
     if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
     const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
     if (!item) return { kind: "CASE_NOT_FOUND" as const };
@@ -74,10 +74,10 @@ export const withdrawConflictDeclaration = (communityId: string, caseId: string,
     if (!declaration) return { kind: "DECLARATION_NOT_FOUND" as const };
     await tx.assemblyConflictDeclaration.update({ where: { id: declarationId }, data: { status: "WITHDRAWN", withdrawnAt: new Date() } });
     return { kind: "WITHDRAWN" as const };
-  }, { isolationLevel: "Serializable" });
+  });
 
 export const startConflictReview = (communityId: string, caseId: string, actorId: string) =>
-  prisma.$transaction(async (tx) => {
+  withAssemblyTransaction(async (tx) => {
     if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
     const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
     if (!item) return { kind: "CASE_NOT_FOUND" as const };
@@ -88,10 +88,10 @@ export const startConflictReview = (communityId: string, caseId: string, actorId
     await tx.assemblyCase.update({ where: { id: caseId }, data: { conflictReviewStartedAt: now } });
     await tx.assemblyCaseEvent.create({ data: { caseId, actorId, type: "CONFLICT_REVIEW_STARTED" } });
     return { kind: "STARTED" as const, startedAt: now };
-  }, { isolationLevel: "Serializable" });
+  });
 
 export const decideConflict = (communityId: string, caseId: string, declarationId: string, reviewerId: string, input: { conflictExists: boolean; reason: string }) =>
-  prisma.$transaction(async (tx) => {
+  withAssemblyTransaction(async (tx) => {
     if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
     const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
     if (!item) return { kind: "CASE_NOT_FOUND" as const };
@@ -126,10 +126,10 @@ export const decideConflict = (communityId: string, caseId: string, declarationI
       await tx.assemblyConflictDeclaration.update({ where: { id: declarationId }, data: { status: outcome.status, determinedAt: new Date() } });
     }
     return { kind: "RECORDED" as const, ...outcome };
-  }, { isolationLevel: "Serializable" });
+  });
 
 export const freezeElectorate = (communityId: string, caseId: string, actorId: string) =>
-  prisma.$transaction(async (tx) => {
+  withAssemblyTransaction(async (tx) => {
     if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
     const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
     if (!item) return { kind: "CASE_NOT_FOUND" as const };
@@ -156,10 +156,10 @@ export const freezeElectorate = (communityId: string, caseId: string, actorId: s
     await tx.assemblyCase.update({ where: { id: caseId }, data: { electorateFrozenAt: now, eligibleVoterCount } });
     await tx.assemblyCaseEvent.create({ data: { caseId, actorId, type: "ELECTORATE_FROZEN" } });
     return { kind: "FROZEN" as const, electorateFrozenAt: now, eligibleVoterCount, totalMembers: rows.length };
-  }, { isolationLevel: "Serializable" });
+  });
 
 export const respondToConflictDeclaration = (communityId: string, caseId: string, declarationId: string, subjectUserId: string, response: string) =>
-  prisma.$transaction(async (tx) => {
+  withAssemblyTransaction(async (tx) => {
     if (!await lockCommunity(tx, communityId)) return { kind: "NOT_FOUND" as const };
     const item = await tx.assemblyCase.findFirst({ where: { id: caseId, communityId, status: "SUBMITTED" } });
     if (!item) return { kind: "CASE_NOT_FOUND" as const };
@@ -175,7 +175,7 @@ export const respondToConflictDeclaration = (communityId: string, caseId: string
       select: { id: true, subjectResponse: true, respondedAt: true },
     });
     return { kind: "RESPONDED" as const, declaration: updated };
-  }, { isolationLevel: "Serializable" });
+  });
 
 export const listMyConflictDeclarations = (communityId: string, caseId: string, userId: string) =>
   prisma.assemblyConflictDeclaration.findMany({
