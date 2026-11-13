@@ -22,5 +22,11 @@ export const castReviewCouncilBallotSchema = z.object({
   candidateId: z.string().min(1).max(64),
 }).strict();
 
+export const resignReviewCouncilMembershipSchema = z.object({
+  reason: z.string().trim().min(3).max(300),
+}).strict();
+
+export type ResignReviewCouncilMembershipInput = z.infer<typeof resignReviewCouncilMembershipSchema>;
+
 export type CreateReviewCouncilElectionInput = z.infer<typeof createReviewCouncilElectionSchema>;
 export type CastReviewCouncilBallotInput = z.infer<typeof castReviewCouncilBallotSchema>;
