@@ -29,7 +29,8 @@ CREATE TABLE "assembly_case_events" (
   CONSTRAINT "assembly_case_events_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
-CREATE UNIQUE INDEX "assembly_cases_assessmentMemberId_key" ON "assembly_cases"("assessmentMemberId");
+CREATE UNIQUE INDEX "assembly_cases_one_submitted_per_snapshot_key" ON "assembly_cases"("assessmentMemberId") WHERE "status" = 'SUBMITTED';
+CREATE INDEX "assembly_cases_assessmentMemberId_status_idx" ON "assembly_cases"("assessmentMemberId", "status");
 CREATE INDEX "assembly_cases_communityId_status_submittedAt_idx" ON "assembly_cases"("communityId", "status", "submittedAt");
 CREATE INDEX "assembly_cases_requesterId_status_submittedAt_idx" ON "assembly_cases"("requesterId", "status", "submittedAt");
 CREATE INDEX "assembly_case_events_caseId_createdAt_idx" ON "assembly_case_events"("caseId", "createdAt");
