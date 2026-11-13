@@ -1,3 +1,4 @@
+import { resolveConflictDetermination } from "./assembly.conflicts.policy.js";
 import { prisma } from "@playgeng/database";
 
 const lockCommunity = async (tx: any, communityId: string) => {
@@ -99,16 +100,11 @@ export const decideConflict = (communityId: string, caseId: string, declarationI
     const blocked = new Set([item.requesterId, ...declarations.map((d: { subjectUserId: string }) => d.subjectUserId), declaration.declarantId, declaration.subjectUserId]);
     const eligible = eligibleCouncil.map((m: { userId: string }) => m.userId).filter((id: string) => !blocked.has(id));
     const decisions = await tx.assemblyConflictDecision.findMany({ where: { declarationId }, select: { reviewerId: true, conflictExists: true } });
-    const valid = decisions.filter((d: { reviewerId: string }) => eligible.includes(d.reviewerId));
-    const yes = valid.filter((d: { conflictExists: boolean }) => d.conflictExists).length;
-    const no = valid.length - yes;
-    let status: "CONFLICT_CONFIRMED" | "NO_CONFLICT" | null = null;
-    if (valid.length >= 2 && yes > no) status = "CONFLICT_CONFIRMED";
-    if (valid.length >= 2 && no > yes) status = "NO_CONFLICT";
-    if (status) {
-      await tx.assemblyConflictDeclaration.update({ where: { id: declarationId }, data: { status, determinedAt: new Date() } });
+    const outcome = resolveConflictDetermination(eligible, decisions);
+    if (outcome.status) {
+      await tx.assemblyConflictDeclaration.update({ where: { id: declarationId }, data: { status: outcome.status, determinedAt: new Date() } });
     }
-    return { kind: "RECORDED" as const, status, votes: valid.length, eligibleReviewers: eligible.length };
+    return { kind: "RECORDED" as const, ...outcome };
   }, { isolationLevel: "Serializable" });
 
 export const freezeElectorate = (communityId: string, caseId: string, actorId: string) =>
