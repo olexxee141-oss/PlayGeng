@@ -1227,7 +1227,7 @@ model ContributionAssessmentMember {
   assessment ContributionAssessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
   member     User                   @relation(fields: [memberId], references: [id], onDelete: Restrict)
   obligation Obligation?            @relation(fields: [obligationId], references: [id], onDelete: Restrict)
-  assemblyCase AssemblyCase?
+  assemblyCases AssemblyCase[]
 
   @@unique([assessmentId, memberId])
   @@index([assessmentId, snapshotAt])
