@@ -116,11 +116,12 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
       ],
     });
 
+    const beforeOpen = Date.now() + 60_000;
     await prisma.assemblyCase.update({
       where: { id: assemblyCase.id },
       data: {
-        votingOpenedAt: new Date(Date.now() + 60_000),
-        votingClosesAt: new Date(Date.now() + 72 * 60 * 60 * 1000 + 60_000),
+        votingOpenedAt: new Date(beforeOpen),
+        votingClosesAt: new Date(beforeOpen + 72 * 60 * 60 * 1000),
       },
     });
     await assert.rejects(
@@ -129,11 +130,12 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
       "ballots must be rejected before the voting window opens",
     );
 
+    const afterClose = Date.now() - 60 * 60 * 1000;
     await prisma.assemblyCase.update({
       where: { id: assemblyCase.id },
       data: {
-        votingOpenedAt: new Date(Date.now() - 73 * 60 * 60 * 1000),
-        votingClosesAt: new Date(Date.now() - 60 * 60 * 1000),
+        votingOpenedAt: new Date(afterClose - 72 * 60 * 60 * 1000),
+        votingClosesAt: new Date(afterClose),
       },
     });
     await assert.rejects(
@@ -142,11 +144,12 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
       "ballots must be rejected after the voting window closes",
     );
 
+    const activeWindowStart = Date.now() - 60 * 60 * 1000;
     await prisma.assemblyCase.update({
       where: { id: assemblyCase.id },
       data: {
-        votingOpenedAt: new Date(Date.now() - 60 * 60 * 1000),
-        votingClosesAt: new Date(Date.now() + 71 * 60 * 60 * 1000),
+        votingOpenedAt: new Date(activeWindowStart),
+        votingClosesAt: new Date(activeWindowStart + 72 * 60 * 60 * 1000),
       },
     });
 
