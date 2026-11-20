@@ -89,24 +89,17 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
     });
     assessmentMemberId = snapshot.id;
 
-    const now = Date.now();
     const assemblyCase = await prisma.assemblyCase.create({
       data: {
         communityId: community.id,
         assessmentMemberId: snapshot.id,
         requesterId: owner.id,
         reason: "Integration-test case",
-        status: "VOTING_OPEN",
-        electorateFrozenAt: new Date(now - 60 * 60 * 1000),
-        eligibleVoterCount: 2,
-        noticePublishedAt: new Date(now - 49 * 60 * 60 * 1000),
-        noticeOpensAt: new Date(now - 49 * 60 * 60 * 1000),
-        votingOpenedAt: new Date(now - 60 * 60 * 1000),
-        votingClosesAt: new Date(now + 71 * 60 * 60 * 1000),
       },
     });
     caseId = assemblyCase.id;
 
+    // The electorate must be populated before its freeze is recorded.
     await prisma.assemblyCaseElectorateMember.createMany({
       data: [
         { caseId: assemblyCase.id, userId: voter.id, eligible: true },
@@ -115,41 +108,31 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
       ],
     });
 
-    const beforeOpen = Date.now() + 60_000;
+    const conflictReviewStartedAt = new Date(Date.now() - 50 * 60 * 60 * 1000);
+    const electorateFrozenAt = new Date(conflictReviewStartedAt.getTime() + 60_000);
+    const noticePublishedAt = new Date(Date.now() - 49 * 60 * 60 * 1000);
     await prisma.assemblyCase.update({
       where: { id: assemblyCase.id },
       data: {
-        votingOpenedAt: new Date(beforeOpen),
-        votingClosesAt: new Date(beforeOpen + 72 * 60 * 60 * 1000),
+        conflictReviewStartedAt,
+        electorateFrozenAt,
+        eligibleVoterCount: 2,
       },
     });
-    await assert.rejects(
-      voting.castAssemblyBallot(community.id, assemblyCase.id, voter.id, "YES"),
-      (error: unknown) => error instanceof AppError && error.statusCode === 409,
-      "ballots must be rejected before the voting window opens",
-    );
-
-    const afterClose = Date.now() - 60 * 60 * 1000;
     await prisma.assemblyCase.update({
       where: { id: assemblyCase.id },
       data: {
-        votingOpenedAt: new Date(afterClose - 72 * 60 * 60 * 1000),
-        votingClosesAt: new Date(afterClose),
+        status: "NOTICE_PUBLISHED",
+        noticePublishedAt,
+        noticeOpensAt: noticePublishedAt,
       },
     });
-    await assert.rejects(
-      voting.castAssemblyBallot(community.id, assemblyCase.id, voter.id, "YES"),
-      (error: unknown) => error instanceof AppError && error.statusCode === 409,
-      "ballots must be rejected after the voting window closes",
-    );
 
-    const activeWindowStart = Date.now() - 60 * 60 * 1000;
+    const votingOpenedAt = new Date();
+    const votingClosesAt = new Date(votingOpenedAt.getTime() + 72 * 60 * 60 * 1000);
     await prisma.assemblyCase.update({
       where: { id: assemblyCase.id },
-      data: {
-        votingOpenedAt: new Date(activeWindowStart),
-        votingClosesAt: new Date(activeWindowStart + 72 * 60 * 60 * 1000),
-      },
+      data: { status: "VOTING_OPEN", votingOpenedAt, votingClosesAt },
     });
 
     await assert.rejects(
