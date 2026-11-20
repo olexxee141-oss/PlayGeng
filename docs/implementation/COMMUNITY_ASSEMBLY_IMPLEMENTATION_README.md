@@ -80,4 +80,17 @@ A disputed conflict must be determined by an independent, conflict-free authorit
 
 ## Current implementation status
 
-The policy helper (#44), private case intake (#45), and Treasury-safe case intake foundation are merged. PR #46 implements confidential conflict declarations, one-time subject responses, independent primary-Council determinations, and an immutable electorate snapshot with the frozen quorum denominator. Evidence upload, notices, Assembly ballots, Judiciary review, Treasury relief execution, and user interfaces remain unimplemented.
+The policy helper (#44), private case intake (#45), and Treasury-safe case intake foundation are merged. PR #46 implements confidential conflict declarations, one-time subject responses, independent primary-Council determinations, and an immutable electorate snapshot with the frozen quorum denominator. Evidence upload, Judiciary review, Treasury relief execution, and user interfaces remain unimplemented. Notice publication and the Assembly voting lifecycle are implemented in PR #47 (pending CI).
+
+
+### Slice 4 — Case notice and Assembly voting (PR #47)
+
+- A frozen electorate is required before notice publication.
+- Notice publication records the public lifecycle timestamp and enforces a minimum 48-hour notice period before voting can open.
+- Voting opens for exactly 72 hours.
+- Only members marked eligible in the immutable electorate snapshot may cast a ballot.
+- Each voter has one immutable YES/NO ballot.
+- The database independently rejects ballots outside the voting window or from ineligible voters.
+- Quorum is half of the frozen eligible electorate, rounded up.
+- Approval requires quorum and a strict YES majority; ties and insufficient quorum reject the case.
+- A primary Review Council member who is not the requester or an active conflict participant finalizes the outcome after the window closes.

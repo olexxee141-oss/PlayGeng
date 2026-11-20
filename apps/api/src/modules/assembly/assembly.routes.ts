@@ -5,6 +5,7 @@ import { requireAuth } from "../auth/auth.middleware.js";
 import * as controller from "./assembly.controller.js";
 import { submitAssemblyCaseSchema } from "./assembly.validator.js";
 import { declareAssemblyConflictSchema, decideAssemblyConflictSchema, respondToAssemblyConflictSchema } from "./assembly.conflicts.validator.js";
+import { castAssemblyBallotSchema } from "./assembly.voting.validator.js";
 
 export const assemblyRoutes = Router({ mergeParams: true });
 assemblyRoutes.use(requireAuth);
@@ -20,3 +21,8 @@ assemblyRoutes.post("/cases/:caseId/conflicts/:declarationId/decisions", validat
 assemblyRoutes.post("/cases/:caseId/electorate/freeze", asyncHandler(controller.freezeElectorate));
 assemblyRoutes.post("/cases/:caseId/conflicts/:declarationId/response", validate(respondToAssemblyConflictSchema), asyncHandler(controller.respondToConflict));
 assemblyRoutes.get("/cases/:caseId/conflicts", asyncHandler(controller.listConflictDocket));
+assemblyRoutes.post("/cases/:caseId/notice", asyncHandler(controller.publishAssemblyNotice));
+assemblyRoutes.post("/cases/:caseId/voting/open", asyncHandler(controller.openAssemblyVoting));
+assemblyRoutes.post("/cases/:caseId/ballots", validate(castAssemblyBallotSchema), asyncHandler(controller.castAssemblyBallot));
+assemblyRoutes.post("/cases/:caseId/voting/finalize", asyncHandler(controller.finalizeAssemblyVoting));
+assemblyRoutes.get("/cases/:caseId/voting", asyncHandler(controller.getAssemblyVotingStatus));
