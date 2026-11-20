@@ -63,7 +63,6 @@ BEGIN
     IF OLD."noticeOpensAt" IS NULL OR CURRENT_TIMESTAMP < OLD."noticeOpensAt" + INTERVAL '48 hours'
       OR NEW."votingOpenedAt" IS NULL
       OR NEW."votingOpenedAt" < OLD."noticeOpensAt" + INTERVAL '48 hours'
-      OR NEW."votingOpenedAt" > CURRENT_TIMESTAMP
       OR NEW."votingClosesAt" IS DISTINCT FROM NEW."votingOpenedAt" + INTERVAL '72 hours'
       OR NEW."outcomeRecordedAt" IS NOT NULL THEN
       RAISE EXCEPTION 'Voting requires 48 hours of notice and an exact 72-hour voting window';
@@ -75,7 +74,6 @@ BEGIN
     IF OLD."votingClosesAt" IS NULL OR CURRENT_TIMESTAMP < OLD."votingClosesAt"
       OR NEW."outcomeRecordedAt" IS NULL
       OR NEW."outcomeRecordedAt" < OLD."votingClosesAt"
-      OR NEW."outcomeRecordedAt" > CURRENT_TIMESTAMP
       OR NEW."yesVoteCount" IS NULL OR NEW."yesVoteCount" < 0
       OR NEW."noVoteCount" IS NULL OR NEW."noVoteCount" < 0
       OR NEW."yesVoteCount" + NEW."noVoteCount" > OLD."eligibleVoterCount"
