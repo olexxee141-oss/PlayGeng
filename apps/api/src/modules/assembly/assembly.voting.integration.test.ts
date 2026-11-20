@@ -68,6 +68,7 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
         description: "Assembly integration fixture",
         amountMinor: 1000n,
         currency: "NGN",
+        dueAt: new Date(Date.now() + 7 * 86_400_000),
         status: "ISSUED",
         createdById: owner.id,
         issuedById: owner.id,
