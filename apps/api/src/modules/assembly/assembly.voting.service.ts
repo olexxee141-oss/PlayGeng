@@ -36,8 +36,8 @@ export const openAssemblyVoting = async (communityId:string,caseId:string,userId
 export const castAssemblyBallot = async (communityId:string,caseId:string,userId:string,vote:"YES"|"NO") => {
   try {
     const result=await db.castAssemblyBallot(communityId,caseId,userId,vote);
-    if(result.kind!=="CAST") fail(result.kind);
-    return result.ballot;
+    if(result.kind==="CAST") return result.ballot;
+    return fail(result.kind);
   } catch(error) {
     if(typeof error==="object"&&error!==null&&"code" in error&&error.code==="P2002") throw new AppError("You have already cast your immutable ballot for this case.",409);
     throw error;
