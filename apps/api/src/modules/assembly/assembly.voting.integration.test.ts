@@ -7,12 +7,6 @@ import * as voting from "./assembly.voting.service.js";
 
 test("Assembly voting enforces the persisted ballot lifecycle", async () => {
   const suffix = randomUUID();
-  const userIds: string[] = [];
-  let communityId: string | undefined;
-  let campaignId: string | undefined;
-  let assessmentId: string | undefined;
-  let assessmentMemberId: string | undefined;
-  let caseId: string | undefined;
 
   const createUser = async (label: string) => {
     const user = await prisma.user.create({
@@ -23,11 +17,9 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
         passwordHash: "integration-test-hash",
       },
     });
-    userIds.push(user.id);
     return user;
   };
 
-  try {
     const owner = await createUser("owner");
     const voter = await createUser("voter");
     const concurrentVoter = await createUser("concurrent-voter");
@@ -47,7 +39,6 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
         },
       },
     });
-    communityId = community.id;
 
     const campaign = await prisma.contributionCampaign.create({
       data: {
@@ -58,7 +49,6 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
         createdById: owner.id,
       },
     });
-    campaignId = campaign.id;
 
     const assessment = await prisma.contributionAssessment.create({
       data: {
@@ -73,7 +63,6 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
         createdById: owner.id,
       },
     });
-    assessmentId = assessment.id;
 
     const snapshot = await prisma.contributionAssessmentMember.create({
       data: {
@@ -87,7 +76,6 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
         snapshotAt: new Date(),
       },
     });
-    assessmentMemberId = snapshot.id;
 
     const assemblyCase = await prisma.assemblyCase.create({
       data: {
@@ -97,7 +85,6 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
         reason: "Integration-test case",
       },
     });
-    caseId = assemblyCase.id;
 
     // The electorate must be populated before its freeze is recorded.
     await prisma.assemblyCaseElectorateMember.createMany({
@@ -164,12 +151,6 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
     ]);
     assert.equal(concurrentResults.filter((result) => result.status === "fulfilled").length, 1);
     assert.equal(await prisma.assemblyCaseBallot.count({ where: { caseId: assemblyCase.id, voterId: concurrentVoter.id } }), 1);
-  } finally {
-    if (caseId) await prisma.assemblyCase.deleteMany({ where: { id: caseId } });
-    if (assessmentMemberId) await prisma.contributionAssessmentMember.deleteMany({ where: { id: assessmentMemberId } });
-    if (assessmentId) await prisma.contributionAssessment.deleteMany({ where: { id: assessmentId } });
-    if (campaignId) await prisma.contributionCampaign.deleteMany({ where: { id: campaignId } });
-    if (communityId) await prisma.community.deleteMany({ where: { id: communityId } });
-    for (const userId of userIds) await prisma.user.deleteMany({ where: { id: userId } });
-  }
+  // These fixtures intentionally remain in the disposable CI database: ballot and
+  // Assembly audit rows are append-only and must not be deleted to make tests clean.
 });
