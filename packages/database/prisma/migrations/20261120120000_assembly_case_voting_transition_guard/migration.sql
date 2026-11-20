@@ -90,3 +90,40 @@ BEGIN
   RAISE EXCEPTION 'Invalid Assembly case state transition';
 END;
 $$ LANGUAGE plpgsql;
+
+-- Qualify the electorate lookup variable explicitly. The earlier trigger used a
+-- PL/pgSQL variable named "eligible", which collided with the table column name.
+CREATE OR REPLACE FUNCTION "guard_assembly_ballot"() RETURNS trigger AS $$
+DECLARE
+  case_status "AssemblyCaseStatus";
+  opens_at TIMESTAMP(3);
+  closes_at TIMESTAMP(3);
+  voter_is_eligible BOOLEAN;
+BEGIN
+  IF TG_OP <> 'INSERT' THEN
+    RAISE EXCEPTION 'Assembly ballots are immutable';
+  END IF;
+
+  SELECT "status", "votingOpenedAt", "votingClosesAt"
+  INTO case_status, opens_at, closes_at
+  FROM "assembly_cases"
+  WHERE "id" = NEW."caseId"
+  FOR KEY SHARE;
+
+  IF case_status IS NULL OR case_status <> 'VOTING_OPEN' OR opens_at IS NULL OR closes_at IS NULL
+    OR CURRENT_TIMESTAMP < opens_at OR CURRENT_TIMESTAMP >= closes_at THEN
+    RAISE EXCEPTION 'Assembly voting is not open';
+  END IF;
+
+  SELECT electorate_member."eligible" INTO voter_is_eligible
+  FROM "assembly_case_electorate_members" AS electorate_member
+  WHERE electorate_member."caseId" = NEW."caseId"
+    AND electorate_member."userId" = NEW."voterId";
+
+  IF voter_is_eligible IS DISTINCT FROM TRUE THEN
+    RAISE EXCEPTION 'Voter is not eligible in the frozen Assembly electorate';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
