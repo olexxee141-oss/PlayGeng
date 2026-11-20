@@ -69,10 +69,8 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
         amountMinor: 1000n,
         currency: "NGN",
         dueAt: new Date(Date.now() + 7 * 86_400_000),
-        status: "ISSUED",
+        status: "DRAFT",
         createdById: owner.id,
-        issuedById: owner.id,
-        issuedAt: new Date(),
       },
     });
     assessmentId = assessment.id;
