@@ -64,7 +64,7 @@ test("Assembly voting enforces the persisted ballot lifecycle", async () => {
       data: {
         campaignId: campaign.id,
         communityId: community.id,
-        periodKey: `test-${suffix}`,
+        periodKey: `test-${suffix.replaceAll("-", "").slice(0, 24)}`,
         description: "Assembly integration fixture",
         amountMinor: 1000n,
         currency: "NGN",
